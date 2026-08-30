@@ -1,0 +1,832 @@
+/* ==========================================================================
+   Gabriel Biagini Almeida Reis - Portfólio de Engenharia Civil & Tech
+   Design: Bespoke Editorial Architecture (Off-White, Deep Ink Navy & Warm Ochre)
+   ========================================================================== */
+
+:root {
+  /* Editorial Off-White Paper Palette */
+  --bg-body: #F7F5F0;
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #F0EDE5;
+  --bg-surface-elevated: #FFFFFF;
+
+  /* Ink Navy & Charcoal (Solid Architectural Contrast) */
+  --ink-primary: #0B1320;
+  --ink-secondary: #1E293B;
+  --ink-body: #334155;
+  --ink-muted: #64748B;
+  --ink-light: #94A3B8;
+
+  /* Warm Ochre / Champagne Gold (Restrained Refined Accents) */
+  --accent-gold: #B8860B;
+  --accent-gold-light: #C5A059;
+  --accent-gold-dark: #8B6508;
+  --accent-gold-subtle: rgba(184, 134, 11, 0.08);
+  --accent-gold-border: rgba(184, 134, 11, 0.28);
+
+  /* Borders & Grid Rules */
+  --border-editorial: #E5E0D5;
+  --border-light: #ECE7DC;
+  --border-dark: #0B1320;
+
+  /* Typography */
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+
+  /* Architectural Shadows */
+  --shadow-subtle: 0 2px 10px rgba(11, 19, 32, 0.04);
+  --shadow-card: 0 4px 20px rgba(11, 19, 32, 0.06);
+  --shadow-hover: 0 12px 32px rgba(11, 19, 32, 0.10);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Reset & Base Styles
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  background-color: var(--bg-body);
+  color: var(--ink-body);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-body);
+  color: var(--ink-body);
+  line-height: 1.65;
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--ink-primary);
+  color: #FFFFFF;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-body);
+}
+::-webkit-scrollbar-thumb {
+  background: #D5CFBF;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-muted);
+}
+
+/* ==========================================================================
+   Subtle Architectural Grid Pattern (Fine Drafting Paper)
+   ========================================================================== */
+.blueprint-grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  background-size: 60px 60px, 60px 60px;
+  background-image: 
+    linear-gradient(to right, rgba(213, 207, 191, 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(213, 207, 191, 0.45) 1px, transparent 1px);
+}
+
+/* ==========================================================================
+   Layout & Container
+   ========================================================================== */
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.font-heading { font-family: var(--font-heading); }
+.font-sans { font-family: var(--font-sans); }
+.font-mono { font-family: var(--font-mono); }
+
+.text-ink { color: var(--ink-primary); }
+.text-gold { color: var(--accent-gold); }
+.text-muted { color: var(--ink-muted); }
+
+/* ==========================================================================
+   Editorial Header & Navigation
+   ========================================================================== */
+#header {
+  background: rgba(247, 245, 240, 0.94);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-editorial);
+}
+
+.brand-title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink-primary);
+}
+
+.brand-tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nav-link {
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  position: relative;
+  padding: 0.35rem 0;
+}
+
+.nav-link .nav-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent-gold);
+  margin-right: 0.25rem;
+}
+
+.nav-link:hover, .nav-link.active {
+  color: var(--ink-primary);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--ink-primary);
+  transition: width var(--transition-normal);
+}
+
+.nav-link:hover::after, .nav-link.active::after {
+  width: 100%;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: #166534;
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #16A34A;
+  display: inline-block;
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(0.95); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+  100% { transform: scale(0.95); opacity: 1; }
+}
+
+/* ==========================================================================
+   Buttons & CTAs
+   ========================================================================== */
+.btn-primary-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--ink-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  border-radius: 4px;
+  padding: 0.75rem 1.4rem;
+  text-decoration: none;
+  border: 1px solid var(--ink-primary);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.btn-primary-dark:hover {
+  background: #1E293B;
+  color: #FFFFFF;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(11, 19, 32, 0.2);
+}
+
+.btn-outline-editorial {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #FFFFFF;
+  color: var(--ink-primary);
+  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  border-radius: 4px;
+  padding: 0.75rem 1.4rem;
+  text-decoration: none;
+  border: 1px solid var(--border-editorial);
+  box-shadow: var(--shadow-subtle);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.btn-outline-editorial:hover {
+  border-color: var(--ink-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+.btn-whatsapp-direct {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #FFFFFF;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.btn-whatsapp-direct:hover {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+}
+
+/* ==========================================================================
+   Section Headers & Technical Rules
+   ========================================================================== */
+.section-header-editorial {
+  border-top: 1px solid var(--border-editorial);
+  padding-top: 2rem;
+  margin-bottom: 3.5rem;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.section-headline {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--ink-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .section-headline { font-size: 2.5rem; }
+}
+
+/* ==========================================================================
+   Hero Section Specifications Sidebar
+   ========================================================================== */
+.spec-box {
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  border-radius: 6px;
+  padding: 1.75rem;
+  box-shadow: var(--shadow-subtle);
+}
+
+.spec-row {
+  display: flex;
+  flex-direction: column;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.spec-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.spec-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-bottom: 0.2rem;
+}
+
+.spec-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+/* ==========================================================================
+   Bespoke Editorial Cards
+   ========================================================================== */
+.editorial-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  border-radius: 6px;
+  padding: 1.75rem;
+  box-shadow: var(--shadow-subtle);
+  transition: all var(--transition-normal);
+}
+
+.editorial-card:hover {
+  border-color: var(--ink-muted);
+  box-shadow: var(--shadow-card);
+}
+
+/* Technical Competencies Matrix */
+.competency-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.competency-row {
+  border-bottom: 1px solid var(--border-light);
+  padding: 1rem 0;
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.competency-row:last-child {
+  border-bottom: none;
+}
+
+.competency-category {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.competency-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tech-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-editorial);
+  color: var(--ink-secondary);
+  padding: 0.2rem 0.55rem;
+  border-radius: 3px;
+}
+
+.tech-badge.highlight {
+  background: #FFFFFF;
+  border-color: var(--accent-gold);
+  color: var(--accent-gold-dark);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Academic & Research Dossier
+   ========================================================================== */
+.dossier-item {
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  border-radius: 6px;
+  padding: 2rem;
+  box-shadow: var(--shadow-subtle);
+  margin-bottom: 1.5rem;
+  transition: all var(--transition-normal);
+}
+
+.dossier-item:hover {
+  border-color: var(--accent-gold);
+  box-shadow: var(--shadow-card);
+}
+
+.dossier-index {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dossier-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ink-primary);
+  margin-top: 0.35rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.35;
+}
+
+.dossier-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* ==========================================================================
+   Experience Logbook
+   ========================================================================== */
+.exp-log-item {
+  border-left: 2px solid var(--border-editorial);
+  padding-left: 1.75rem;
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.exp-log-item::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: -6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid var(--ink-primary);
+}
+
+.exp-log-item:hover::before {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold);
+}
+
+.exp-log-company {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ink-primary);
+}
+
+.exp-log-role {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+/* ==========================================================================
+   Project Archive & Plates
+   ========================================================================== */
+.project-filter-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  color: var(--ink-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.project-filter-btn:hover, .project-filter-btn.active {
+  background: var(--ink-primary);
+  color: #FFFFFF;
+  border-color: var(--ink-primary);
+}
+
+.project-plate {
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--shadow-subtle);
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.project-plate:hover {
+  border-color: var(--ink-primary);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
+
+.project-plate.hidden {
+  display: none !important;
+}
+
+.project-media-wrap {
+  position: relative;
+  width: 100%;
+  height: 230px;
+  background-color: var(--bg-surface-subtle);
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-editorial);
+}
+
+.project-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  transition: transform var(--transition-smooth);
+}
+
+.project-plate:hover .project-media {
+  transform: scale(1.04);
+}
+
+.project-code-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(11, 19, 32, 0.88);
+  color: #FFFFFF;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 3px;
+}
+
+.project-plate-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.project-plate-sub {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent-gold);
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.project-plate-title {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--ink-primary);
+  margin-bottom: 0.6rem;
+  line-height: 1.35;
+}
+
+.project-plate-desc {
+  font-size: 0.85rem;
+  color: var(--ink-body);
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+/* ==========================================================================
+   Code Workbench (Clean VS Code Style)
+   ========================================================================== */
+.code-workbench {
+  background: #0B1320;
+  border: 1px solid #1E293B;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(11, 19, 32, 0.15);
+}
+
+.code-workbench-header {
+  background: #070D18;
+  border-bottom: 1px solid #1E293B;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.code-tab {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #94A3B8;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.code-tab:hover {
+  color: #FFFFFF;
+  background: #111D30;
+}
+
+.code-tab.active {
+  background: #132238;
+  color: #F8FAFC;
+  border-color: #2A3C56;
+}
+
+.btn-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #132238;
+  border: 1px solid #2A3C56;
+  color: #E2E8F0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-code-copy:hover {
+  background: #1E3454;
+  border-color: var(--accent-gold);
+}
+
+.code-display {
+  padding: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.825rem;
+  line-height: 1.65;
+  color: #E2E8F0;
+  overflow-x: auto;
+}
+
+/* ==========================================================================
+   Contact Section & Inputs
+   ========================================================================== */
+.input-editorial {
+  width: 100%;
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.input-editorial:focus {
+  border-color: var(--ink-primary);
+  box-shadow: 0 0 0 2px rgba(11, 19, 32, 0.08);
+}
+
+/* ==========================================================================
+   Modal Lightbox (Blueprint Viewer)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 19, 32, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-overlay.hidden {
+  display: none !important;
+}
+
+.modal-container {
+  position: relative;
+  max-width: 1040px;
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-editorial);
+  color: var(--ink-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all var(--transition-fast);
+}
+
+.modal-close-btn:hover {
+  background: var(--ink-primary);
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   Floating WhatsApp Button
+   ========================================================================== */
+.floating-whatsapp {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #15803D;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  text-decoration: none;
+  box-shadow: 0 4px 18px rgba(21, 128, 61, 0.35);
+  z-index: 45;
+  transition: all var(--transition-normal);
+}
+
+.floating-whatsapp:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(21, 128, 61, 0.5);
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   Scroll Reveal Animations
+   ========================================================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
