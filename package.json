@@ -1,0 +1,22 @@
+{
+  "name": "gabriel-biagini-portfolio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/copy-assets.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@thatopen/components": "3.4.8",
+    "@thatopen/components-front": "3.4.4",
+    "@thatopen/fragments": "3.4.7",
+    "three": "0.185.1",
+    "three-mesh-bvh": "0.9.13",
+    "web-ifc": "0.0.77"
+  },
+  "devDependencies": {
+    "vite": "7.1.7"
+  }
+}

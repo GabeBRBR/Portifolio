@@ -271,6 +271,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Direct trigger for 3D IFC Viewer
+  document.querySelectorAll('[data-open-ifc]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.ifcViewer && typeof window.ifcViewer.openViewer === 'function') {
+        const workKey = card.getAttribute('data-open-ifc') || 'casa-terrea';
+        window.ifcViewer.openViewer(workKey);
+      } else if (window.location.protocol === 'file:') {
+        window.alert('O portfólio pode ser aberto diretamente, mas o visualizador IFC precisa de um servidor local para carregar o motor WebAssembly. No terminal desta pasta, execute: pnpm dev');
+      } else {
+        const modal = document.getElementById('ifc-viewer-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+      }
+    });
+  });
+
   if (modalCloseBtn) {
     modalCloseBtn.addEventListener('click', closeProjectModal);
   }
