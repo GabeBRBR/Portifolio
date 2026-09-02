@@ -327,6 +327,7 @@
         <!-- Project Filters -->
         <div class="flex flex-wrap items-center gap-2">
           <button class="project-filter-btn active" data-filter="all">Todos</button>
+          <button class="project-filter-btn" data-filter="ifc"><i class="fa-solid fa-cube text-ochre mr-1"></i> Visualizador IFC</button>
           <button class="project-filter-btn" data-filter="bim">BIM &amp; MEP</button>
           <button class="project-filter-btn" data-filter="estrutural">Estruturas</button>
           <button class="project-filter-btn" data-filter="asbuilt">As-Built / Laser 3D</button>
@@ -336,6 +337,51 @@
 
       <!-- Project Plates Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="projects-grid">
+        
+        <!-- Plate 0: Visualizador IFC 3D Federado Interativo -->
+        <div class="project-plate reveal border-2 !border-ochre/50 shadow-md bg-gradient-to-b from-surface to-surfaceSubtle col-span-1 md:col-span-2 lg:col-span-3" data-category="ifc" data-open-ifc="casa-terrea">
+          <div class="grid grid-cols-1 lg:grid-cols-12">
+            <div class="lg:col-span-7 project-media-wrap relative group cursor-pointer !h-64 sm:!h-80">
+              <img src="assets/images/eletrico/eletrico-jardim-sul-ifc.jpg" alt="Visualizador BIM IFC 3D Interativo" class="project-media !object-cover" loading="lazy">
+              <div class="absolute inset-0 bg-ink/60 flex flex-col items-center justify-center gap-3 group-hover:bg-ink/40 transition-colors p-4 text-center">
+                <span class="w-14 h-14 rounded-full bg-ochre text-ink flex items-center justify-center text-2xl shadow-xl transform group-hover:scale-110 transition-transform">
+                  <i class="fa-solid fa-play ml-1"></i>
+                </span>
+                <div>
+                  <span class="font-mono text-xs font-bold text-white uppercase tracking-wider bg-ink/90 px-3.5 py-1.5 rounded border border-ochre/40 shadow">
+                    ▶ Abrir Visualizador IFC 3D em Tela Cheia
+                  </span>
+                  <span class="block text-[11px] text-slate-300 font-mono mt-1.5">Modelos Federados · Colisão 1ª Pessoa · Portas Vazadas</span>
+                </div>
+              </div>
+              <span class="project-code-tag !bg-ochre !text-ink font-bold">● MODELO BIM 3D INTERATIVO (WASM)</span>
+            </div>
+            <div class="lg:col-span-5 project-plate-body justify-between">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <span class="project-plate-sub text-ochre font-bold">Three.js + Web-IFC Engine</span>
+                  <span class="tech-badge highlight text-[10px]">WebGL 3D</span>
+                </div>
+                <h3 class="project-plate-title text-xl mb-2">Visualizador BIM Multidisciplinar</h3>
+                <p class="project-plate-desc text-xs sm:text-sm mb-4 leading-relaxed">
+                  Explore os modelos IFC federados diretamente no navegador. Alterne entre as obras <strong>Casa Térrea (Jardim Sul)</strong> e <strong>Galpão Industrial</strong>, controle camadas (Arquitetura, Estrutural e Elétrica) e ative o <strong>Modo de Caminhada em 1ª Pessoa</strong> com colisão realista e portas vazadas de passagem livre.
+                </p>
+              </div>
+              <div class="space-y-3 pt-3 border-t border-border-light">
+                <div class="flex flex-wrap gap-1.5">
+                  <span class="tech-badge highlight"><i class="fa-solid fa-person-walking mr-1"></i> Modo Caminhar 1ª Pessoa</span>
+                  <span class="tech-badge highlight"><i class="fa-solid fa-layer-group mr-1"></i> Modelos Federados</span>
+                  <span class="tech-badge">Planos de Corte</span>
+                  <span class="tech-badge">Inspector BIM</span>
+                </div>
+                <button type="button" class="btn-primary-dark w-full justify-center !py-2.5 !text-xs !bg-ink hover:!bg-ochre hover:!text-ink transition-colors">
+                  <i class="fa-solid fa-cube text-ochre mr-1"></i>
+                  <span>Lançar Visualizador 3D</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
         
         <!-- Plate 1: BIM Hidro 3D -->
         <div class="project-plate reveal" data-category="bim" data-modal="modal-p1">
@@ -1034,6 +1080,48 @@ def auditar_durabilidade_nbr6118(dados_viga):
     </div>
   </div>
 
+  <!-- IFC BIM Viewer -->
+  <div id="ifc-viewer-modal" class="ifc-app hidden" role="dialog" aria-modal="true" aria-label="Visualizador BIM IFC">
+    <header class="ifc-app__header">
+      <div class="ifc-app__identity"><span class="ifc-app__mark">IFC</span><div><h2>Visualizador BIM</h2><p>Modelo federado no navegador</p></div></div>
+      <div class="ifc-app__actions">
+        <label class="ifc-button ifc-button--primary" for="ifc-file-input"><i class="fa-solid fa-plus"></i><span>Adicionar IFCs</span></label>
+        <input id="ifc-file-input" type="file" multiple accept=".ifc,.IFC" hidden>
+        <button id="ifc-fullscreen-btn" class="ifc-icon-button" aria-label="Tela cheia" title="Tela cheia"><i class="fa-solid fa-expand"></i></button>
+        <button id="ifc-close-btn" class="ifc-icon-button" aria-label="Fechar" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </header>
+    <div class="ifc-app__body">
+      <aside id="ifc-model-panel" class="ifc-sidepanel ifc-sidepanel--models">
+        <div class="ifc-panel-heading"><span>Modelos</span><button id="ifc-load-demo-btn" class="ifc-text-button">Trocar exemplo</button></div>
+        <p id="ifc-model-empty" class="ifc-empty-copy">Nenhum modelo carregado.</p>
+        <div id="ifc-model-list" class="ifc-model-list"></div>
+        <p class="ifc-panel-note">Os arquivos permanecem somente neste navegador. Máximo: 3 modelos.</p>
+      </aside>
+      <main id="ifc-canvas-container" class="ifc-viewport" aria-label="Área de visualização 3D">
+        <div id="ifc-loading-overlay" class="ifc-loading-overlay hidden" aria-live="polite"><div class="ifc-spinner"></div><strong id="ifc-loading-text">Preparando visualizador…</strong><div class="ifc-progress-track"><div id="ifc-progress-bar" class="ifc-progress-bar"></div></div></div>
+        <div id="ifc-status" class="ifc-status hidden" role="status"></div>
+        <div id="ifc-walk-help" class="ifc-walk-help hidden">Clique em um piso para posicionar-se. Depois use <b>W A S D</b> para andar, <b>Shift</b> para correr e <b>Esc</b> para sair.</div>
+        <div class="ifc-toolbar" role="toolbar" aria-label="Ferramentas do modelo">
+          <button data-action="orbit" class="ifc-tool-btn active"><i class="fa-solid fa-rotate"></i><span>Órbita</span></button>
+          <button data-action="walk" class="ifc-tool-btn ifc-walk-only"><i class="fa-solid fa-person-walking"></i><span>Caminhar</span></button>
+          <button data-action="fit" class="ifc-tool-btn"><i class="fa-solid fa-arrows-to-dot"></i><span>Enquadrar</span></button>
+          <button data-action="explode" class="ifc-tool-btn"><i class="fa-solid fa-arrows-up-down"></i><span>Explodir</span></button>
+          <button data-action="clip" class="ifc-tool-btn"><i class="fa-solid fa-scissors"></i><span>Cortes</span></button>
+          <button data-action="background" class="ifc-tool-btn"><i class="fa-solid fa-palette"></i><span>Fundo</span></button>
+        </div>
+        <section id="ifc-explode-panel" class="ifc-float-panel hidden"><label for="ifc-explode-range">Separação dos pavimentos <output id="ifc-explode-value">0,0 m</output></label><input id="ifc-explode-range" type="range" min="0" max="10" step="0.1" value="0"></section>
+        <section id="ifc-background-panel" class="ifc-float-panel hidden"><span>Cor de fundo</span><div class="ifc-swatches"><button data-color="#f7f5f0" style="--swatch:#f7f5f0" aria-label="Papel"></button><button data-color="#dce8ef" style="--swatch:#dce8ef" aria-label="Azul claro"></button><button data-color="#17212b" style="--swatch:#17212b" aria-label="Escuro"></button><input id="ifc-background-input" type="color" value="#f7f5f0" aria-label="Escolher cor de fundo"></div></section>
+        <section id="ifc-clip-panel" class="ifc-float-panel ifc-clip-panel hidden"><div class="ifc-panel-heading"><span>Caixa de corte</span><button id="ifc-reset-clip" class="ifc-text-button">Redefinir</button></div><div id="ifc-clip-ranges"></div></section>
+      </main>
+      <aside id="ifc-properties-panel" class="ifc-sidepanel ifc-sidepanel--properties">
+        <div class="ifc-panel-heading"><span>Propriedades</span><button id="ifc-clear-selection" class="ifc-text-button">Limpar</button></div>
+        <input id="ifc-property-search" type="search" placeholder="Buscar propriedade" aria-label="Buscar propriedade">
+        <div id="ifc-properties-content" class="ifc-properties-content"><p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p></div>
+      </aside>
+    </div>
+  </div>
+
   <!-- Floating WhatsApp Action Button -->
   <a href="https://wa.me/5562981143331?text=Ol%C3%A1%20Gabriel,%20vi%20seu%20portf%C3%B3lio%20e%20gostaria%20de%20conversar!" target="_blank" rel="noopener noreferrer" class="floating-whatsapp" title="WhatsApp Gabriel" aria-label="WhatsApp">
     <i class="fa-brands fa-whatsapp"></i>
@@ -1057,6 +1145,10 @@ def auditar_durabilidade_nbr6118(dados_viga):
   </footer>
 
   <!-- Scripts -->
+  <!-- IFC Viewer Engine -->
+  <script type="module" src="src/ifc-viewer.js"></script>
+
+  <!-- Main Website Scripts -->
   <script src="script.js"></script>
 </body>
 </html>
