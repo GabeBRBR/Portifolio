@@ -1,0 +1,23 @@
+# =========================================================================
+# GITHUB PAGES .GITIGNORE
+# Ignora arquivos brutos pesados (>50MB) que excedem o limite do GitHub
+# =========================================================================
+
+# Arquivos brutos e renders em alta resolução (300MB - 700MB)
+assets/projects/
+site v03/
+portifolio/
+
+# Arquivos de sistema e SO
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+
+# Dependências e artefatos de build locais
+node_modules/
+.pnpm-store/
+dist/
