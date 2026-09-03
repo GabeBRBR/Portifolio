@@ -11,9 +11,10 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const DEMOS = {
   'casa-terrea': [
-    ['Arquitetura', 'assets/IFC/Casa Térrea/RTA-ARQ-PRE-R07(Design).ifc'],
-    ['Estrutural', 'assets/IFC/Casa Térrea/AION-GM_BIM-JD_SUL_60-EST-R06.IFC'],
-    ['Elétrica', 'assets/IFC/Casa Térrea/AION-GM_BIM-JD_SUL_60-ELE-R04.ifc']
+    ['Estrutural', 'assets/IFC/Casa Térrea/CASA-EST.ifc'],
+    ['Elétrica', 'assets/IFC/Casa Térrea/CASA-ELE.ifc'],
+    ['Hidráulica', 'assets/IFC/Casa Térrea/CASA-HID.ifc'],
+    ['Sanitária', 'assets/IFC/Casa Térrea/CASA-ESG.ifc']
   ],
   galpao: [
     ['Arquitetura', 'assets/IFC/Galpão/ARQ.ifc'],
@@ -21,6 +22,7 @@ const DEMOS = {
   ]
 };
 
+const MAX_MODELS = 4;
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
 const PASSABLE_TYPES = new Set([IFCDOOR, IFCDOORSTANDARDCASE, IFCWINDOW, IFCWINDOWSTANDARDCASE, IFCOPENINGELEMENT]);
 const fmtSize = (value) => value < 1024 ** 2 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 ** 2).toFixed(1)} MB`;
@@ -184,7 +186,7 @@ class IFCViewer {
   async addFiles(fileList) {
     const files = [...(fileList || [])].filter((file) => /\.ifc$/i.test(file.name));
     if (!files.length) return this.showStatus('Selecione arquivos no formato IFC.');
-    if (this.models.size + files.length > 3) return this.showStatus('O visualizador aceita no máximo três modelos de cada vez. Remova um modelo antes de adicionar outro.');
+    if (this.models.size + files.length > MAX_MODELS) return this.showStatus(`O visualizador aceita no máximo ${MAX_MODELS} modelos de cada vez. Remova um modelo antes de adicionar outro.`);
     const incomingBytes = files.reduce((total, file) => total + file.size, 0);
     const loadedBytes = [...this.models.values()].reduce((total, model) => total + model.size, 0);
     if (this.safeProfile && loadedBytes + incomingBytes > this.maxSafeInputBytes) return this.showStatus('Modo econômico: com até 8 GB de RAM, carregue um IFC por vez e mantenha o total abaixo de 110 MB para evitar travamento.');
