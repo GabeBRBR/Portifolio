@@ -138,6 +138,24 @@ body {
   border-bottom: 1px solid var(--border-editorial);
 }
 
+/* Keep the main navigation available even if Tailwind's CDN utilities load late. */
+.portfolio-desktop-nav,
+.portfolio-header-contact {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .portfolio-desktop-nav {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .portfolio-header-contact {
+    display: flex !important;
+  }
+}
+
 .brand-title {
   font-family: var(--font-heading);
   font-size: 1.05rem;
