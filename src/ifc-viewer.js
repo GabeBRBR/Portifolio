@@ -47,6 +47,9 @@ class IFCViewer {
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
     this.walk = { keys: new Set(), jumpRequested: false, velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1 };
     this.lastFrame = performance.now();
+    this.lastRender = 0;
+    this.needsRender = true;
+    this.federationCenter = null;
     this.initDom();
     this.bindUi();
   }
@@ -87,8 +90,10 @@ class IFCViewer {
     this.scene.background = new THREE.Color(this.background);
     this.camera = new THREE.PerspectiveCamera(50, 1, .1, 2000);
     this.camera.position.set(18, 14, 18);
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+    // IFCs often contain thousands of draw calls. Avoid forcing the discrete GPU and
+    // cap the internal canvas resolution before it becomes needlessly expensive.
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
     this.renderer.localClippingEnabled = true;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.container.prepend(this.renderer.domElement);
@@ -96,6 +101,7 @@ class IFCViewer {
     this.orbit.enableDamping = true;
     this.orbit.dampingFactor = .08;
     this.orbit.maxPolarAngle = Math.PI / 2 + .03;
+    this.orbit.addEventListener('change', () => this.requestRender());
     this.pointer = new PointerLockControls(this.camera, this.renderer.domElement);
     this.pointer.pointerSpeed = .85;
     this.pointer.addEventListener('unlock', () => {
@@ -206,7 +212,13 @@ class IFCViewer {
         group.add(mesh); record.meshes.push(mesh); this.meshes.push(mesh);
       }
     });
-    this.models.set(id, record); await this.mapFloors(record); this.renderModels(); this.resetClipBox();
+    this.models.set(id, record);
+    await this.mapFloors(record);
+    this.refreshExplosionCache();
+    if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance);
+    this.renderModels();
+    this.resetClipBox();
+    this.requestRender();
   }
 
   async mapFloors(record) {
@@ -231,7 +243,7 @@ class IFCViewer {
     });
   }
 
-  setModelVisibility(id, visible) { const model = this.models.get(id); if (!model) return; model.visible = visible; model.group.visible = visible; this.clearSelection(); }
+  setModelVisibility(id, visible) { const model = this.models.get(id); if (!model) return; model.visible = visible; model.group.visible = visible; this.clearSelection(); this.requestRender(); }
   setModelOpacity(id, opacity, output) {
     const model = this.models.get(id); if (!model) return;
     model.opacity = opacity;
@@ -241,11 +253,12 @@ class IFCViewer {
       material.opacity = effectiveOpacity; material.transparent = effectiveOpacity < .999; material.depthWrite = effectiveOpacity >= .999; material.needsUpdate = true;
     });
     if (output) output.textContent = `${Math.round(opacity * 100)}%`;
+    this.requestRender();
   }
-  async removeModel(id) { const model = this.models.get(id); if (!model) return; this.clearSelection(); model.meshes.forEach((mesh) => { this.meshes = this.meshes.filter((entry) => entry !== mesh); mesh.geometry.disposeBoundsTree?.(); mesh.geometry.dispose(); mesh.material.dispose(); }); this.root.remove(model.group); this.api.CloseModel(model.modelID); this.models.delete(id); this.renderModels(); this.resetClipBox(); }
+  async removeModel(id) { const model = this.models.get(id); if (!model) return; this.clearSelection(); model.meshes.forEach((mesh) => { this.meshes = this.meshes.filter((entry) => entry !== mesh); mesh.geometry.disposeBoundsTree?.(); mesh.geometry.dispose(); mesh.material.dispose(); }); this.root.remove(model.group); this.api.CloseModel(model.modelID); this.models.delete(id); this.refreshExplosionCache(); if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance); this.renderModels(); this.resetClipBox(); this.requestRender(); }
   async removeAllModels() { await Promise.all([...this.models.keys()].map((id) => this.removeModel(id))); }
 
-  fitModelToView() { if (!this.meshes.length) return; const box = new THREE.Box3(); this.meshes.filter((mesh) => mesh.parent?.visible).forEach((mesh) => box.expandByObject(mesh)); if (box.isEmpty()) return; const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const distance = Math.max(12, Math.max(size.x, size.y, size.z) * 1.35); this.orbit.target.copy(center); this.camera.position.set(center.x + distance, center.y + distance * .62, center.z + distance); this.orbit.update(); }
+  fitModelToView() { if (!this.meshes.length) return; const box = new THREE.Box3(); this.meshes.filter((mesh) => mesh.parent?.visible).forEach((mesh) => box.expandByObject(mesh)); if (box.isEmpty()) return; const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const distance = Math.max(12, Math.max(size.x, size.y, size.z) * 1.35); this.orbit.target.copy(center); this.camera.position.set(center.x + distance, center.y + distance * .62, center.z + distance); this.orbit.update(); this.requestRender(); }
 
   handleAction(action) { if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel'); }
   togglePanel(id) { document.getElementById(id).classList.toggle('hidden'); }
@@ -264,6 +277,7 @@ class IFCViewer {
     this.renderer?.domElement.classList.toggle('ifc-place-cursor', mode === 'walk-placement');
     document.querySelectorAll('[data-action="orbit"],[data-action="walk"]').forEach((button) => button.classList.toggle('active', button.dataset.action === (mode === 'orbit' ? 'orbit' : 'walk')));
     requestAnimationFrame(() => this.resize());
+    this.requestRender();
   }
   exitWalk({ unlock = true } = {}) {
     this.setMode('orbit', { unlock });
@@ -275,6 +289,7 @@ class IFCViewer {
     this.walk.zoom = THREE.MathUtils.clamp(this.walk.zoom - event.deltaY * .0015, .65, 2.5);
     this.camera.zoom = this.walk.zoom;
     this.camera.updateProjectionMatrix();
+    this.requestRender();
   }
 
   onCanvasClick(event) {
@@ -305,6 +320,7 @@ class IFCViewer {
 
   async inspect(mesh, point) {
     this.clearSelection(); this.selection = mesh; mesh.material.emissive = new THREE.Color(0x6a4c08); mesh.material.emissiveIntensity = .35;
+    this.requestRender();
     const { modelID, expressID, discipline } = mesh.userData; this.properties.innerHTML = '<p class="ifc-empty-copy">Consultando propriedades IFC…</p>';
     try {
       const line = this.api.GetLine(modelID, expressID, false, true); const type = this.api.GetNameFromTypeCode(this.api.GetLineType(modelID, expressID));
@@ -328,35 +344,48 @@ class IFCViewer {
     } catch (error) { this.properties.innerHTML = `<p class="ifc-empty-copy">Não foi possível obter as propriedades: ${error.message}</p>`; }
   }
 
-  clearSelection() { if (this.selection) { this.selection.material.emissive = new THREE.Color(0x000000); this.selection.material.emissiveIntensity = 0; } this.selection = null; this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>'; this.search.value = ''; }
+  clearSelection() { if (this.selection) { this.selection.material.emissive = new THREE.Color(0x000000); this.selection.material.emissiveIntensity = 0; } this.selection = null; this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>'; this.search.value = ''; this.requestRender(); }
   filterProperties() { const query = this.search.value.trim().toLocaleLowerCase('pt-BR'); this.properties.querySelectorAll('.ifc-property-row').forEach((row) => row.classList.toggle('is-hidden', !!query && !row.textContent.toLocaleLowerCase('pt-BR').includes(query))); }
 
   setExplodeDistance(distance) {
     document.getElementById('ifc-explode-value').textContent = `${distance.toFixed(1).replace('.', ',')} m`;
     if (!this.meshes.length) return;
-    const bounds = new THREE.Box3();
+    if (!this.federationCenter) this.refreshExplosionCache();
     this.meshes.forEach((mesh) => {
-      mesh.geometry.computeBoundingBox();
-      const center = mesh.geometry.boundingBox.getCenter(new THREE.Vector3()).add(mesh.userData.originalPosition);
-      bounds.expandByPoint(center);
-    });
-    const federationCenter = bounds.getCenter(new THREE.Vector3());
-    this.meshes.forEach((mesh) => {
-      const elementCenter = mesh.geometry.boundingBox.getCenter(new THREE.Vector3()).add(mesh.userData.originalPosition);
-      const direction = elementCenter.sub(federationCenter);
+      const direction = mesh.userData.explosionCenter.clone().sub(this.federationCenter);
       if (direction.lengthSq() > .000001) direction.normalize();
       mesh.position.copy(mesh.userData.originalPosition).addScaledVector(direction, distance);
     });
     this.explodeDistance = distance;
     this.applyClipBox();
+    this.requestRender();
+  }
+  refreshExplosionCache() {
+    const bounds = new THREE.Box3();
+    this.meshes.forEach((mesh) => {
+      if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+      mesh.userData.explosionCenter = mesh.geometry.boundingBox.getCenter(new THREE.Vector3()).add(mesh.userData.originalPosition);
+      bounds.expandByPoint(mesh.userData.explosionCenter);
+    });
+    this.federationCenter = bounds.isEmpty() ? null : bounds.getCenter(new THREE.Vector3());
   }
   resetClipBox() {
-    this.clipPlanes = []; if (!this.meshes.length) return this.renderClipControls(); const box = new THREE.Box3(); this.meshes.forEach((mesh) => box.expandByObject(mesh)); const padding = .01; this.clipBox = { minX: box.min.x - padding, maxX: box.max.x + padding, minY: box.min.y - padding, maxY: box.max.y + padding, minZ: box.min.z - padding, maxZ: box.max.z + padding }; this.applyClipBox(); this.renderClipControls();
+    if (!this.meshes.length) return this.renderClipControls(); const box = new THREE.Box3(); this.meshes.forEach((mesh) => box.expandByObject(mesh)); const padding = .01; this.clipBox = { minX: box.min.x - padding, maxX: box.max.x + padding, minY: box.min.y - padding, maxY: box.max.y + padding, minZ: box.min.z - padding, maxZ: box.max.z + padding }; this.applyClipBox(); this.renderClipControls();
   }
-  applyClipBox() { if (!this.clipBox) return; const padding = this.explodeDistance || 0; const b = { minX: this.clipBox.minX - padding, maxX: this.clipBox.maxX + padding, minY: this.clipBox.minY - padding, maxY: this.clipBox.maxY + padding, minZ: this.clipBox.minZ - padding, maxZ: this.clipBox.maxZ + padding }; this.clipPlanes = [new THREE.Plane(new THREE.Vector3(1, 0, 0), -b.minX), new THREE.Plane(new THREE.Vector3(-1, 0, 0), b.maxX), new THREE.Plane(new THREE.Vector3(0, 1, 0), -b.minY), new THREE.Plane(new THREE.Vector3(0, -1, 0), b.maxY), new THREE.Plane(new THREE.Vector3(0, 0, 1), -b.minZ), new THREE.Plane(new THREE.Vector3(0, 0, -1), b.maxZ)]; this.meshes.forEach((mesh) => { mesh.material.clippingPlanes = this.clipPlanes; mesh.material.needsUpdate = true; }); }
+  applyClipBox() {
+    if (!this.clipBox) return;
+    const padding = this.explodeDistance || 0;
+    const b = { minX: this.clipBox.minX - padding, maxX: this.clipBox.maxX + padding, minY: this.clipBox.minY - padding, maxY: this.clipBox.maxY + padding, minZ: this.clipBox.minZ - padding, maxZ: this.clipBox.maxZ + padding };
+    if (this.clipPlanes.length !== 6) {
+      this.clipPlanes = [new THREE.Plane(new THREE.Vector3(1, 0, 0)), new THREE.Plane(new THREE.Vector3(-1, 0, 0)), new THREE.Plane(new THREE.Vector3(0, 1, 0)), new THREE.Plane(new THREE.Vector3(0, -1, 0)), new THREE.Plane(new THREE.Vector3(0, 0, 1)), new THREE.Plane(new THREE.Vector3(0, 0, -1))];
+      new Set(this.meshes.map((mesh) => mesh.material)).forEach((material) => { material.clippingPlanes = this.clipPlanes; material.needsUpdate = true; });
+    }
+    [-b.minX, b.maxX, -b.minY, b.maxY, -b.minZ, b.maxZ].forEach((constant, index) => { this.clipPlanes[index].constant = constant; });
+    this.requestRender();
+  }
   renderClipControls() { const root = document.getElementById('ifc-clip-ranges'); root.innerHTML = ''; if (!this.clipBox) return; const min = Math.min(this.clipBox.minX, this.clipBox.minY, this.clipBox.minZ); const max = Math.max(this.clipBox.maxX, this.clipBox.maxY, this.clipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${this.clipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${this.clipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { this.clipBox[key] = Number(event.target.value); row.querySelector('output').textContent = `${this.clipBox[key].toFixed(2)} m`; this.applyClipBox(); }); root.append(row); }); }
   setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
-  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; const luminance = new THREE.Color(color).getLuminance(); if (this.grid) { this.grid.material.opacity = luminance > .5 ? .35 : .65; this.grid.material.transparent = true; } }
+  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; const luminance = new THREE.Color(color).getLuminance(); if (this.grid) { this.grid.material.opacity = luminance > .5 ? .35 : .65; this.grid.material.transparent = true; } this.requestRender(); }
 
   onKey(event, down) {
     if (this.mode !== 'walk') return;
@@ -430,8 +459,25 @@ class IFCViewer {
       this.camera.position.y = nextY; this.walk.grounded = false;
     }
   }
-  animate() { requestAnimationFrame(() => this.animate()); if (!this.scene || this.modal.classList.contains('hidden')) return; const now = performance.now(); const delta = Math.min(.05, (now - this.lastFrame) / 1000); this.lastFrame = now; if (this.orbit?.enabled) this.orbit.update(); this.updateWalk(delta); this.renderer.render(this.scene, this.camera); }
-  resize() { if (!this.renderer) return; const rect = this.container.getBoundingClientRect(); const width = Math.round(rect.width), height = Math.round(rect.height); if (!width || !height) return; this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false); }
+  requestRender() { this.needsRender = true; }
+  animate() {
+    requestAnimationFrame(() => this.animate());
+    if (!this.scene || this.modal.classList.contains('hidden')) return;
+    const now = performance.now();
+    const delta = Math.min(.05, (now - this.lastFrame) / 1000);
+    this.lastFrame = now;
+    if (this.orbit?.enabled && this.orbit.update()) this.requestRender();
+    const walking = this.mode === 'walk' && this.pointer?.isLocked;
+    this.updateWalk(delta);
+    if (walking) this.requestRender();
+    const interval = walking ? 1000 / 45 : 1000 / 30;
+    if (this.needsRender && now - this.lastRender >= interval) {
+      this.renderer.render(this.scene, this.camera);
+      this.lastRender = now;
+      this.needsRender = false;
+    }
+  }
+  resize() { if (!this.renderer) return; const rect = this.container.getBoundingClientRect(); const width = Math.round(rect.width), height = Math.round(rect.height); if (!width || !height) return; this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false); this.requestRender(); }
   setLoading(show, text = '', percent = 0) { this.loading.classList.toggle('hidden', !show); this.loadingText.textContent = text; this.progress.style.width = `${percent}%`; }
   showStatus(message) { this.status.textContent = message; this.status.classList.remove('hidden'); clearTimeout(this.statusTimer); this.statusTimer = setTimeout(() => this.status.classList.add('hidden'), 7000); }
   toggleFullscreen() { if (document.fullscreenElement) document.exitFullscreen(); else this.modal.requestFullscreen?.(); }
