@@ -74,6 +74,8 @@ class IFCViewer {
     this.deviceMemory = Number(navigator.deviceMemory) || null;
     this.safeProfile = this.deviceMemory !== null && this.deviceMemory <= 8;
     this.maxSafeInputBytes = 110 * 1024 ** 2;
+    this.lastCameraMotionAt = 0;
+    this.walkVectors = { origin: new THREE.Vector3(), wallOrigin: new THREE.Vector3(), move: new THREE.Vector3(), forward: new THREE.Vector3(), right: new THREE.Vector3(), next: new THREE.Vector3(), direction: new THREE.Vector3(), down: new THREE.Vector3(0, -1, 0) };
     this.initDom();
     this.performanceMonitor = new PerformanceMonitor({
       enabled: new URLSearchParams(window.location.search).has('ifcDebug'),
@@ -119,6 +121,7 @@ class IFCViewer {
       throw new Error('WebGL não está disponível. Ative a aceleração de hardware do navegador ou use um dispositivo com gráficos compatíveis.');
     }
     this.renderer.setPixelRatio(this.getPixelRatio(false));
+    this.renderer.shadowMap.enabled = false;
     this.renderer.localClippingEnabled = true;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.container.prepend(this.renderer.domElement);
@@ -126,7 +129,7 @@ class IFCViewer {
     this.orbit.enableDamping = true;
     this.orbit.dampingFactor = .08;
     this.orbit.maxPolarAngle = Math.PI / 2 + .03;
-    this.orbit.addEventListener('change', () => this.requestRender());
+    this.orbit.addEventListener('change', () => { this.lastCameraMotionAt = performance.now(); this.requestRender(); });
     this.pointer = new PointerLockControls(this.camera, this.renderer.domElement);
     this.pointer.pointerSpeed = .85;
     this.pointer.addEventListener('unlock', () => {
@@ -335,14 +338,14 @@ class IFCViewer {
     this.setMode('orbit', { unlock });
     this.fitModelToView();
   }
-  getPixelRatio(walking) {
+  getPixelRatio(walking, moving = false) {
     const deviceRatio = window.devicePixelRatio || 1;
     if (walking) return Math.min(deviceRatio, this.safeProfile ? .75 : 1);
-    return Math.min(deviceRatio, this.safeProfile ? 1 : 1.25);
+    return Math.min(deviceRatio, this.safeProfile ? .85 : moving ? 1 : 1.25);
   }
-  setRenderQuality(walking) {
+  setRenderQuality(walking, moving = false) {
     if (!this.renderer) return;
-    const pixelRatio = this.getPixelRatio(walking);
+    const pixelRatio = this.getPixelRatio(walking, moving);
     if (Math.abs(this.renderer.getPixelRatio() - pixelRatio) < .001) return;
     this.renderer.setPixelRatio(pixelRatio);
     this.resize();
@@ -479,8 +482,8 @@ class IFCViewer {
   refreshCollisionMeshes() { this.visibleCollisionMeshes = this.meshes.filter((mesh) => mesh.parent?.visible && mesh.userData.collidable); }
   collisionMeshes() { return this.visibleCollisionMeshes; }
   floorBelow(position, lift = 0, maxDrop = 6) {
-    const origin = position.clone(); origin.y -= this.walk.height - lift;
-    this.walkRaycaster.set(origin, new THREE.Vector3(0, -1, 0));
+    const origin = this.walkVectors.origin.copy(position); origin.y -= this.walk.height - lift;
+    this.walkRaycaster.set(origin, this.walkVectors.down);
     this.walkRaycaster.near = 0; this.walkRaycaster.far = lift + maxDrop;
     return this.walkRaycaster.intersectObjects(this.collisionMeshes(), false).find((hit) => (hit.face?.normal.clone().transformDirection(hit.object.matrixWorld).y || 0) > .55);
   }
@@ -488,7 +491,7 @@ class IFCViewer {
     if (!distance) return false;
     const bodyHeights = [.2, this.walk.height * .55, this.walk.height - .12];
     return bodyHeights.some((height) => {
-      const start = origin.clone(); start.y -= this.walk.height - height;
+      const start = this.walkVectors.wallOrigin.copy(origin); start.y -= this.walk.height - height;
       this.wallRaycaster.set(start, direction); this.wallRaycaster.near = 0; this.wallRaycaster.far = distance + this.walk.radius;
       const hit = this.wallRaycaster.intersectObjects(this.collisionMeshes(), false)[0];
       if (!hit) return false;
@@ -506,19 +509,20 @@ class IFCViewer {
     const speed = (this.walk.keys.has('ShiftLeft') || this.walk.keys.has('ShiftRight')) ? this.walk.run : this.walk.speed;
     const forwardInput = Number(this.walk.keys.has('KeyW')) - Number(this.walk.keys.has('KeyS'));
     const sideInput = Number(this.walk.keys.has('KeyD')) - Number(this.walk.keys.has('KeyA'));
-    const move = new THREE.Vector3();
-    const forward = this.pointer.getDirection(new THREE.Vector3()); forward.y = 0;
+    const { move, forward, right, next, direction } = this.walkVectors;
+    move.set(0, 0, 0);
+    this.pointer.getDirection(forward); forward.y = 0;
     if (forward.lengthSq() > .0001) forward.normalize();
-    const right = new THREE.Vector3(-forward.z, 0, forward.x);
+    right.set(-forward.z, 0, forward.x);
     move.addScaledVector(forward, forwardInput).addScaledVector(right, sideInput);
     if (move.lengthSq() > 0) {
       move.normalize().multiplyScalar(speed * delta);
-      const next = this.camera.position.clone().add(move);
+      next.copy(this.camera.position).add(move);
       const currentFeet = this.camera.position.y - this.walk.height;
       const step = this.floorBelow(next, this.walk.stepHeight + .05);
       const stepY = step?.point.y;
       const canStep = this.walk.grounded && stepY !== undefined && stepY >= currentFeet - .05 && stepY <= currentFeet + this.walk.stepHeight;
-      if (!this.hitsWall(this.camera.position, move.clone().normalize(), move.length()) || canStep) {
+      if (!this.hitsWall(this.camera.position, direction.copy(move).normalize(), move.length()) || canStep) {
         this.camera.position.x = next.x; this.camera.position.z = next.z;
         if (canStep) { this.camera.position.y = stepY + this.walk.height; this.walk.velocityY = 0; this.walk.grounded = true; }
       }
@@ -555,6 +559,8 @@ class IFCViewer {
     this.lastFrame = now;
     if (this.orbit?.enabled && this.orbit.update()) this.requestRender();
     const walking = this.mode === 'walk' && this.pointer?.isLocked;
+    const moving = walking || now - this.lastCameraMotionAt < 180;
+    this.setRenderQuality(walking, moving);
     if (this.performanceMonitor.enabled) {
       const walkStartedAt = performance.now();
       this.updateWalk(delta);
