@@ -292,7 +292,7 @@ class IFCViewer {
   setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
   setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; const luminance = new THREE.Color(color).getLuminance(); if (this.grid) { this.grid.material.opacity = luminance > .5 ? .35 : .65; this.grid.material.transparent = true; } }
 
-  onKey(event, down) { if (this.mode !== 'walk') return; if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight'].includes(event.code)) { event.preventDefault(); if (down) this.walk.keys.add(event.code); else this.walk.keys.delete(event.code); } if (event.code === 'Escape' && down) this.setMode('orbit'); }
+  onKey(event, down) { if (this.mode !== 'walk') return; if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'Space'].includes(event.code)) { event.preventDefault(); if (down) this.walk.keys.add(event.code); else this.walk.keys.delete(event.code); } if (event.code === 'Escape' && down) this.setMode('orbit'); }
   visibleMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible); }
   floorBelow(position, lift = 0) {
     const origin = position.clone(); origin.y += lift;
@@ -314,13 +314,18 @@ class IFCViewer {
   }
   updateWalk(delta) {
     if (this.mode !== 'walk' || !this.pointer?.isLocked) return;
+    if (this.walk.keys.has('Space') && this.walk.grounded) {
+      this.walk.velocityY = 8.5;
+      this.walk.grounded = false;
+      this.walk.keys.delete('Space');
+    }
     const speed = (this.walk.keys.has('ShiftLeft') || this.walk.keys.has('ShiftRight')) ? this.walk.run : this.walk.speed;
     const forwardInput = Number(this.walk.keys.has('KeyW')) - Number(this.walk.keys.has('KeyS'));
     const sideInput = Number(this.walk.keys.has('KeyD')) - Number(this.walk.keys.has('KeyA'));
     const move = new THREE.Vector3();
     const forward = this.pointer.getDirection(new THREE.Vector3()); forward.y = 0;
     if (forward.lengthSq() > .0001) forward.normalize();
-    const right = new THREE.Vector3(forward.z, 0, -forward.x);
+    const right = new THREE.Vector3(-forward.z, 0, forward.x);
     move.addScaledVector(forward, forwardInput).addScaledVector(right, sideInput);
     if (move.lengthSq() > 0) {
       move.normalize().multiplyScalar(speed * delta);
@@ -345,7 +350,7 @@ class IFCViewer {
       this.camera.position.y = nextY; this.walk.grounded = false;
     }
   }
-  animate() { requestAnimationFrame(() => this.animate()); if (!this.scene || this.modal.classList.contains('hidden')) return; const now = performance.now(); const delta = Math.min(.05, (now - this.lastFrame) / 1000); this.lastFrame = now; this.orbit?.update(); this.updateWalk(delta); this.renderer.render(this.scene, this.camera); }
+  animate() { requestAnimationFrame(() => this.animate()); if (!this.scene || this.modal.classList.contains('hidden')) return; const now = performance.now(); const delta = Math.min(.05, (now - this.lastFrame) / 1000); this.lastFrame = now; if (this.orbit?.enabled) this.orbit.update(); this.updateWalk(delta); this.renderer.render(this.scene, this.camera); }
   resize() { if (!this.renderer) return; const rect = this.container.getBoundingClientRect(); const width = Math.round(rect.width), height = Math.round(rect.height); if (!width || !height) return; this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false); }
   setLoading(show, text = '', percent = 0) { this.loading.classList.toggle('hidden', !show); this.loadingText.textContent = text; this.progress.style.width = `${percent}%`; }
   showStatus(message) { this.status.textContent = message; this.status.classList.remove('hidden'); clearTimeout(this.statusTimer); this.statusTimer = setTimeout(() => this.status.classList.add('hidden'), 7000); }
