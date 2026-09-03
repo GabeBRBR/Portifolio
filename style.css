@@ -1201,3 +1201,6 @@ body {
   background: var(--accent-gold);
   transition: width 0.3s ease;
 }
+
+/* Diagnostic overlay: only created when the URL has ?ifcDebug=1. */
+.ifc-diagnostics { position:absolute;left:.75rem;bottom:.75rem;z-index:7;max-width:min(540px,calc(100% - 1.5rem));padding:.6rem .7rem;white-space:pre-wrap;background:rgba(11,19,32,.88);color:#e8edf0;border-left:3px solid #b8860b;font:600 .63rem/1.45 var(--font-mono,monospace);pointer-events:none; }
