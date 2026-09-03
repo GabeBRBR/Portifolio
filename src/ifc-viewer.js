@@ -39,6 +39,7 @@ class IFCViewer {
     this.ready = false;
     this.models = new Map();
     this.meshes = [];
+    this.visibleCollisionMeshes = [];
     this.mode = 'orbit';
     this.selection = null;
     this.clipBox = null;
@@ -102,7 +103,7 @@ class IFCViewer {
     } catch {
       throw new Error('WebGL não está disponível. Ative a aceleração de hardware do navegador ou use um dispositivo com gráficos compatíveis.');
     }
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, this.safeProfile ? 1 : 1.25));
+    this.renderer.setPixelRatio(this.getPixelRatio(false));
     this.renderer.localClippingEnabled = true;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.container.prepend(this.renderer.domElement);
@@ -235,6 +236,7 @@ class IFCViewer {
     if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance);
     this.renderModels();
     this.resetClipBox();
+    this.refreshCollisionMeshes();
     this.requestRender();
   }
 
@@ -260,7 +262,7 @@ class IFCViewer {
     });
   }
 
-  setModelVisibility(id, visible) { const model = this.models.get(id); if (!model) return; model.visible = visible; model.group.visible = visible; this.clearSelection(); this.requestRender(); }
+  setModelVisibility(id, visible) { const model = this.models.get(id); if (!model) return; model.visible = visible; model.group.visible = visible; this.refreshCollisionMeshes(); this.clearSelection(); this.requestRender(); }
   setModelOpacity(id, transparency, output) {
     const model = this.models.get(id); if (!model) return;
     model.opacity = 1 - transparency;
@@ -272,7 +274,7 @@ class IFCViewer {
     if (output) output.textContent = `${Math.round(transparency * 100)}%`;
     this.requestRender();
   }
-  async removeModel(id) { const model = this.models.get(id); if (!model) return; this.clearSelection(); model.meshes.forEach((mesh) => { this.meshes = this.meshes.filter((entry) => entry !== mesh); mesh.geometry.disposeBoundsTree?.(); mesh.geometry.dispose(); mesh.material.dispose(); }); this.root.remove(model.group); this.api.CloseModel(model.modelID); this.models.delete(id); this.refreshExplosionCache(); if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance); this.renderModels(); this.resetClipBox(); this.requestRender(); }
+  async removeModel(id) { const model = this.models.get(id); if (!model) return; this.clearSelection(); model.meshes.forEach((mesh) => { this.meshes = this.meshes.filter((entry) => entry !== mesh); mesh.geometry.disposeBoundsTree?.(); mesh.geometry.dispose(); mesh.material.dispose(); }); this.root.remove(model.group); this.api.CloseModel(model.modelID); this.models.delete(id); this.refreshCollisionMeshes(); this.refreshExplosionCache(); if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance); this.renderModels(); this.resetClipBox(); this.requestRender(); }
   async removeAllModels() { await Promise.all([...this.models.keys()].map((id) => this.removeModel(id))); }
 
   fitModelToView() { if (!this.meshes.length) return; const box = new THREE.Box3(); this.meshes.filter((mesh) => mesh.parent?.visible).forEach((mesh) => box.expandByObject(mesh)); if (box.isEmpty()) return; const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const distance = Math.max(12, Math.max(size.x, size.y, size.z) * 1.35); this.orbit.target.copy(center); this.camera.position.set(center.x + distance, center.y + distance * .62, center.z + distance); this.orbit.update(); this.requestRender(); }
@@ -287,6 +289,7 @@ class IFCViewer {
   setMode(mode, { unlock = true } = {}) {
     this.mode = mode;
     this.orbit && (this.orbit.enabled = mode === 'orbit');
+    this.setRenderQuality(mode === 'walk');
     if (mode !== 'walk') {
       this.walk.keys.clear();
       this.walk.jumpRequested = false;
@@ -305,6 +308,18 @@ class IFCViewer {
   exitWalk({ unlock = true } = {}) {
     this.setMode('orbit', { unlock });
     this.fitModelToView();
+  }
+  getPixelRatio(walking) {
+    const deviceRatio = window.devicePixelRatio || 1;
+    if (walking) return Math.min(deviceRatio, this.safeProfile ? .75 : 1);
+    return Math.min(deviceRatio, this.safeProfile ? 1 : 1.25);
+  }
+  setRenderQuality(walking) {
+    if (!this.renderer) return;
+    const pixelRatio = this.getPixelRatio(walking);
+    if (Math.abs(this.renderer.getPixelRatio() - pixelRatio) < .001) return;
+    this.renderer.setPixelRatio(pixelRatio);
+    this.resize();
   }
   onWalkWheel(event) {
     if (this.mode !== 'walk' || !this.pointer?.isLocked) return;
@@ -433,7 +448,8 @@ class IFCViewer {
     }
   }
   visibleMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible); }
-  collisionMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible && mesh.userData.collidable); }
+  refreshCollisionMeshes() { this.visibleCollisionMeshes = this.meshes.filter((mesh) => mesh.parent?.visible && mesh.userData.collidable); }
+  collisionMeshes() { return this.visibleCollisionMeshes; }
   floorBelow(position, lift = 0, maxDrop = 6) {
     const origin = position.clone(); origin.y -= this.walk.height - lift;
     this.walkRaycaster.set(origin, new THREE.Vector3(0, -1, 0));
@@ -502,7 +518,7 @@ class IFCViewer {
     const walking = this.mode === 'walk' && this.pointer?.isLocked;
     this.updateWalk(delta);
     if (walking) this.requestRender();
-    const interval = walking ? 1000 / (this.safeProfile ? 30 : 45) : 1000 / (this.safeProfile ? 20 : 30);
+    const interval = walking ? 1000 / (this.safeProfile ? 24 : 36) : 1000 / (this.safeProfile ? 20 : 30);
     if (this.needsRender && now - this.lastRender >= interval) {
       this.renderer.render(this.scene, this.camera);
       this.lastRender = now;
