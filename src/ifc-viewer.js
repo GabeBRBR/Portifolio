@@ -11,6 +11,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 
 const DEMOS = {
   'casa-terrea': [
+    ['Arquitetura', 'assets/IFC/Casa Térrea/CASA-AQR.ifc'],
     ['Estrutural', 'assets/IFC/Casa Térrea/CASA-EST.ifc'],
     ['Elétrica', 'assets/IFC/Casa Térrea/CASA-ELE.ifc'],
     ['Hidráulica', 'assets/IFC/Casa Térrea/CASA-HID.ifc'],
@@ -22,7 +23,7 @@ const DEMOS = {
   ]
 };
 
-const MAX_MODELS = 4;
+const MAX_MODELS = 5;
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
 const PASSABLE_TYPES = new Set([IFCDOOR, IFCDOORSTANDARDCASE, IFCWINDOW, IFCWINDOWSTANDARDCASE, IFCOPENINGELEMENT]);
 const fmtSize = (value) => value < 1024 ** 2 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 ** 2).toFixed(1)} MB`;
