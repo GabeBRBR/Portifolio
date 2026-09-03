@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { IfcAPI, IFCBUILDINGSTOREY, IFCRELCONTAINEDINSPATIALSTRUCTURE } from 'web-ifc';
+import { IfcAPI, IFCBUILDINGSTOREY, IFCRELCONTAINEDINSPATIALSTRUCTURE, IFCDOOR, IFCDOORSTANDARDCASE, IFCWINDOW, IFCWINDOWSTANDARDCASE, IFCOPENINGELEMENT } from 'web-ifc';
 import wasmUrl from 'web-ifc/web-ifc.wasm?url';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
 
@@ -22,6 +22,7 @@ const DEMOS = {
 };
 
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
+const PASSABLE_TYPES = new Set([IFCDOOR, IFCDOORSTANDARDCASE, IFCWINDOW, IFCWINDOWSTANDARDCASE, IFCOPENINGELEMENT]);
 const fmtSize = (value) => value < 1024 ** 2 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 ** 2).toFixed(1)} MB`;
 const primitive = (value) => value && typeof value === 'object' && 'value' in value ? primitive(value.value) : value;
 const valueText = (value) => {
@@ -193,7 +194,8 @@ class IFCViewer {
         bufferGeometry.applyMatrix4(new THREE.Matrix4().fromArray(placed.flatTransformation)); bufferGeometry.computeBoundsTree();
         const color = placed.color || { x: .72, y: .72, z: .72, w: 1 }; const key = `${color.x}-${color.y}-${color.z}-${color.w}`;
         if (!materialCache.has(key)) materialCache.set(key, new THREE.MeshStandardMaterial({ color: new THREE.Color(color.x, color.y, color.z), transparent: color.w < .99, opacity: color.w, roughness: .72, metalness: .08, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes }));
-        const mesh = new THREE.Mesh(bufferGeometry, materialCache.get(key)); mesh.userData = { modelId: id, modelID, expressID, discipline, originalPosition: mesh.position.clone() };
+        const elementType = this.api.GetLineType(modelID, expressID);
+        const mesh = new THREE.Mesh(bufferGeometry, materialCache.get(key)); mesh.userData = { modelId: id, modelID, expressID, discipline, collidable: !PASSABLE_TYPES.has(elementType), originalPosition: mesh.position.clone() };
         group.add(mesh); record.meshes.push(mesh); this.meshes.push(mesh);
       }
     });
@@ -311,11 +313,12 @@ class IFCViewer {
     if (event.code === 'Escape' && down) this.exitWalk();
   }
   visibleMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible); }
-  floorBelow(position, lift = 0) {
-    const origin = position.clone(); origin.y += lift;
+  collisionMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible && mesh.userData.collidable); }
+  floorBelow(position, lift = 0, maxDrop = 6) {
+    const origin = position.clone(); origin.y -= this.walk.height - lift;
     this.walkRaycaster.set(origin, new THREE.Vector3(0, -1, 0));
-    this.walkRaycaster.near = 0; this.walkRaycaster.far = this.walk.height + lift + 3;
-    return this.walkRaycaster.intersectObjects(this.visibleMeshes(), false).find((hit) => (hit.face?.normal.clone().transformDirection(hit.object.matrixWorld).y || 0) > .55);
+    this.walkRaycaster.near = 0; this.walkRaycaster.far = lift + maxDrop;
+    return this.walkRaycaster.intersectObjects(this.collisionMeshes(), false).find((hit) => (hit.face?.normal.clone().transformDirection(hit.object.matrixWorld).y || 0) > .55);
   }
   hitsWall(origin, direction, distance) {
     if (!distance) return false;
@@ -323,7 +326,7 @@ class IFCViewer {
     return bodyHeights.some((height) => {
       const start = origin.clone(); start.y -= this.walk.height - height;
       this.wallRaycaster.set(start, direction); this.wallRaycaster.near = 0; this.wallRaycaster.far = distance + this.walk.radius;
-      const hit = this.wallRaycaster.intersectObjects(this.visibleMeshes(), false)[0];
+      const hit = this.wallRaycaster.intersectObjects(this.collisionMeshes(), false)[0];
       if (!hit) return false;
       const normalY = Math.abs(hit.face?.normal.clone().transformDirection(hit.object.matrixWorld).y || 0);
       return normalY < .55 && hit.distance < distance + this.walk.radius;
@@ -348,19 +351,20 @@ class IFCViewer {
       move.normalize().multiplyScalar(speed * delta);
       const next = this.camera.position.clone().add(move);
       const currentFeet = this.camera.position.y - this.walk.height;
-      const step = this.floorBelow(next, this.walk.stepHeight + .15);
+      const step = this.floorBelow(next, this.walk.stepHeight + .05);
       const stepY = step?.point.y;
-      const canStep = stepY !== undefined && stepY >= currentFeet - .1 && stepY <= currentFeet + this.walk.stepHeight;
+      const canStep = this.walk.grounded && stepY !== undefined && stepY >= currentFeet - .05 && stepY <= currentFeet + this.walk.stepHeight;
       if (!this.hitsWall(this.camera.position, move.clone().normalize(), move.length()) || canStep) {
         this.camera.position.x = next.x; this.camera.position.z = next.z;
         if (canStep) { this.camera.position.y = stepY + this.walk.height; this.walk.velocityY = 0; this.walk.grounded = true; }
       }
     }
     this.walk.velocityY = Math.max(this.walk.velocityY - this.walk.gravity * delta, -this.walk.terminalVelocity);
-    const floor = this.floorBelow(this.camera.position, this.walk.stepHeight + .15);
+    const currentFeet = this.camera.position.y - this.walk.height;
+    const floor = this.floorBelow(this.camera.position, this.walk.stepHeight + .05);
     const floorY = floor?.point.y;
     const nextY = this.camera.position.y + this.walk.velocityY * delta;
-    if (floorY !== undefined && nextY - this.walk.height <= floorY) {
+    if (floorY !== undefined && this.walk.velocityY <= 0 && floorY <= currentFeet + .05 && nextY - this.walk.height <= floorY) {
       this.camera.position.y = floorY + this.walk.height;
       this.walk.velocityY = 0; this.walk.grounded = true;
     } else {
