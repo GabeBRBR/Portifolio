@@ -24,6 +24,14 @@ const DEMOS = {
 };
 
 const MAX_MODELS = 5;
+const UI_IDS = Object.freeze({
+  modal: 'ifc-viewer-modal', canvas: 'ifc-canvas-container', modelList: 'ifc-model-list', modelEmpty: 'ifc-model-empty',
+  loading: 'ifc-loading-overlay', loadingText: 'ifc-loading-text', progress: 'ifc-progress-bar', status: 'ifc-status',
+  properties: 'ifc-properties-content', propertySearch: 'ifc-property-search', clearSelection: 'ifc-clear-selection',
+  close: 'ifc-close-btn', fullscreen: 'ifc-fullscreen-btn', files: 'ifc-file-input', loadDemo: 'ifc-load-demo-btn',
+  explodeRange: 'ifc-explode-range', explodeValue: 'ifc-explode-value', background: 'ifc-background-input', resetClip: 'ifc-reset-clip', clipRanges: 'ifc-clip-ranges',
+  walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair'
+});
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
 const PASSABLE_TYPES = new Set([IFCDOOR, IFCDOORSTANDARDCASE, IFCWINDOW, IFCWINDOWSTANDARDCASE, IFCOPENINGELEMENT]);
 const fmtSize = (value) => value < 1024 ** 2 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 ** 2).toFixed(1)} MB`;
@@ -34,6 +42,11 @@ const valueText = (value) => {
   if (Array.isArray(plain)) return plain.map(valueText).join(', ');
   if (typeof plain === 'object') return plain.expressID ? `#${plain.expressID}` : JSON.stringify(plain);
   return String(plain);
+};
+const requiredElement = (id) => {
+  const element = document.getElementById(id);
+  if (!element) throw new Error(`Controle IFC ausente: #${id}`);
+  return element;
 };
 
 class IFCViewer {
@@ -64,30 +77,23 @@ class IFCViewer {
   }
 
   initDom() {
-    this.modal = document.getElementById('ifc-viewer-modal');
-    this.container = document.getElementById('ifc-canvas-container');
-    this.list = document.getElementById('ifc-model-list');
-    this.empty = document.getElementById('ifc-model-empty');
-    this.loading = document.getElementById('ifc-loading-overlay');
-    this.loadingText = document.getElementById('ifc-loading-text');
-    this.progress = document.getElementById('ifc-progress-bar');
-    this.status = document.getElementById('ifc-status');
-    this.properties = document.getElementById('ifc-properties-content');
-    this.search = document.getElementById('ifc-property-search');
-    this.walkHelp = document.getElementById('ifc-walk-help');
-    this.walkCrosshair = document.getElementById('ifc-walk-crosshair');
+    this.ui = Object.fromEntries(Object.entries(UI_IDS).map(([name, id]) => [name, requiredElement(id)]));
+    this.modal = this.ui.modal; this.container = this.ui.canvas; this.list = this.ui.modelList; this.empty = this.ui.modelEmpty;
+    this.loading = this.ui.loading; this.loadingText = this.ui.loadingText; this.progress = this.ui.progress; this.status = this.ui.status;
+    this.properties = this.ui.properties; this.search = this.ui.propertySearch; this.walkHelp = this.ui.walkHelp; this.walkCrosshair = this.ui.walkCrosshair;
   }
 
   bindUi() {
-    document.getElementById('ifc-close-btn').addEventListener('click', () => this.closeViewer());
-    document.getElementById('ifc-fullscreen-btn').addEventListener('click', () => this.toggleFullscreen());
-    document.getElementById('ifc-file-input').addEventListener('change', (event) => this.addFiles(event.target.files));
-    document.getElementById('ifc-load-demo-btn').addEventListener('click', () => this.loadDemo(this.demoKey === 'galpao' ? 'casa-terrea' : 'galpao'));
-    document.querySelectorAll('[data-action]').forEach((button) => button.addEventListener('click', () => this.handleAction(button.dataset.action)));
-    document.getElementById('ifc-explode-range').addEventListener('input', (event) => this.setExplodeDistance(Number(event.target.value)));
-    document.getElementById('ifc-background-input').addEventListener('input', (event) => this.setBackground(event.target.value));
-    document.querySelectorAll('[data-color]').forEach((button) => button.addEventListener('click', () => this.setBackground(button.dataset.color)));
-    document.getElementById('ifc-reset-clip').addEventListener('click', () => this.resetClipBox());
+    this.ui.close.addEventListener('click', () => this.closeViewer());
+    this.ui.fullscreen.addEventListener('click', () => this.toggleFullscreen());
+    this.ui.files.addEventListener('change', (event) => this.addFiles(event.target.files));
+    this.ui.loadDemo.addEventListener('click', () => this.loadDemo(this.demoKey === 'galpao' ? 'casa-terrea' : 'galpao'));
+    this.modal.querySelectorAll('[data-action]').forEach((button) => button.addEventListener('click', () => this.handleAction(button.dataset.action)));
+    this.ui.explodeRange.addEventListener('input', (event) => this.setExplodeDistance(Number(event.target.value)));
+    this.ui.background.addEventListener('input', (event) => this.setBackground(event.target.value));
+    this.modal.querySelectorAll('[data-color]').forEach((button) => button.addEventListener('click', () => this.setBackground(button.dataset.color)));
+    this.ui.resetClip.addEventListener('click', () => this.resetClipBox());
+    this.ui.clearSelection.addEventListener('click', () => this.clearSelection());
     this.search.addEventListener('input', () => this.filterProperties());
     window.addEventListener('keydown', (event) => this.onKey(event, true));
     window.addEventListener('keyup', (event) => this.onKey(event, false));
@@ -394,7 +400,7 @@ class IFCViewer {
   filterProperties() { const query = this.search.value.trim().toLocaleLowerCase('pt-BR'); this.properties.querySelectorAll('.ifc-property-row').forEach((row) => row.classList.toggle('is-hidden', !!query && !row.textContent.toLocaleLowerCase('pt-BR').includes(query))); }
 
   setExplodeDistance(distance) {
-    document.getElementById('ifc-explode-value').textContent = `${distance.toFixed(1).replace('.', ',')} m`;
+    this.ui.explodeValue.textContent = `${distance.toFixed(1).replace('.', ',')} m`;
     if (!this.meshes.length) return;
     if (!this.federationCenter) this.refreshExplosionCache();
     this.meshes.forEach((mesh) => {
@@ -429,9 +435,9 @@ class IFCViewer {
     [-b.minX, b.maxX, -b.minY, b.maxY, -b.minZ, b.maxZ].forEach((constant, index) => { this.clipPlanes[index].constant = constant; });
     this.requestRender();
   }
-  renderClipControls() { const root = document.getElementById('ifc-clip-ranges'); root.innerHTML = ''; if (!this.clipBox) return; const min = Math.min(this.clipBox.minX, this.clipBox.minY, this.clipBox.minZ); const max = Math.max(this.clipBox.maxX, this.clipBox.maxY, this.clipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${this.clipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${this.clipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { this.clipBox[key] = Number(event.target.value); row.querySelector('output').textContent = `${this.clipBox[key].toFixed(2)} m`; this.applyClipBox(); }); root.append(row); }); }
+  renderClipControls() { const root = this.ui.clipRanges; root.innerHTML = ''; if (!this.clipBox) return; const min = Math.min(this.clipBox.minX, this.clipBox.minY, this.clipBox.minZ); const max = Math.max(this.clipBox.maxX, this.clipBox.maxY, this.clipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${this.clipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${this.clipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { this.clipBox[key] = Number(event.target.value); row.querySelector('output').textContent = `${this.clipBox[key].toFixed(2)} m`; this.applyClipBox(); }); root.append(row); }); }
   setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
-  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; this.requestRender(); }
+  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); this.ui.background.value = color; this.requestRender(); }
 
   onKey(event, down) {
     if (this.mode !== 'walk') return;

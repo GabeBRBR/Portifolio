@@ -303,19 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Keep the dialog dismissible if a static host serves source modules unbuilt.
-  const ifcCloseBtn = document.getElementById('ifc-close-btn');
-  if (ifcCloseBtn) {
-    ifcCloseBtn.addEventListener('click', () => {
-      if (window.ifcViewer && typeof window.ifcViewer.closeViewer === 'function') {
-        window.ifcViewer.closeViewer();
-        return;
-      }
-      document.getElementById('ifc-viewer-modal')?.classList.add('hidden');
-      document.body.style.overflow = '';
-    });
-  }
-
   if (modalCloseBtn) {
     modalCloseBtn.addEventListener('click', closeProjectModal);
   }
