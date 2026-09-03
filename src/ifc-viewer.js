@@ -44,7 +44,7 @@ class IFCViewer {
     this.clipBox = null;
     this.clipPlanes = [];
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
-    this.walk = { keys: new Set(), jumpRequested: false, velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2 };
+    this.walk = { keys: new Set(), jumpRequested: false, velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1 };
     this.lastFrame = performance.now();
     this.initDom();
     this.bindUi();
@@ -100,6 +100,7 @@ class IFCViewer {
       if (this.mode === 'walk') this.exitWalk({ unlock: false });
     });
     this.renderer.domElement.addEventListener('click', (event) => this.onCanvasClick(event));
+    this.renderer.domElement.addEventListener('wheel', (event) => this.onWalkWheel(event), { passive: false });
     this.renderer.domElement.addEventListener('dragover', (event) => event.preventDefault());
     this.renderer.domElement.addEventListener('drop', (event) => { event.preventDefault(); this.addFiles(event.dataTransfer.files); });
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x657169, 2.2));
@@ -233,6 +234,7 @@ class IFCViewer {
       this.walk.jumpRequested = false;
       this.walk.velocityY = 0;
       if (unlock) this.pointer?.unlock();
+      if (this.camera && this.walk.zoom !== 1) { this.walk.zoom = 1; this.camera.zoom = 1; this.camera.updateProjectionMatrix(); }
     }
     this.walkHelp.classList.toggle('hidden', mode !== 'walk-placement');
     this.renderer?.domElement.classList.toggle('ifc-place-cursor', mode === 'walk-placement');
@@ -242,6 +244,13 @@ class IFCViewer {
   exitWalk({ unlock = true } = {}) {
     this.setMode('orbit', { unlock });
     this.fitModelToView();
+  }
+  onWalkWheel(event) {
+    if (this.mode !== 'walk' || !this.pointer?.isLocked) return;
+    event.preventDefault();
+    this.walk.zoom = THREE.MathUtils.clamp(this.walk.zoom - event.deltaY * .0015, .65, 2.5);
+    this.camera.zoom = this.walk.zoom;
+    this.camera.updateProjectionMatrix();
   }
 
   onCanvasClick(event) {
@@ -290,7 +299,23 @@ class IFCViewer {
   clearSelection() { if (this.selection) { this.selection.material.emissive = new THREE.Color(0x000000); this.selection.material.emissiveIntensity = 0; } this.selection = null; this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>'; this.search.value = ''; }
   filterProperties() { const query = this.search.value.trim().toLocaleLowerCase('pt-BR'); this.properties.querySelectorAll('.ifc-property-row').forEach((row) => row.classList.toggle('is-hidden', !!query && !row.textContent.toLocaleLowerCase('pt-BR').includes(query))); }
 
-  setExplodeDistance(distance) { document.getElementById('ifc-explode-value').textContent = `${distance.toFixed(1).replace('.', ',')} m`; this.models.forEach((model) => model.floors.forEach((floor) => floor.meshes.forEach((mesh) => { mesh.position.y = floor.order * distance; }))); }
+  setExplodeDistance(distance) {
+    document.getElementById('ifc-explode-value').textContent = `${distance.toFixed(1).replace('.', ',')} m`;
+    if (!this.meshes.length) return;
+    const bounds = new THREE.Box3();
+    this.meshes.forEach((mesh) => {
+      mesh.geometry.computeBoundingBox();
+      const center = mesh.geometry.boundingBox.getCenter(new THREE.Vector3()).add(mesh.userData.originalPosition);
+      bounds.expandByPoint(center);
+    });
+    const federationCenter = bounds.getCenter(new THREE.Vector3());
+    this.meshes.forEach((mesh) => {
+      const elementCenter = mesh.geometry.boundingBox.getCenter(new THREE.Vector3()).add(mesh.userData.originalPosition);
+      const direction = elementCenter.sub(federationCenter);
+      if (direction.lengthSq() > .000001) direction.normalize();
+      mesh.position.copy(mesh.userData.originalPosition).addScaledVector(direction, distance);
+    });
+  }
   resetClipBox() {
     this.clipPlanes = []; if (!this.meshes.length) return this.renderClipControls(); const box = new THREE.Box3(); this.meshes.forEach((mesh) => box.expandByObject(mesh)); const padding = .01; this.clipBox = { minX: box.min.x - padding, maxX: box.max.x + padding, minY: box.min.y - padding, maxY: box.max.y + padding, minZ: box.min.z - padding, maxZ: box.max.z + padding }; this.applyClipBox(); this.renderClipControls();
   }
