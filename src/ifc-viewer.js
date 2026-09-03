@@ -179,7 +179,7 @@ class IFCViewer {
     const modelID = this.api.OpenModel(new Uint8Array(buffer));
     const id = `${source}-${Date.now()}-${modelID}`;
     const group = new THREE.Group(); group.name = name; this.root.add(group);
-    const record = { id, name, source, size: buffer.byteLength, status: 'Carregado', visible: true, modelID, group, meshes: [], floors: new Map(), error: null };
+    const record = { id, name, source, size: buffer.byteLength, status: 'Carregado', visible: true, opacity: 1, modelID, group, meshes: [], floors: new Map(), error: null };
     const materialCache = new Map();
     this.api.StreamAllMeshes(modelID, (flatMesh) => {
       const expressID = flatMesh.expressID;
@@ -194,7 +194,11 @@ class IFCViewer {
         bufferGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3)); bufferGeometry.setIndex([...indices]);
         bufferGeometry.applyMatrix4(new THREE.Matrix4().fromArray(placed.flatTransformation)); bufferGeometry.computeBoundsTree();
         const color = placed.color || { x: .72, y: .72, z: .72, w: 1 }; const key = `${color.x}-${color.y}-${color.z}-${color.w}`;
-        if (!materialCache.has(key)) materialCache.set(key, new THREE.MeshStandardMaterial({ color: new THREE.Color(color.x, color.y, color.z), transparent: color.w < .99, opacity: color.w, roughness: .72, metalness: .08, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes }));
+        if (!materialCache.has(key)) {
+          const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color.x, color.y, color.z), transparent: color.w < .99, opacity: color.w, roughness: .72, metalness: .08, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
+          material.userData.ifcBaseOpacity = color.w;
+          materialCache.set(key, material);
+        }
         const elementType = this.api.GetLineType(modelID, expressID);
         const mesh = new THREE.Mesh(bufferGeometry, materialCache.get(key)); mesh.userData = { modelId: id, modelID, expressID, discipline, collidable: !PASSABLE_TYPES.has(elementType), originalPosition: mesh.position.clone() };
         group.add(mesh); record.meshes.push(mesh); this.meshes.push(mesh);
@@ -215,10 +219,27 @@ class IFCViewer {
 
   renderModels() {
     this.list.innerHTML = ''; this.empty.classList.toggle('hidden', this.models.size > 0);
-    this.models.forEach((model) => { const row = document.createElement('div'); row.className = 'ifc-model-row'; row.innerHTML = `<input type="checkbox" checked aria-label="Mostrar ${model.name}"><div><strong>${model.name}</strong><small>${model.source === 'demo' ? 'Demonstração · ' : ''}${fmtSize(model.size)} · ${model.status}</small></div><button class="ifc-model-remove" title="Remover modelo"><i class="fa-solid fa-trash"></i></button>`; row.querySelector('input').addEventListener('change', (event) => this.setModelVisibility(model.id, event.target.checked)); row.querySelector('button').addEventListener('click', () => this.removeModel(model.id)); this.list.append(row); });
+    this.models.forEach((model) => {
+      const row = document.createElement('div'); row.className = 'ifc-model-row';
+      const opacity = Math.round(model.opacity * 100);
+      row.innerHTML = `<input type="checkbox" ${model.visible ? 'checked' : ''} aria-label="Mostrar ${model.name}"><details class="ifc-model-menu"><summary><strong>${model.name}</strong><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><small>${model.source === 'demo' ? 'Demonstração · ' : ''}${fmtSize(model.size)} · ${model.status}</small><label class="ifc-model-opacity">Transparência <output>${opacity}%</output><input type="range" min="0" max="100" step="1" value="${opacity}" aria-label="Transparência de ${model.name}"></label></details><button class="ifc-model-remove" title="Remover modelo"><i class="fa-solid fa-trash"></i></button>`;
+      row.querySelector('input[type="checkbox"]').addEventListener('change', (event) => this.setModelVisibility(model.id, event.target.checked));
+      row.querySelector('input[type="range"]').addEventListener('input', (event) => this.setModelOpacity(model.id, Number(event.target.value) / 100, row.querySelector('output')));
+      row.querySelector('button').addEventListener('click', () => this.removeModel(model.id)); this.list.append(row);
+    });
   }
 
   setModelVisibility(id, visible) { const model = this.models.get(id); if (!model) return; model.visible = visible; model.group.visible = visible; this.clearSelection(); }
+  setModelOpacity(id, opacity, output) {
+    const model = this.models.get(id); if (!model) return;
+    model.opacity = opacity;
+    const materials = new Set(model.meshes.map((mesh) => mesh.material));
+    materials.forEach((material) => {
+      const effectiveOpacity = (material.userData.ifcBaseOpacity ?? 1) * opacity;
+      material.opacity = effectiveOpacity; material.transparent = effectiveOpacity < .999; material.depthWrite = effectiveOpacity >= .999; material.needsUpdate = true;
+    });
+    if (output) output.textContent = `${Math.round(opacity * 100)}%`;
+  }
   async removeModel(id) { const model = this.models.get(id); if (!model) return; this.clearSelection(); model.meshes.forEach((mesh) => { this.meshes = this.meshes.filter((entry) => entry !== mesh); mesh.geometry.disposeBoundsTree?.(); mesh.geometry.dispose(); mesh.material.dispose(); }); this.root.remove(model.group); this.api.CloseModel(model.modelID); this.models.delete(id); this.renderModels(); this.resetClipBox(); }
   async removeAllModels() { await Promise.all([...this.models.keys()].map((id) => this.removeModel(id))); }
 
