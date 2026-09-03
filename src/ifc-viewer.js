@@ -43,6 +43,7 @@ class IFCViewer {
     this.selection = null;
     this.clipBox = null;
     this.clipPlanes = [];
+    this.explodeDistance = 0;
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
     this.walk = { keys: new Set(), jumpRequested: false, velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1 };
     this.lastFrame = performance.now();
@@ -62,6 +63,7 @@ class IFCViewer {
     this.properties = document.getElementById('ifc-properties-content');
     this.search = document.getElementById('ifc-property-search');
     this.walkHelp = document.getElementById('ifc-walk-help');
+    this.walkCrosshair = document.getElementById('ifc-walk-crosshair');
   }
 
   bindUi() {
@@ -258,6 +260,7 @@ class IFCViewer {
       if (this.camera && this.walk.zoom !== 1) { this.walk.zoom = 1; this.camera.zoom = 1; this.camera.updateProjectionMatrix(); }
     }
     this.walkHelp.classList.toggle('hidden', mode !== 'walk-placement');
+    this.walkCrosshair?.classList.toggle('hidden', mode !== 'walk');
     this.renderer?.domElement.classList.toggle('ifc-place-cursor', mode === 'walk-placement');
     document.querySelectorAll('[data-action="orbit"],[data-action="walk"]').forEach((button) => button.classList.toggle('active', button.dataset.action === (mode === 'orbit' ? 'orbit' : 'walk')));
     requestAnimationFrame(() => this.resize());
@@ -275,7 +278,15 @@ class IFCViewer {
   }
 
   onCanvasClick(event) {
-    if (!this.meshes.length || this.pointer?.isLocked) return;
+    if (!this.meshes.length) return;
+    if (this.pointer?.isLocked) {
+      if (this.mode === 'walk') {
+        this.mouse.set(0, 0); this.raycaster.setFromCamera(this.mouse, this.camera);
+        const hit = this.raycaster.intersectObjects(this.visibleMeshes(), false)[0];
+        if (hit) this.inspect(hit.object, hit.point); else this.clearSelection();
+      }
+      return;
+    }
     const rect = this.renderer.domElement.getBoundingClientRect(); this.mouse.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1); this.raycaster.setFromCamera(this.mouse, this.camera);
     const hit = this.raycaster.intersectObjects(this.meshes.filter((mesh) => mesh.parent?.visible), false)[0];
     if (!hit) return this.clearSelection();
@@ -336,11 +347,13 @@ class IFCViewer {
       if (direction.lengthSq() > .000001) direction.normalize();
       mesh.position.copy(mesh.userData.originalPosition).addScaledVector(direction, distance);
     });
+    this.explodeDistance = distance;
+    this.applyClipBox();
   }
   resetClipBox() {
     this.clipPlanes = []; if (!this.meshes.length) return this.renderClipControls(); const box = new THREE.Box3(); this.meshes.forEach((mesh) => box.expandByObject(mesh)); const padding = .01; this.clipBox = { minX: box.min.x - padding, maxX: box.max.x + padding, minY: box.min.y - padding, maxY: box.max.y + padding, minZ: box.min.z - padding, maxZ: box.max.z + padding }; this.applyClipBox(); this.renderClipControls();
   }
-  applyClipBox() { if (!this.clipBox) return; const b = this.clipBox; this.clipPlanes = [new THREE.Plane(new THREE.Vector3(1, 0, 0), -b.minX), new THREE.Plane(new THREE.Vector3(-1, 0, 0), b.maxX), new THREE.Plane(new THREE.Vector3(0, 1, 0), -b.minY), new THREE.Plane(new THREE.Vector3(0, -1, 0), b.maxY), new THREE.Plane(new THREE.Vector3(0, 0, 1), -b.minZ), new THREE.Plane(new THREE.Vector3(0, 0, -1), b.maxZ)]; this.meshes.forEach((mesh) => { mesh.material.clippingPlanes = this.clipPlanes; mesh.material.needsUpdate = true; }); }
+  applyClipBox() { if (!this.clipBox) return; const padding = this.explodeDistance || 0; const b = { minX: this.clipBox.minX - padding, maxX: this.clipBox.maxX + padding, minY: this.clipBox.minY - padding, maxY: this.clipBox.maxY + padding, minZ: this.clipBox.minZ - padding, maxZ: this.clipBox.maxZ + padding }; this.clipPlanes = [new THREE.Plane(new THREE.Vector3(1, 0, 0), -b.minX), new THREE.Plane(new THREE.Vector3(-1, 0, 0), b.maxX), new THREE.Plane(new THREE.Vector3(0, 1, 0), -b.minY), new THREE.Plane(new THREE.Vector3(0, -1, 0), b.maxY), new THREE.Plane(new THREE.Vector3(0, 0, 1), -b.minZ), new THREE.Plane(new THREE.Vector3(0, 0, -1), b.maxZ)]; this.meshes.forEach((mesh) => { mesh.material.clippingPlanes = this.clipPlanes; mesh.material.needsUpdate = true; }); }
   renderClipControls() { const root = document.getElementById('ifc-clip-ranges'); root.innerHTML = ''; if (!this.clipBox) return; const min = Math.min(this.clipBox.minX, this.clipBox.minY, this.clipBox.minZ); const max = Math.max(this.clipBox.maxX, this.clipBox.maxY, this.clipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${this.clipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${this.clipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { this.clipBox[key] = Number(event.target.value); row.querySelector('output').textContent = `${this.clipBox[key].toFixed(2)} m`; this.applyClipBox(); }); root.append(row); }); }
   setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
   setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; const luminance = new THREE.Color(color).getLuminance(); if (this.grid) { this.grid.material.opacity = luminance > .5 ? .35 : .65; this.grid.material.transparent = true; } }
