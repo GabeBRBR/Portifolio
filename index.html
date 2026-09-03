@@ -71,13 +71,13 @@
         </div>
       </a>
 
-      <!-- Desktop Navigation (01. Perfil, 02. Projetos, 03. Automações, 04. Trajetória, 05. Experiência, 06. Contato) -->
+      <!-- Desktop Navigation: work first, then context -->
       <nav class="portfolio-desktop-nav hidden lg:flex items-center gap-7" aria-label="Navegação">
-        <a href="#perfil" class="nav-link"><span class="nav-num">01.</span>Perfil</a>
-        <a href="#projetos" class="nav-link"><span class="nav-num">02.</span>Projetos</a>
-        <a href="#automacoes" class="nav-link"><span class="nav-num">03.</span>Automações</a>
-        <a href="#trajetoria" class="nav-link"><span class="nav-num">04.</span>Trajetória</a>
-        <a href="#experiencia" class="nav-link"><span class="nav-num">05.</span>Experiência</a>
+        <a href="#projetos" class="nav-link"><span class="nav-num">01.</span>Projetos</a>
+        <a href="#automacoes" class="nav-link"><span class="nav-num">02.</span>Automações</a>
+        <a href="#trajetoria" class="nav-link"><span class="nav-num">03.</span>Pesquisa</a>
+        <a href="#experiencia" class="nav-link"><span class="nav-num">04.</span>Cases</a>
+        <a href="#perfil" class="nav-link"><span class="nav-num">05.</span>Perfil</a>
         <a href="#contato" class="nav-link"><span class="nav-num">06.</span>Contato</a>
       </nav>
 
@@ -98,11 +98,11 @@
     <!-- Mobile Navigation Drawer -->
     <div id="mobile-menu" class="hidden lg:hidden bg-surface border-b border-border-editorial px-6 py-6 transition-all duration-300 shadow-lg">
       <nav class="flex flex-col gap-3">
-        <a href="#perfil" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">01.</span>Perfil &amp; Competências</a>
-        <a href="#projetos" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">02.</span>Arquivo de Projetos</a>
-        <a href="#automacoes" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">03.</span>Automações &amp; Scripts</a>
-        <a href="#trajetoria" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">04.</span>Trajetória Científica</a>
-        <a href="#experiencia" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">05.</span>Experiência Profissional</a>
+        <a href="#projetos" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">01.</span>Projetos</a>
+        <a href="#automacoes" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">02.</span>Automações &amp; Scripts</a>
+        <a href="#trajetoria" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">03.</span>Pesquisa</a>
+        <a href="#experiencia" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">04.</span>Cases</a>
+        <a href="#perfil" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">05.</span>Perfil</a>
         <a href="#contato" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">06.</span>Contato Direto</a>
         <div class="pt-4 border-t border-border-light flex flex-col gap-2">
           <a href="https://wa.me/5562981143331" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-direct justify-center py-2.5">
@@ -114,18 +114,18 @@
   </header>
 
   <!-- Hero Section (Editorial Monograph Layout) -->
-  <section id="hero" class="relative pt-36 pb-20 sm:pt-44 sm:pb-28">
+  <section id="hero" class="relative pt-32 pb-14 sm:pt-36 sm:pb-16">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      <div class="max-w-4xl reveal">
         
         <!-- Left: Statement & Vision -->
-        <div class="lg:col-span-8 space-y-8 reveal">
+        <div class="space-y-8">
           
           <div class="space-y-3">
             <div class="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-ochre">
               <span>●</span>
-              <span>Engenheiro Civil · Modelagem BIM · Métodos Numéricos</span>
+              <span>Engenheiro Civil · Estruturas, BIM e Infraestrutura</span>
             </div>
             <h1 class="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-ink tracking-tight leading-[1.12]">
               Gabriel Biagini<br>
@@ -134,7 +134,7 @@
           </div>
 
           <p class="text-lg sm:text-xl text-ink-body font-normal leading-relaxed max-w-2xl">
-            Graduando em Engenharia Civil pela <strong class="text-ink font-semibold">Universidade Federal de Goiás (UFG)</strong> com vivência acadêmica internacional no <strong class="text-ink font-semibold">Canadá (SMUS)</strong>. Atuo na convergência entre o rigor da engenharia estrutural, a precisão da metodologia BIM multidisciplinar e o ganho de escala através da automação computacional com Python, Dynamo e Inteligência Artificial.
+            Projetos técnicos que conectam estruturas, BIM multidisciplinar e automação para tornar decisões e entregas de engenharia mais precisas.
           </p>
 
           <!-- Action Buttons -->
@@ -143,9 +143,9 @@
               <span>Examinar Projetos</span>
               <i class="fa-solid fa-arrow-down text-xs"></i>
             </a>
-            <a href="#automacoes" class="btn-outline-editorial">
-              <i class="fa-solid fa-code text-ochre"></i>
-              <span>Ver Scripts &amp; Automações</span>
+            <a href="#contato" class="btn-outline-editorial">
+              <i class="fa-solid fa-arrow-right text-ochre"></i>
+              <span>Entrar em contato</span>
             </a>
             <a href="https://wa.me/5562981143331?text=Ol%C3%A1%20Gabriel,%20vi%20seu%20portf%C3%B3lio%20e%20gostaria%20de%20conversar!" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-direct">
               <i class="fa-brands fa-whatsapp text-sm"></i>
@@ -153,85 +153,21 @@
             </a>
           </div>
 
-          <!-- Quick Micro-metrics -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-6 pt-6 border-t border-border-editorial">
-            <div>
-              <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block mb-1">Metodologia</span>
-              <p class="font-heading font-bold text-ink text-base">BIM Multidisciplinar</p>
-              <span class="text-xs text-ink-muted">Estrutural, MEP &amp; As-Built</span>
-            </div>
-            <div>
-              <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block mb-1">Pesquisa &amp; MEF</span>
-              <p class="font-heading font-bold text-ink text-base">ABAQUS (Modelo CDP)</p>
-              <span class="text-xs text-ink-muted">Análise Não-Linear de Concreto</span>
-            </div>
-            <div>
-              <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block mb-1">Automação</span>
-              <p class="font-heading font-bold text-ink text-base">Python &amp; Dynamo</p>
-              <span class="text-xs text-ink-muted">Produtividade no Revit</span>
-            </div>
-          </div>
-
         </div>
-
-        <!-- Right: Technical Specification Dossier Box -->
-        <div class="lg:col-span-4 reveal">
-          <div class="spec-box space-y-4">
-            <div class="flex items-center justify-between border-b border-border-editorial pb-3">
-              <span class="font-mono text-xs font-bold text-ink uppercase tracking-wider">Ficha Técnica</span>
-              <span class="font-mono text-xs text-ochre font-semibold">GB-ENG-2026</span>
-            </div>
-
-            <div class="spec-row">
-              <span class="spec-label">Formação Principal</span>
-              <span class="spec-value">Engenharia Civil — UFG</span>
-              <span class="text-xs text-ink-muted">Goiânia, GO · Brasil</span>
-            </div>
-
-            <div class="spec-row">
-              <span class="spec-label">Formação Internacional</span>
-              <span class="spec-value">St. Michael's University School</span>
-              <span class="text-xs text-ink-muted">Victoria, BC · Canadá (2014–2017)</span>
-            </div>
-
-            <div class="spec-row">
-              <span class="spec-label">Idiomas</span>
-              <div class="flex items-center gap-2 text-xs font-mono font-medium text-ink mt-0.5">
-                <span class="bg-surfaceSubtle px-2 py-0.5 rounded border border-border-editorial">Inglês (Avançado)</span>
-                <span class="bg-surfaceSubtle px-2 py-0.5 rounded border border-border-editorial">Espanhol</span>
-                <span class="bg-surfaceSubtle px-2 py-0.5 rounded border border-border-editorial">Português</span>
-              </div>
-            </div>
-
-            <div class="spec-row">
-              <span class="spec-label">Principais Ferramentas</span>
-              <span class="text-xs font-mono text-ink leading-relaxed">
-                Revit, AutoCAD, ABAQUS, Python, Dynamo, Civil 3D, CloudCompare, Eberick, QGIS, Excel/VBA
-              </span>
-            </div>
-
-            <div class="spec-row">
-              <span class="spec-label">Contato Direto</span>
-              <a href="mailto:biaginialmeida@gmail.com" class="text-xs font-mono text-ink font-semibold hover:text-ochre transition-colors">biaginialmeida@gmail.com</a>
-              <span class="text-xs text-ink-muted">(62) 98114-3331 · CNH &amp; Carro próprio</span>
-            </div>
-          </div>
-        </div>
-
       </div>
 
     </div>
   </section>
 
   <!-- =========================================================================
-       01. PERFIL & COMPETÊNCIAS TÉCNICAS
+       PERFIL PROFISSIONAL
        ========================================================================= -->
   <section id="perfil" class="py-24 bg-surface border-y border-border-editorial">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">01 / Perfil &amp; Competências</span>
-        <h2 class="section-headline">Rigor Construtivo &amp; Engenharia Digital</h2>
+        <span class="section-label">05 / Perfil profissional</span>
+        <h2 class="section-headline">Engenharia orientada por evidência</h2>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -249,60 +185,15 @@
           </p>
         </div>
 
-        <!-- Right: Structured Competency Table -->
+        <!-- Right: concise positioning, with tools evidenced in project cards -->
         <div class="lg:col-span-7 reveal">
           <div class="editorial-card">
             <h4 class="font-mono text-xs uppercase font-bold text-ochre tracking-wider mb-4 pb-2 border-b border-border-light">
-              Matriz de Competências &amp; Softwares
+              Ferramentas aplicadas nos projetos
             </h4>
-            
-            <div class="competency-table space-y-4">
-              
-              <div class="competency-row">
-                <span class="competency-category">BIM &amp; Modelagem</span>
-                <div class="competency-items">
-                  <span class="tech-badge highlight">Autodesk Revit (Avançado)</span>
-                  <span class="tech-badge highlight">AutoCAD (Avançado)</span>
-                  <span class="tech-badge">Civil 3D</span>
-                  <span class="tech-badge">Navisworks (Clash Detection)</span>
-                  <span class="tech-badge">As-Built Nuvem de Pontos</span>
-                  <span class="tech-badge">Tours 360° Imersivos</span>
-                </div>
-              </div>
-
-              <div class="competency-row">
-                <span class="competency-category">Estruturas &amp; MEF</span>
-                <div class="competency-items">
-                  <span class="tech-badge highlight">ABAQUS (Modelo CDP)</span>
-                  <span class="tech-badge highlight">Método dos Elementos Finitos</span>
-                  <span class="tech-badge">Eberick</span>
-                  <span class="tech-badge">Cype 3D</span>
-                  <span class="tech-badge">Concreto Armado (NBR 6118)</span>
-                  <span class="tech-badge">Ensaios de Materiais</span>
-                </div>
-              </div>
-
-              <div class="competency-row">
-                <span class="competency-category">Automação &amp; Código</span>
-                <div class="competency-items">
-                  <span class="tech-badge highlight">Python Scripting</span>
-                  <span class="tech-badge highlight">Autodesk Dynamo</span>
-                  <span class="tech-badge">IA Aplicada à Engenharia</span>
-                  <span class="tech-badge">Excel Avançado &amp; VBA</span>
-                  <span class="tech-badge">Power Query</span>
-                </div>
-              </div>
-
-              <div class="competency-row">
-                <span class="competency-category">Nuvem &amp; Geo</span>
-                <div class="competency-items">
-                  <span class="tech-badge">CloudCompare (LiDAR)</span>
-                  <span class="tech-badge">QGIS (Geoprocessamento)</span>
-                  <span class="tech-badge">Topografia &amp; Terraplenagem</span>
-                  <span class="tech-badge">Georreferenciamento UTM</span>
-                </div>
-              </div>
-
+            <p class="text-sm text-ink-body leading-relaxed mb-4">As ferramentas aparecem junto às entregas que viabilizam: modelos compatibilizados, pranchas executivas, automações e análises numéricas.</p>
+            <div class="competency-items">
+              <span class="tech-badge">Revit</span><span class="tech-badge">AutoCAD</span><span class="tech-badge">ABAQUS</span><span class="tech-badge">Python</span><span class="tech-badge">Dynamo</span><span class="tech-badge">Civil 3D</span><span class="tech-badge">CloudCompare</span><span class="tech-badge">QGIS</span>
             </div>
           </div>
         </div>
@@ -320,7 +211,7 @@
       
       <div class="section-header-editorial flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <span class="section-label">02 / Portfólio de Obras</span>
+          <span class="section-label">01 / Portfólio de Obras</span>
           <h2 class="section-headline">Arquivo Técnico de Projetos</h2>
         </div>
 
@@ -364,7 +255,7 @@
                 </div>
                 <h3 class="project-plate-title text-xl mb-2">Visualizador BIM Multidisciplinar</h3>
                 <p class="project-plate-desc text-xs sm:text-sm mb-4 leading-relaxed">
-                  Explore os modelos IFC federados diretamente no navegador. Alterne entre as obras <strong>Casa Térrea (Jardim Sul)</strong> e <strong>Galpão Industrial</strong>, controle camadas (Arquitetura, Estrutural e Elétrica) e ative o <strong>Modo de Caminhada em 1ª Pessoa</strong> com colisão realista e portas vazadas de passagem livre.
+                  Modelo BIM federado no navegador, com disciplinas, camadas e navegação em primeira pessoa.
                 </p>
               </div>
               <div class="space-y-3 pt-3 border-t border-border-light">
@@ -393,7 +284,7 @@
             <div>
               <span class="project-plate-sub">AION BIM · Residencial / Comercial</span>
               <h3 class="project-plate-title">Barrilete &amp; Instalações Hidrossanitárias em Revit</h3>
-              <p class="project-plate-desc">Modelagem isométrica tridimensional contendo baterias de reservatórios superiores, barriletes, prumadas e colunas sanitárias compatibilizadas.</p>
+              <p class="project-plate-desc">Modelagem Revit de reservatórios, barriletes, prumadas e colunas sanitárias compatibilizadas.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">Revit MEP</span>
@@ -413,7 +304,7 @@
             <div>
               <span class="project-plate-sub">Edifício Comercial · Jardim Sul</span>
               <h3 class="project-plate-title">Traçado Elétrico, Eletrodutos &amp; Eletrocalhas</h3>
-              <p class="project-plate-desc">Modelagem espacial em padrão aberto IFC e Revit do encaminhamento de alimentadores, quadros de comando e eletrocalhas suspensas.</p>
+              <p class="project-plate-desc">Encaminhamento elétrico em Revit e IFC para alimentadores, quadros e eletrocalhas.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">IFC OpenBIM</span>
@@ -433,7 +324,7 @@
             <div>
               <span class="project-plate-sub">Complexo Funerário &amp; Crematório</span>
               <h3 class="project-plate-title">Projeto Estrutural Completo em Concreto Armado</h3>
-              <p class="project-plate-desc">Pranchas executivas contemplando fôrmas, locação de pilares/fundações, armaduras longitudinais/transversais de vigas contínuas e lajes.</p>
+              <p class="project-plate-desc">Pranchas executivas de formas, fundações, vigas e lajes em concreto armado.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">Concreto Armado</span>
@@ -453,7 +344,7 @@
             <div>
               <span class="project-plate-sub">Edificação Multiuso</span>
               <h3 class="project-plate-title">Planta de Locação, Estacas &amp; Pilares</h3>
-              <p class="project-plate-desc">Marcação de eixos ortogonais, coordenadas de estaqueamento, quadro de cargas de fundação e tabela de armação de pilares.</p>
+              <p class="project-plate-desc">Locação estrutural com eixos, estacas, pilares, cargas de fundação e armação.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">Locação</span>
@@ -473,7 +364,7 @@
             <div>
               <span class="project-plate-sub">Complexo Industrial DAI / SIS</span>
               <h3 class="project-plate-title">As-Built a partir de Nuvem de Pontos &amp; Fotos 360°</h3>
-              <p class="project-plate-desc">Vetorização precisa de edificação existente a partir de escaneamento a laser LiDAR com precisão milimétrica e fotos esféricas de apoio.</p>
+              <p class="project-plate-desc">As-built de edificação existente a partir de nuvem LiDAR e fotos 360°.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">Laser Scanning</span>
@@ -493,7 +384,7 @@
             <div>
               <span class="project-plate-sub">Propriedade Rural J&amp;F · Aruanã</span>
               <h3 class="project-title">Levantamento Planialtimétrico &amp; Terraplenagem</h3>
-              <p class="project-plate-desc">Planta topográfica de grande escala com curvas de nível equidistantes, cálculo de corte/aterro e delimitação de talhões e arruamento.</p>
+              <p class="project-plate-desc">Levantamento com curvas de nível, corte e aterro para implantação e terraplenagem.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">Civil 3D</span>
@@ -513,7 +404,7 @@
             <div>
               <span class="project-plate-sub">Edifício Residencial Jardim Sul</span>
               <h3 class="project-plate-title">Vistas de Ambientes &amp; Isométricos Sanitários</h3>
-              <p class="project-plate-desc">Pranchas executivas contendo ampliações de banheiros e cozinhas com indicação exata de registros, ralos e diâmetros nominais.</p>
+              <p class="project-plate-desc">Vistas e isométricos para execução de instalações sanitárias em ambientes críticos.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">Revit MEP</span>
@@ -532,7 +423,7 @@
             <div>
               <span class="project-plate-sub">Chácara · Senador Canedo, GO</span>
               <h3 class="project-plate-title">Demarcação de Gleba &amp; Georreferenciamento</h3>
-              <p class="project-plate-desc">Planta de demarcação perimétrica, amarração em coordenadas geográficas UTM (SIRGAS 2000) e memorial descritivo para cartório.</p>
+              <p class="project-plate-desc">Demarcação em UTM/SIRGAS 2000 com memorial descritivo para regularização cartorial.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">QGIS</span>
@@ -552,7 +443,7 @@
             <div>
               <span class="project-plate-sub">Residencial Foizer Capri</span>
               <h3 class="project-plate-title">Pranchas Executivas de Água Fria &amp; Esgoto</h3>
-              <p class="project-plate-desc">Esquemas verticais de colunas, ramais de distribuição predial e listas automatizadas de conexões prontas para canteiro.</p>
+              <p class="project-plate-desc">Pranchas de água fria e esgoto com listas de conexões prontas para obra.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
               <span class="tech-badge">Revit MEP</span>
@@ -574,7 +465,7 @@
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">03 / Engenharia Computacional</span>
+        <span class="section-label">02 / Engenharia Computacional</span>
         <h2 class="section-headline">Automações, Scripts &amp; Algoritmos</h2>
       </div>
 
@@ -764,7 +655,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">04 / Pesquisa &amp; Formação</span>
+        <span class="section-label">03 / Pesquisa &amp; Formação</span>
         <h2 class="section-headline">Trajetória Acadêmica &amp; Científica</h2>
       </div>
 
@@ -779,7 +670,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <span><strong>Foco:</strong> Mecânica das Estruturas &amp; Sustentabilidade</span>
           </div>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            Simulação numérica não-linear do comportamento mecânico de vigas de concreto armado com substituição de agregado natural por agregado reciclado. Calibração e implementação do modelo constitutivo <em>Concrete Damaged Plasticity (CDP)</em> no ABAQUS, avaliando modos de ruptura por flexão/cisalhamento, propagação de fissuras e degradação de rigidez.
+            TCC sobre o comportamento não linear de vigas com agregado reciclado. O modelo <em>Concrete Damaged Plasticity (CDP)</em> no ABAQUS permitiu avaliar ruptura, fissuração e perda de rigidez.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="tech-badge highlight">ABAQUS Standard</span>
@@ -798,7 +689,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <span><strong>Foco:</strong> Formulação Matemática &amp; Eliminação de Shear Locking</span>
           </div>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            Investigação teórica e computacional de formulações de elementos finitos tridimensionais hexaédricos com graus de liberdade internos adicionais (modos incompatíveis de Wilson). O método corrige a rigidez excessiva sob flexão e elimina o travamento numérico por cisalhamento.
+            Investigação de elementos hexaédricos 3D com modos incompatíveis. O estudo abordou formulações para reduzir rigidez artificial e shear locking em flexão.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="tech-badge highlight">MEF Avançado</span>
@@ -817,7 +708,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <span><strong>Foco:</strong> Projeto Hidrossanitário &amp; Eficiência Hídrica</span>
           </div>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            Desenvolvimento de projetos executivos multidisciplinares para implantação de lavanderias comunitárias de interesse social, otimizando o consumo de água através de reuso e dimensionamento hidráulico eficiente.
+            Projetos executivos para lavanderias comunitárias, com dimensionamento hidrossanitário e estratégias de reuso de água.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="tech-badge">Projeto Hidrossanitário</span>
@@ -855,14 +746,14 @@ def auditar_durabilidade_nbr6118(dados_viga):
   </section>
 
   <!-- =========================================================================
-       05. EXPERIÊNCIA PROFISSIONAL
+       04. CASES E APLICAÇÕES PRÁTICAS
        ========================================================================= -->
   <section id="experiencia" class="py-24 bg-surface border-y border-border-editorial">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">05 / Atuação no Mercado</span>
-        <h2 class="section-headline">Experiência Profissional</h2>
+        <span class="section-label">04 / Aplicações Práticas</span>
+        <h2 class="section-headline">Cases de Engenharia</h2>
       </div>
 
       <div class="max-w-4xl mx-auto space-y-10">
@@ -873,9 +764,9 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <h3 class="exp-log-company">AION BIM</h3>
             <span class="font-mono text-xs text-ink-muted">Goiânia, GO</span>
           </div>
-          <span class="exp-log-role">Estagiário de Engenharia Civil &amp; Coordenação BIM</span>
+          <span class="exp-log-role">Case · Coordenação BIM e as-built</span>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            Desenvolvimento de projetos multidisciplinares em ambiente BIM (estrutural, hidrossanitário, elétrico, arquitetônico e topográfico). Responsável pela modelagem <strong>As-Built a partir de nuvens de pontos escaneadas a laser (LiDAR)</strong> e elaboração de tours virtuais 360° para visualização imersiva de empreendimentos.
+            <strong>Contexto:</strong> projetos multidisciplinares e edificações existentes exigiam leitura confiável do campo. <strong>Entrega:</strong> modelos BIM compatibilizados e as-built a partir de nuvem LiDAR, complementados por tours 360° para comunicação técnica.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="tech-badge highlight">Revit MEP</span>
@@ -891,9 +782,9 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <h3 class="exp-log-company">Polícia Civil do Estado de Goiás</h3>
             <span class="font-mono text-xs text-ink-muted">Setor de Obras e Engenharia</span>
           </div>
-          <span class="exp-log-role">Estagiário de Engenharia Civil</span>
+          <span class="exp-log-role">Case · Obras públicas e diagnóstico predial</span>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            Atuação técnica em projetos de engenharia civil, reformas de prédios públicos, elaboração de orçamentos quantitativos discriminados para licitações e execução de <strong>vistorias técnicas in loco</strong> com emissão de relatórios de patologias da construção em delegacias em todo o estado.
+            <strong>Contexto:</strong> reformas e manutenção de prédios públicos demandavam base técnica para decisão e contratação. <strong>Entrega:</strong> vistorias in loco, relatórios de patologias e orçamentos quantitativos para licitações.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="tech-badge">Vistorias Técnicas</span>
@@ -909,9 +800,9 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <h3 class="exp-log-company">Saneago (Saneamento de Goiás)</h3>
             <span class="font-mono text-xs text-ink-muted">Departamento de Compras &amp; Suprimentos</span>
           </div>
-          <span class="exp-log-role">Estagiário Técnico de Engenharia</span>
+          <span class="exp-log-role">Case · Suprimentos e automação de planilhas</span>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            Apoio técnico especializado na especificação de materiais e conexões de infraestrutura de saneamento básico, combinado com a <strong>automação e otimização de grandes planilhas no Excel (VBA)</strong> para agilizar a triagem e o controle do departamento de compras.
+            <strong>Contexto:</strong> a triagem de materiais de saneamento dependia de planilhas extensas e especificações precisas. <strong>Entrega:</strong> automações VBA e apoio à classificação técnica para tornar o controle de compras mais ágil.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="tech-badge highlight">Excel Avançado / VBA</span>
@@ -926,9 +817,9 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <h3 class="exp-log-company">Rio Vento Energia</h3>
             <span class="font-mono text-xs text-ink-muted">Engenharia &amp; Projetos</span>
           </div>
-          <span class="exp-log-role">Estagiário de Engenharia</span>
+          <span class="exp-log-role">Case · Memórias de cálculo para energia</span>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            Elaboração de memórias de cálculo estruturais e operacionais em planilhas customizadas, além da produção de relatórios técnicos de engenharia para projetos do setor de energia renovável.
+            <strong>Contexto:</strong> projetos de energia renovável requeriam documentação técnica rastreável. <strong>Entrega:</strong> memórias de cálculo em planilhas customizadas e relatórios de apoio às equipes de projeto.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="tech-badge">Memórias de Cálculo</span>

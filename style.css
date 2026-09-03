@@ -589,7 +589,7 @@ body {
 .project-media-wrap {
   position: relative;
   width: 100%;
-  height: 230px;
+  height: 300px;
   background-color: var(--bg-surface-subtle);
   overflow: hidden;
   border-bottom: 1px solid var(--border-editorial);
@@ -650,7 +650,12 @@ body {
   font-size: 0.85rem;
   color: var(--ink-body);
   line-height: 1.6;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .project-media-wrap { height: 290px; }
+  .project-plate-body { padding: 1.25rem 1.5rem; }
 }
 
 /* ==========================================================================
