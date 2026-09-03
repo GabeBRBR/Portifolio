@@ -50,6 +50,11 @@ class IFCViewer {
     this.lastRender = 0;
     this.needsRender = true;
     this.federationCenter = null;
+    // deviceMemory is an optional browser hint. When it exists, use it only to
+    // choose a safer profile; an unknown value never blocks a capable computer.
+    this.deviceMemory = Number(navigator.deviceMemory) || null;
+    this.safeProfile = this.deviceMemory !== null && this.deviceMemory <= 8;
+    this.maxSafeInputBytes = 110 * 1024 ** 2;
     this.initDom();
     this.bindUi();
   }
@@ -92,8 +97,12 @@ class IFCViewer {
     this.camera.position.set(18, 14, 18);
     // IFCs often contain thousands of draw calls. Avoid forcing the discrete GPU and
     // cap the internal canvas resolution before it becomes needlessly expensive.
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
+    try {
+      this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
+    } catch {
+      throw new Error('WebGL não está disponível. Ative a aceleração de hardware do navegador ou use um dispositivo com gráficos compatíveis.');
+    }
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, this.safeProfile ? 1 : 1.25));
     this.renderer.localClippingEnabled = true;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.container.prepend(this.renderer.domElement);
@@ -136,6 +145,7 @@ class IFCViewer {
     document.body.style.overflow = 'hidden';
     try {
       await this.ensureScene();
+      if (this.safeProfile) this.showStatus('Modo econômico ativo: renderização reduzida para este dispositivo com até 8 GB de RAM.');
       if (!this.models.size) await this.loadDemo(workKey);
       else this.resize();
       requestAnimationFrame(() => this.resize());
@@ -170,6 +180,9 @@ class IFCViewer {
     const files = [...(fileList || [])].filter((file) => /\.ifc$/i.test(file.name));
     if (!files.length) return this.showStatus('Selecione arquivos no formato IFC.');
     if (this.models.size + files.length > 3) return this.showStatus('O visualizador aceita no máximo três modelos de cada vez. Remova um modelo antes de adicionar outro.');
+    const incomingBytes = files.reduce((total, file) => total + file.size, 0);
+    const loadedBytes = [...this.models.values()].reduce((total, model) => total + model.size, 0);
+    if (this.safeProfile && loadedBytes + incomingBytes > this.maxSafeInputBytes) return this.showStatus('Modo econômico: com até 8 GB de RAM, carregue um IFC por vez e mantenha o total abaixo de 110 MB para evitar travamento.');
     if (files.some((file) => file.size > 200 * 1024 ** 2)) this.showStatus('Arquivo acima de 200 MB: o carregamento pode exigir mais memória deste dispositivo.');
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index];
@@ -470,7 +483,7 @@ class IFCViewer {
     const walking = this.mode === 'walk' && this.pointer?.isLocked;
     this.updateWalk(delta);
     if (walking) this.requestRender();
-    const interval = walking ? 1000 / 45 : 1000 / 30;
+    const interval = walking ? 1000 / (this.safeProfile ? 30 : 45) : 1000 / (this.safeProfile ? 20 : 30);
     if (this.needsRender && now - this.lastRender >= interval) {
       this.renderer.render(this.scene, this.camera);
       this.lastRender = now;
