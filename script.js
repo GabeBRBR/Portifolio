@@ -4,6 +4,14 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Put the work itself before biography. Keeping this explicit makes the
+  // portfolio hierarchy independent of formatting in the source document.
+  const hero = document.getElementById('hero');
+  const projects = document.getElementById('projetos');
+  const profile = document.getElementById('perfil');
+  const experience = document.getElementById('experiencia');
+  if (hero && projects) hero.after(projects);
+  if (experience && profile) experience.after(profile);
 
   // =========================================================================
   // 1. Mobile Menu Drawer Toggle
