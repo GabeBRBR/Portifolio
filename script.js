@@ -285,10 +285,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modal) {
           modal.classList.remove('hidden');
           document.body.style.overflow = 'hidden';
+          const status = document.getElementById('ifc-status');
+          if (status) {
+            status.textContent = 'O motor IFC não foi carregado. No GitHub Pages, selecione “GitHub Actions” em Settings → Pages para publicar a versão compilada do site.';
+            status.classList.remove('hidden');
+          }
         }
       }
     });
   });
+
+  // Keep the dialog dismissible if a static host serves source modules unbuilt.
+  const ifcCloseBtn = document.getElementById('ifc-close-btn');
+  if (ifcCloseBtn) {
+    ifcCloseBtn.addEventListener('click', () => {
+      if (window.ifcViewer && typeof window.ifcViewer.closeViewer === 'function') {
+        window.ifcViewer.closeViewer();
+        return;
+      }
+      document.getElementById('ifc-viewer-modal')?.classList.add('hidden');
+      document.body.style.overflow = '';
+    });
+  }
 
   if (modalCloseBtn) {
     modalCloseBtn.addEventListener('click', closeProjectModal);
