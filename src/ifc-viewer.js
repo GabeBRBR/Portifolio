@@ -43,7 +43,7 @@ class IFCViewer {
     this.clipBox = null;
     this.clipPlanes = [];
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
-    this.walk = { keys: new Set(), velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .42, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2 };
+    this.walk = { keys: new Set(), jumpRequested: false, velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2 };
     this.lastFrame = performance.now();
     this.initDom();
     this.bindUi();
@@ -96,7 +96,7 @@ class IFCViewer {
     this.pointer = new PointerLockControls(this.camera, this.renderer.domElement);
     this.pointer.pointerSpeed = .85;
     this.pointer.addEventListener('unlock', () => {
-      if (this.mode === 'walk') this.setMode('orbit', { unlock: false });
+      if (this.mode === 'walk') this.exitWalk({ unlock: false });
     });
     this.renderer.domElement.addEventListener('click', (event) => this.onCanvasClick(event));
     this.renderer.domElement.addEventListener('dragover', (event) => event.preventDefault());
@@ -228,6 +228,7 @@ class IFCViewer {
     this.orbit && (this.orbit.enabled = mode === 'orbit');
     if (mode !== 'walk') {
       this.walk.keys.clear();
+      this.walk.jumpRequested = false;
       this.walk.velocityY = 0;
       if (unlock) this.pointer?.unlock();
     }
@@ -235,6 +236,10 @@ class IFCViewer {
     this.renderer?.domElement.classList.toggle('ifc-place-cursor', mode === 'walk-placement');
     document.querySelectorAll('[data-action="orbit"],[data-action="walk"]').forEach((button) => button.classList.toggle('active', button.dataset.action === (mode === 'orbit' ? 'orbit' : 'walk')));
     requestAnimationFrame(() => this.resize());
+  }
+  exitWalk({ unlock = true } = {}) {
+    this.setMode('orbit', { unlock });
+    this.fitModelToView();
   }
 
   onCanvasClick(event) {
@@ -292,7 +297,19 @@ class IFCViewer {
   setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
   setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; const luminance = new THREE.Color(color).getLuminance(); if (this.grid) { this.grid.material.opacity = luminance > .5 ? .35 : .65; this.grid.material.transparent = true; } }
 
-  onKey(event, down) { if (this.mode !== 'walk') return; if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'Space'].includes(event.code)) { event.preventDefault(); if (down) this.walk.keys.add(event.code); else this.walk.keys.delete(event.code); } if (event.code === 'Escape' && down) this.setMode('orbit'); }
+  onKey(event, down) {
+    if (this.mode !== 'walk') return;
+    if (event.code === 'Space') {
+      event.preventDefault();
+      if (down && !event.repeat) this.walk.jumpRequested = true;
+      return;
+    }
+    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight'].includes(event.code)) {
+      event.preventDefault();
+      if (down) this.walk.keys.add(event.code); else this.walk.keys.delete(event.code);
+    }
+    if (event.code === 'Escape' && down) this.exitWalk();
+  }
   visibleMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible); }
   floorBelow(position, lift = 0) {
     const origin = position.clone(); origin.y += lift;
@@ -314,11 +331,11 @@ class IFCViewer {
   }
   updateWalk(delta) {
     if (this.mode !== 'walk' || !this.pointer?.isLocked) return;
-    if (this.walk.keys.has('Space') && this.walk.grounded) {
+    if (this.walk.jumpRequested && this.walk.grounded) {
       this.walk.velocityY = 8.5;
       this.walk.grounded = false;
-      this.walk.keys.delete('Space');
     }
+    this.walk.jumpRequested = false;
     const speed = (this.walk.keys.has('ShiftLeft') || this.walk.keys.has('ShiftRight')) ? this.walk.run : this.walk.speed;
     const forwardInput = Number(this.walk.keys.has('KeyW')) - Number(this.walk.keys.has('KeyS'));
     const sideInput = Number(this.walk.keys.has('KeyD')) - Number(this.walk.keys.has('KeyA'));
