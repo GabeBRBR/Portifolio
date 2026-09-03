@@ -114,7 +114,12 @@ class IFCViewer {
     this.pointer = new PointerLockControls(this.camera, this.renderer.domElement);
     this.pointer.pointerSpeed = .85;
     this.pointer.addEventListener('unlock', () => {
-      if (this.mode === 'walk') this.exitWalk({ unlock: false });
+      if (this.mode !== 'walk') return;
+      this.walk.keys.clear();
+      this.walk.jumpRequested = false;
+      this.walk.mouseReleased = true;
+      this.walk.ignoreEscapeUntil = performance.now() + 150;
+      this.showStatus('Mouse liberado. Clique no modelo para continuar caminhando ou pressione Esc novamente para sair.');
     });
     this.renderer.domElement.addEventListener('click', (event) => this.onCanvasClick(event));
     this.renderer.domElement.addEventListener('wheel', (event) => this.onWalkWheel(event), { passive: false });
@@ -122,7 +127,6 @@ class IFCViewer {
     this.renderer.domElement.addEventListener('drop', (event) => { event.preventDefault(); this.addFiles(event.dataTransfer.files); });
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x657169, 2.2));
     const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(15, 30, 20); this.scene.add(key);
-    this.grid = new THREE.GridHelper(100, 100, 0xa8a39b, 0xd9d4cc); this.scene.add(this.grid);
     this.root = new THREE.Group(); this.scene.add(this.root);
     this.raycaster = new THREE.Raycaster(); this.raycaster.firstHitOnly = true; this.mouse = new THREE.Vector2();
     this.walkRaycaster = new THREE.Raycaster(); this.walkRaycaster.firstHitOnly = true;
@@ -248,8 +252,8 @@ class IFCViewer {
     this.list.innerHTML = ''; this.empty.classList.toggle('hidden', this.models.size > 0);
     this.models.forEach((model) => {
       const row = document.createElement('div'); row.className = 'ifc-model-row';
-      const opacity = Math.round(model.opacity * 100);
-      row.innerHTML = `<input type="checkbox" ${model.visible ? 'checked' : ''} aria-label="Mostrar ${model.name}"><details class="ifc-model-menu"><summary><strong>${model.name}</strong><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><small>${model.source === 'demo' ? 'Demonstração · ' : ''}${fmtSize(model.size)} · ${model.status}</small><label class="ifc-model-opacity">Transparência <output>${opacity}%</output><input type="range" min="0" max="100" step="1" value="${opacity}" aria-label="Transparência de ${model.name}"></label></details><button class="ifc-model-remove" title="Remover modelo"><i class="fa-solid fa-trash"></i></button>`;
+      const transparency = Math.round((1 - model.opacity) * 100);
+      row.innerHTML = `<input type="checkbox" ${model.visible ? 'checked' : ''} aria-label="Mostrar ${model.name}"><details class="ifc-model-menu"><summary><strong>${model.name}</strong><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><small>${model.source === 'demo' ? 'Demonstração · ' : ''}${fmtSize(model.size)} · ${model.status}</small><label class="ifc-model-opacity">Transparência <output>${transparency}%</output><input type="range" min="0" max="100" step="1" value="${transparency}" aria-label="Transparência de ${model.name}"></label></details><button class="ifc-model-remove" title="Remover modelo"><i class="fa-solid fa-trash"></i></button>`;
       row.querySelector('input[type="checkbox"]').addEventListener('change', (event) => this.setModelVisibility(model.id, event.target.checked));
       row.querySelector('input[type="range"]').addEventListener('input', (event) => this.setModelOpacity(model.id, Number(event.target.value) / 100, row.querySelector('output')));
       row.querySelector('button').addEventListener('click', () => this.removeModel(model.id)); this.list.append(row);
@@ -257,15 +261,15 @@ class IFCViewer {
   }
 
   setModelVisibility(id, visible) { const model = this.models.get(id); if (!model) return; model.visible = visible; model.group.visible = visible; this.clearSelection(); this.requestRender(); }
-  setModelOpacity(id, opacity, output) {
+  setModelOpacity(id, transparency, output) {
     const model = this.models.get(id); if (!model) return;
-    model.opacity = opacity;
+    model.opacity = 1 - transparency;
     const materials = new Set(model.meshes.map((mesh) => mesh.material));
     materials.forEach((material) => {
-      const effectiveOpacity = (material.userData.ifcBaseOpacity ?? 1) * opacity;
+      const effectiveOpacity = (material.userData.ifcBaseOpacity ?? 1) * model.opacity;
       material.opacity = effectiveOpacity; material.transparent = effectiveOpacity < .999; material.depthWrite = effectiveOpacity >= .999; material.needsUpdate = true;
     });
-    if (output) output.textContent = `${Math.round(opacity * 100)}%`;
+    if (output) output.textContent = `${Math.round(transparency * 100)}%`;
     this.requestRender();
   }
   async removeModel(id) { const model = this.models.get(id); if (!model) return; this.clearSelection(); model.meshes.forEach((mesh) => { this.meshes = this.meshes.filter((entry) => entry !== mesh); mesh.geometry.disposeBoundsTree?.(); mesh.geometry.dispose(); mesh.material.dispose(); }); this.root.remove(model.group); this.api.CloseModel(model.modelID); this.models.delete(id); this.refreshExplosionCache(); if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance); this.renderModels(); this.resetClipBox(); this.requestRender(); }
@@ -274,7 +278,12 @@ class IFCViewer {
   fitModelToView() { if (!this.meshes.length) return; const box = new THREE.Box3(); this.meshes.filter((mesh) => mesh.parent?.visible).forEach((mesh) => box.expandByObject(mesh)); if (box.isEmpty()) return; const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const distance = Math.max(12, Math.max(size.x, size.y, size.z) * 1.35); this.orbit.target.copy(center); this.camera.position.set(center.x + distance, center.y + distance * .62, center.z + distance); this.orbit.update(); this.requestRender(); }
 
   handleAction(action) { if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel'); }
-  togglePanel(id) { document.getElementById(id).classList.toggle('hidden'); }
+  togglePanel(id) {
+    const panel = document.getElementById(id);
+    const shouldOpen = panel.classList.contains('hidden');
+    document.querySelectorAll('.ifc-float-panel').forEach((entry) => entry.classList.add('hidden'));
+    if (shouldOpen) panel.classList.remove('hidden');
+  }
   setMode(mode, { unlock = true } = {}) {
     this.mode = mode;
     this.orbit && (this.orbit.enabled = mode === 'orbit');
@@ -287,6 +296,7 @@ class IFCViewer {
     }
     this.walkHelp.classList.toggle('hidden', mode !== 'walk-placement');
     this.walkCrosshair?.classList.toggle('hidden', mode !== 'walk');
+    if (mode === 'walk') { this.walk.mouseReleased = false; this.walk.ignoreEscapeUntil = 0; }
     this.renderer?.domElement.classList.toggle('ifc-place-cursor', mode === 'walk-placement');
     document.querySelectorAll('[data-action="orbit"],[data-action="walk"]').forEach((button) => button.classList.toggle('active', button.dataset.action === (mode === 'orbit' ? 'orbit' : 'walk')));
     requestAnimationFrame(() => this.resize());
@@ -313,6 +323,11 @@ class IFCViewer {
         const hit = this.raycaster.intersectObjects(this.visibleMeshes(), false)[0];
         if (hit) this.inspect(hit.object, hit.point); else this.clearSelection();
       }
+      return;
+    }
+    if (this.mode === 'walk') {
+      this.walk.mouseReleased = false;
+      this.pointer.lock(true);
       return;
     }
     const rect = this.renderer.domElement.getBoundingClientRect(); this.mouse.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1); this.raycaster.setFromCamera(this.mouse, this.camera);
@@ -398,7 +413,7 @@ class IFCViewer {
   }
   renderClipControls() { const root = document.getElementById('ifc-clip-ranges'); root.innerHTML = ''; if (!this.clipBox) return; const min = Math.min(this.clipBox.minX, this.clipBox.minY, this.clipBox.minZ); const max = Math.max(this.clipBox.maxX, this.clipBox.maxY, this.clipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${this.clipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${this.clipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { this.clipBox[key] = Number(event.target.value); row.querySelector('output').textContent = `${this.clipBox[key].toFixed(2)} m`; this.applyClipBox(); }); root.append(row); }); }
   setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
-  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; const luminance = new THREE.Color(color).getLuminance(); if (this.grid) { this.grid.material.opacity = luminance > .5 ? .35 : .65; this.grid.material.transparent = true; } this.requestRender(); }
+  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); document.getElementById('ifc-background-input').value = color; this.requestRender(); }
 
   onKey(event, down) {
     if (this.mode !== 'walk') return;
@@ -411,7 +426,11 @@ class IFCViewer {
       event.preventDefault();
       if (down) this.walk.keys.add(event.code); else this.walk.keys.delete(event.code);
     }
-    if (event.code === 'Escape' && down) this.exitWalk();
+    if (event.code === 'Escape' && down) {
+      if (this.pointer?.isLocked) this.pointer.unlock();
+      else if (performance.now() < (this.walk.ignoreEscapeUntil || 0)) return;
+      else this.exitWalk({ unlock: false });
+    }
   }
   visibleMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible); }
   collisionMeshes() { return this.meshes.filter((mesh) => mesh.parent?.visible && mesh.userData.collidable); }
