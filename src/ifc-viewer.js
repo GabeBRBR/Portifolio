@@ -4,6 +4,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { IfcAPI, IFCBUILDINGSTOREY, IFCRELCONTAINEDINSPATIALSTRUCTURE, IFCDOOR, IFCDOORSTANDARDCASE, IFCWINDOW, IFCWINDOWSTANDARDCASE, IFCOPENINGELEMENT } from 'web-ifc';
 import wasmUrl from 'web-ifc/web-ifc.wasm?url';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
+import { PerformanceMonitor } from './viewer/performance/PerformanceMonitor.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -24,6 +25,7 @@ const DEMOS = {
 };
 
 const MAX_MODELS = 5;
+const BENCHMARK_MODELS = Object.freeze({ small: 'CASA-EST.ifc', medium: 'Galpão (ARQ + EST)', heavy: 'Casa Térrea (5 disciplinas)' });
 const UI_IDS = Object.freeze({
   modal: 'ifc-viewer-modal', canvas: 'ifc-canvas-container', modelList: 'ifc-model-list', modelEmpty: 'ifc-model-empty',
   loading: 'ifc-loading-overlay', loadingText: 'ifc-loading-text', progress: 'ifc-progress-bar', status: 'ifc-status',
@@ -73,6 +75,10 @@ class IFCViewer {
     this.safeProfile = this.deviceMemory !== null && this.deviceMemory <= 8;
     this.maxSafeInputBytes = 110 * 1024 ** 2;
     this.initDom();
+    this.performanceMonitor = new PerformanceMonitor({
+      enabled: new URLSearchParams(window.location.search).has('ifcDebug'),
+      onUpdate: (metrics) => this.renderDiagnostics(metrics)
+    });
     this.bindUi();
   }
 
@@ -175,15 +181,18 @@ class IFCViewer {
 
   async loadDemo(key) {
     this.demoKey = key;
+    this.performanceMonitor.beginFirstUsableFrame();
     const definitions = DEMOS[key] || DEMOS['casa-terrea'];
     await this.removeAllModels();
     this.setLoading(true, `Carregando ${key === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea'}…`, 0);
     for (let index = 0; index < definitions.length; index += 1) {
       const [discipline, path] = definitions[index];
       try {
+        const downloadStartedAt = this.performanceMonitor.start();
         const response = await fetch(path);
         if (!response.ok) throw new Error(`arquivo não encontrado (${response.status})`);
         const buffer = await response.arrayBuffer();
+        this.performanceMonitor.end(`download:${path.split('/').pop()}`, downloadStartedAt);
         await this.loadBuffer(buffer, path.split('/').pop(), discipline, 'demo', index, definitions.length);
       } catch (error) { this.showStatus(`Não foi possível carregar ${discipline}: ${error.message}`); }
     }
@@ -200,7 +209,13 @@ class IFCViewer {
     if (files.some((file) => file.size > 200 * 1024 ** 2)) this.showStatus('Arquivo acima de 200 MB: o carregamento pode exigir mais memória deste dispositivo.');
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index];
-      try { await this.loadBuffer(await file.arrayBuffer(), file.name, this.guessDiscipline(file.name), 'local', index, files.length); }
+      try {
+        this.performanceMonitor.beginFirstUsableFrame();
+        const readStartedAt = this.performanceMonitor.start();
+        const buffer = await file.arrayBuffer();
+        this.performanceMonitor.end(`file-read:${file.name}`, readStartedAt);
+        await this.loadBuffer(buffer, file.name, this.guessDiscipline(file.name), 'local', index, files.length);
+      }
       catch (error) { this.showStatus(`Não foi possível ler ${file.name}: ${error.message}`); }
     }
     this.setLoading(false); this.fitModelToView();
@@ -211,6 +226,7 @@ class IFCViewer {
   async loadBuffer(buffer, name, discipline, source, index, total) {
     await this.ensureScene(); await this.ensureIfc();
     this.setLoading(true, `Processando ${name}…`, Math.round((index / total) * 90));
+    const parseStartedAt = this.performanceMonitor.start();
     const modelID = this.api.OpenModel(new Uint8Array(buffer));
     const id = `${source}-${Date.now()}-${modelID}`;
     const group = new THREE.Group(); group.name = name; this.root.add(group);
@@ -247,6 +263,7 @@ class IFCViewer {
     this.resetClipBox();
     this.refreshCollisionMeshes();
     this.requestRender();
+    this.performanceMonitor.end(`parse:${name}`, parseStartedAt);
   }
 
   async mapFloors(record) {
@@ -371,6 +388,7 @@ class IFCViewer {
   }
 
   async inspect(mesh, point) {
+    const selectionStartedAt = this.performanceMonitor.start();
     this.clearSelection(); this.selection = mesh; mesh.material.emissive = new THREE.Color(0x6a4c08); mesh.material.emissiveIntensity = .35;
     this.requestRender();
     const { modelID, expressID, discipline } = mesh.userData; this.properties.innerHTML = '<p class="ifc-empty-copy">Consultando propriedades IFC…</p>';
@@ -394,6 +412,7 @@ class IFCViewer {
       }
       this.properties.innerHTML = Object.entries(groups).map(([title, values]) => `<section class="ifc-property-group"><h3>${title}</h3>${Object.entries(values).map(([key, value]) => `<dl class="ifc-property-row"><dt>${key}</dt><dd>${valueText(value)}</dd></dl>`).join('')}</section>`).join(''); this.filterProperties();
     } catch (error) { this.properties.innerHTML = `<p class="ifc-empty-copy">Não foi possível obter as propriedades: ${error.message}</p>`; }
+    finally { this.performanceMonitor.end('selection', selectionStartedAt); }
   }
 
   clearSelection() { if (this.selection) { this.selection.material.emissive = new THREE.Color(0x000000); this.selection.material.emissiveIntensity = 0; } this.selection = null; this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>'; this.search.value = ''; this.requestRender(); }
@@ -517,6 +536,17 @@ class IFCViewer {
     }
   }
   requestRender() { this.needsRender = true; }
+  renderDiagnostics(metrics) {
+    if (!this.performanceMonitor.enabled) return;
+    if (!this.diagnostics) {
+      this.diagnostics = document.createElement('aside');
+      this.diagnostics.className = 'ifc-diagnostics';
+      this.diagnostics.setAttribute('aria-live', 'polite');
+      this.container.append(this.diagnostics);
+    }
+    const operationText = Object.entries(metrics.operations).map(([name, value]) => `${name}: ${value.toFixed(0)} ms`).join('\n');
+    this.diagnostics.textContent = `DIAGNÓSTICO\n${metrics.fps} FPS · ${metrics.frameMs.toFixed(1)} ms · p95 ${metrics.frameP95.toFixed(1)} ms\nDraw calls ${metrics.calls} · Triângulos ${metrics.triangles}\nMeshes ${metrics.meshes} · Materiais ${metrics.materials}\nGeometrias ${metrics.geometries} · Texturas ${metrics.textures}\nCaminhada/raycast ${metrics.walkMs.toFixed(2)} ms · Primeiro frame ${metrics.firstUsableMs?.toFixed(0) ?? '—'} ms\nReferências: ${BENCHMARK_MODELS.small} / ${BENCHMARK_MODELS.medium} / ${BENCHMARK_MODELS.heavy}\n${operationText}`;
+  }
   animate() {
     requestAnimationFrame(() => this.animate());
     if (!this.scene || this.modal.classList.contains('hidden')) return;
@@ -525,11 +555,16 @@ class IFCViewer {
     this.lastFrame = now;
     if (this.orbit?.enabled && this.orbit.update()) this.requestRender();
     const walking = this.mode === 'walk' && this.pointer?.isLocked;
-    this.updateWalk(delta);
+    if (this.performanceMonitor.enabled) {
+      const walkStartedAt = performance.now();
+      this.updateWalk(delta);
+      this.performanceMonitor.recordWalkPhysics(performance.now() - walkStartedAt);
+    } else this.updateWalk(delta);
     if (walking) this.requestRender();
     const interval = walking ? 1000 / (this.safeProfile ? 24 : 36) : 1000 / (this.safeProfile ? 20 : 30);
     if (this.needsRender && now - this.lastRender >= interval) {
       this.renderer.render(this.scene, this.camera);
+      if (this.performanceMonitor.enabled) this.performanceMonitor.recordFrame({ now, deltaMs: delta * 1000, renderer: this.renderer, meshCount: this.meshes.length, materialCount: new Set(this.meshes.map((mesh) => mesh.material)).size });
       this.lastRender = now;
       this.needsRender = false;
     }
