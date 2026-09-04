@@ -223,12 +223,16 @@ export class FragmentsPilot {
 
   async onWalkCanvasClick(event) {
     if (this.walk.mode === 'placement') {
-      const hit = await this.pickWalkSurface(event);
+      const hit = await this.pickWalkSurface(event) || await this.pickHighlightedSurface();
       if (!hit) return this.showStatus('Não foi possível usar esse ponto. Clique novamente em um elemento visível.');
       // Any hit surface is a valid spawn point. A point on a wall or in the
       // air deliberately starts above its elevation and gravity settles the
       // player on the next reachable floor.
       this.world.camera.three.position.copy(hit.point).addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
+      if (this.highlighter) {
+        await this.highlighter.clear('select');
+        this.highlighter.enabled = false;
+      }
       // At this point the visible tiles beneath the chosen floor are loaded,
       // so the inexpensive BVH proxy can be rebuilt once for motion physics.
       this.buildCollisionProxy();
@@ -301,6 +305,24 @@ export class FragmentsPilot {
       .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
       .map(([, model]) => model.raycast({ camera: this.world.camera.three, mouse, dom })));
     return hits.filter(Boolean).sort((a, b) => a.distance - b.distance)[0] || null;
+  }
+
+  async pickHighlightedSurface() {
+    if (!this.highlighter) return null;
+    // The Highlighter uses That Open's GPU picker, which keeps working when a
+    // virtual Fragment tile has no CPU raycast representation yet.
+    this.highlighter.enabled = true;
+    await this.highlighter.highlight('select', true, false);
+    const selection = this.highlighter.selection.select;
+    const entry = Object.entries(selection || {}).find(([, localIds]) => localIds?.size);
+    if (!entry) {
+      this.highlighter.enabled = false;
+      return null;
+    }
+    const [modelId, localIds] = entry;
+    const model = this.fragments.list.get(modelId);
+    const [point] = model ? await model.getPositions([[...localIds][0]]) : [];
+    return point ? { point } : null;
   }
 
   collisionRay(origin, direction, far) {
