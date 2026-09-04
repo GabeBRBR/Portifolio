@@ -40,17 +40,23 @@ export class FragmentsPilot {
     this.world.renderer.showLogo = false;
     this.world.renderer.mode = OBC.RendererMode.MANUAL;
     this.world.renderer.three.shadowMap.enabled = false;
-    this.world.renderer.three.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
+    this.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1);
+    this.world.renderer.three.setPixelRatio(this.devicePixelRatio);
     this.world.camera = new OBC.OrthoPerspectiveCamera(this.components);
     this.components.init();
 
     this.fragments = this.components.get(OBC.FragmentsManager);
     // Vite emits this dependency as a local worker asset, keeping Pages/CDN-independent.
     this.fragments.init(fragmentsWorkerUrl);
+    // Keep every discipline in its IFC's shared coordinates. The Fragments
+    // core otherwise coordinates each imported file around its first origin.
+    this.fragments.core.settings.autoCoordinate = false;
+    this.fragments.core.settings.maxUpdateRate = 100;
     this.ifcLoader = this.components.get(OBC.IfcLoader);
     await this.ifcLoader.setup({
       autoSetWasm: false,
-      wasm: { path: new URL('./assets/wasm/', window.location.href).href, absolute: true }
+      wasm: { path: new URL('./assets/wasm/', window.location.href).href, absolute: true },
+      webIfc: { COORDINATE_TO_ORIGIN: false }
     });
 
     this.fragments.list.onItemSet.add(({ value: model }) => {
@@ -60,7 +66,7 @@ export class FragmentsPilot {
       this.world.renderer.needsUpdate = true;
     });
     this.world.camera.controls.addEventListener('update', () => {
-      this.fragments.core.update();
+      this.scheduleCameraUpdate();
       this.world.renderer.needsUpdate = true;
     });
     await this.world.camera.controls.setLookAt(18, 14, 18, 0, 0, 0);
@@ -99,6 +105,30 @@ export class FragmentsPilot {
     await this.world.camera.fit(this.world.meshes, 1.25);
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
+  }
+
+  scheduleCameraUpdate() {
+    this.setMovingQuality(true);
+    if (!this.cullingTimer) {
+      this.cullingTimer = window.setTimeout(() => {
+        this.cullingTimer = null;
+        this.fragments.core.update();
+      }, 90);
+    }
+    clearTimeout(this.cameraRestTimer);
+    this.cameraRestTimer = window.setTimeout(() => {
+      this.setMovingQuality(false);
+      this.fragments.core.update(true);
+      this.world.renderer.needsUpdate = true;
+    }, 220);
+  }
+
+  setMovingQuality(moving) {
+    if (this.isMoving === moving) return;
+    this.isMoving = moving;
+    this.fragments.core.settings.graphicsQuality = moving ? 0 : 1;
+    this.world.renderer.three.setPixelRatio(moving ? Math.min(this.devicePixelRatio, .7) : this.devicePixelRatio);
+    this.world.renderer.resize();
   }
 
   setActive(active) {
