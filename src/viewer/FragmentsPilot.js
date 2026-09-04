@@ -60,9 +60,10 @@ export class FragmentsPilot {
     this.fragments = this.components.get(OBC.FragmentsManager);
     // Vite emits this dependency as a local worker asset, keeping Pages/CDN-independent.
     this.fragments.init(fragmentsWorkerUrl);
-    // Keep every discipline in its IFC's shared coordinates. The Fragments
-    // core otherwise coordinates each imported file around its first origin.
-    this.fragments.core.settings.autoCoordinate = false;
+    // Normalize the work close to the render origin. Some Revit exports (the
+    // galpao in particular) retain large survey coordinates that push the
+    // WebGL camera/culling precision beyond a practical range.
+    this.fragments.core.settings.autoCoordinate = true;
     this.highlighter = this.components.get(OBCF.Highlighter);
     this.highlighter.setup({
       world: this.world,
@@ -96,7 +97,7 @@ export class FragmentsPilot {
     const models = manifest.models.filter((model) => model.work === workKey);
     if (!models.length) throw new Error(`nenhum modelo otimizado encontrado para ${workName}`);
     if (this.loadedWork) {
-      for (const modelId of this.fragments.list.keys()) await this.fragments.core.disposeModel(modelId);
+      for (const modelId of [...this.fragments.list.keys()]) await this.fragments.core.disposeModel(modelId);
       this.modelRecords.clear();
     }
     for (let index = 0; index < models.length; index += 1) {
@@ -106,6 +107,14 @@ export class FragmentsPilot {
         const fragmentResponse = await fetch(model.fragment);
         if (!fragmentResponse.ok) throw new Error(`arquivo otimizado não encontrado (${fragmentResponse.status})`);
         await this.fragments.core.load(await fragmentResponse.arrayBuffer(), { modelId: model.id });
+        // Explicitly attach the root as some generated fragments use batched
+        // geometry and do not expose a regular Mesh child at first.
+        const loadedModel = this.fragments.list.get(model.id);
+        if (loadedModel) {
+          loadedModel.useCamera(this.world.camera.three);
+          this.world.scene.three.add(loadedModel.object);
+          loadedModel.object.visible = true;
+        }
         this.modelRecords.set(model.id, { ...model, visible: true });
       } catch (error) {
         this.showStatus(`Piloto Fragments: não foi possível carregar ${model.discipline}: ${error.message}`);
@@ -178,6 +187,9 @@ export class FragmentsPilot {
   startWalkPlacement() {
     if (!this.collisionProxy) return this.showStatus('Aguarde o carregamento de uma disciplina para iniciar a caminhada.');
     this.clearSelection();
+    // The highlighter also listens to canvas clicks. Disable it before the
+    // placement click so it is reserved exclusively for choosing the floor.
+    if (this.highlighter) this.highlighter.enabled = false;
     this.walk.mode = 'placement';
     this.world.camera.controls.enabled = false;
     this.world.renderer.three.domElement.classList.add('ifc-place-cursor');
@@ -193,6 +205,7 @@ export class FragmentsPilot {
     this.walk.jumpRequested = false;
     this.walk.velocityY = 0;
     if (this.walkControls?.isLocked) this.walkControls.unlock();
+    if (this.highlighter) this.highlighter.enabled = true;
     this.world?.camera && (this.world.camera.controls.enabled = true);
     this.world?.renderer?.three.domElement.classList.remove('ifc-place-cursor');
     this.walkHelp?.classList.add('hidden');
@@ -358,32 +371,30 @@ export class FragmentsPilot {
 
   async fit() {
     if (!this.world) return;
-    const bounds = new THREE.Box3();
-    let hasVisibleModel = false;
+    const meshes = [];
     this.fragments?.list.forEach((model, modelId) => {
       if (!this.modelRecords.get(modelId)?.visible) return;
-      model.object.updateWorldMatrix(true, true);
-      bounds.expandByObject(model.object);
-      hasVisibleModel = true;
+      model.object.traverse((object) => {
+        if ((object.isMesh || object.isInstancedMesh || object.isBatchedMesh) && object.visible) meshes.push(object);
+      });
     });
-    if (!hasVisibleModel || bounds.isEmpty()) return;
+    if (!meshes.length) return;
 
-    // `world.meshes` is not populated by every Fragments import. Framing the
-    // real model roots prevents a newly selected work (notably the galpao)
-    // from keeping the previous work's distant camera target.
-    const center = bounds.getCenter(new THREE.Vector3());
+    // Do not use camera.fit() here: it also merges auxiliary component boxes
+    // and uses the largest dimension as a radius, which puts the galpao very
+    // far away. Build a bounding box from the visible Fragment meshes only.
+    const bounds = new THREE.Box3();
+    for (const mesh of meshes) {
+      const geometry = mesh.geometry;
+      if (!geometry.boundingBox) geometry.computeBoundingBox();
+      if (!geometry.boundingBox) continue;
+      bounds.union(geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
+    }
+    if (bounds.isEmpty()) return;
     const size = bounds.getSize(new THREE.Vector3());
-    const camera = this.world.camera.three;
-    const verticalFov = THREE.MathUtils.degToRad(camera.fov || 50);
-    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (camera.aspect || 1));
-    const distance = Math.max(
-      size.y / (2 * Math.tan(verticalFov / 2)),
-      size.x / (2 * Math.tan(horizontalFov / 2)),
-      size.z / (2 * Math.tan(horizontalFov / 2)),
-      3
-    ) * 1.45;
-    const eye = center.clone().add(new THREE.Vector3(1, 0.72, 1).normalize().multiplyScalar(distance));
-    await this.world.camera.controls.setLookAt(eye.x, eye.y, eye.z, center.x, center.y, center.z, false);
+    const center = bounds.getCenter(new THREE.Vector3());
+    const radius = Math.max(size.x, size.y, size.z) * 0.65;
+    await this.world.camera.controls.fitToSphere(new THREE.Sphere(center, Math.max(radius, 1)), false);
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
   }
