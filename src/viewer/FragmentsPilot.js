@@ -53,7 +53,7 @@ export class FragmentsPilot {
     this.highlighter = this.components.get(OBCF.Highlighter);
     this.highlighter.setup({
       world: this.world,
-      selectMaterialDefinition: { color: new THREE.Color('#b8860b'), opacity: 0.8, transparent: false, preserveOriginalMaterial: true },
+      selectMaterialDefinition: { color: new THREE.Color('#2474c6'), opacity: 0.8, transparent: false, preserveOriginalMaterial: true },
       zoomToSelection: false
     });
     this.highlighter.events.select.onHighlight.add((selection) => this.inspectSelection(selection));
@@ -167,19 +167,20 @@ export class FragmentsPilot {
     try {
       const dataByModel = await this.fragments.getData({ [modelId]: new Set([localId]) }, {
         attributesDefault: true,
-        relations: {
-          IsDefinedBy: { attributes: true, relations: true },
-          DefinesOccurrence: { attributes: true, relations: true },
-          HasAssociations: { attributes: true, relations: true },
-          ContainedInStructure: { attributes: true, relations: true },
-          Decomposes: { attributes: true, relations: true }
-        }
+        // Keep the inspection scoped to this item. IsDefinedBy carries its
+        // Psets/quantities; expanding containment or decomposition would pull
+        // the wider model graph into this panel.
+        relations: { IsDefinedBy: { attributes: true, relations: true } }
       });
       const item = dataByModel[modelId]?.[0];
       if (!item) throw new Error('dados do elemento não foram encontrados no Fragment');
       const record = this.modelRecords.get(modelId);
-      const rows = [];
-      this.flattenItem(item, '', rows);
+      const directRows = [];
+      const propertyRows = [];
+      Object.entries(item).forEach(([key, value]) => {
+        if (key === 'IsDefinedBy') this.flattenItem(value, '', propertyRows, new WeakSet(), 0, 4, 120);
+        else this.flattenItem(value, key, directRows, new WeakSet(), 0, 1, 40);
+      });
       const identityKeys = new Set(['Entity', 'Name', 'ObjectType', 'Tag', 'GlobalId', 'expressID']);
       const identity = {
         'Model ID': modelId,
@@ -187,12 +188,13 @@ export class FragmentsPilot {
         Disciplina: record?.discipline || '—'
       };
       const details = {};
-      for (const { key, value } of rows) {
+      for (const { key, value } of directRows) {
         const target = identityKeys.has(key) ? identity : details;
         target[key] = value;
       }
       if (!identity['Classe IFC'] && identity.Entity) identity['Classe IFC'] = identity.Entity;
-      this.properties.innerHTML = this.renderPropertyGroups({ Identificação: identity, Propriedades: details });
+      const psets = Object.fromEntries(propertyRows.map(({ key, value }) => [key, value]));
+      this.properties.innerHTML = this.renderPropertyGroups({ Identificação: identity, Atributos: details, 'Property Sets e quantidades': psets });
       this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea', { type: identity.Entity || identity['Classe IFC'], name: identity.Name });
       this.filterProperties();
     } catch (error) {
@@ -200,8 +202,8 @@ export class FragmentsPilot {
     }
   }
 
-  flattenItem(value, prefix, output, visited = new WeakSet()) {
-    if (value === null || value === undefined) return;
+  flattenItem(value, prefix, output, visited = new WeakSet(), depth = 0, maxDepth = 4, maxRows = 120) {
+    if (value === null || value === undefined || depth > maxDepth || output.length >= maxRows) return;
     if (typeof value !== 'object') {
       output.push({ key: prefix || 'Valor', value: String(value) });
       return;
@@ -211,14 +213,14 @@ export class FragmentsPilot {
     if (Object.prototype.hasOwnProperty.call(value, 'value')) {
       const plain = value.value;
       if (plain === null || plain === undefined || typeof plain !== 'object') output.push({ key: prefix || 'Valor', value: plain ?? '—' });
-      else this.flattenItem(plain, prefix, output, visited);
+      else this.flattenItem(plain, prefix, output, visited, depth + 1, maxDepth, maxRows);
       return;
     }
     if (Array.isArray(value)) {
-      value.forEach((entry, index) => this.flattenItem(entry, prefix ? `${prefix} ${index + 1}` : `Item ${index + 1}`, output, visited));
+      value.forEach((entry, index) => this.flattenItem(entry, prefix ? `${prefix} ${index + 1}` : `Item ${index + 1}`, output, visited, depth + 1, maxDepth, maxRows));
       return;
     }
-    Object.entries(value).forEach(([key, nested]) => this.flattenItem(nested, prefix ? `${prefix} › ${key}` : key, output, visited));
+    Object.entries(value).forEach(([key, nested]) => this.flattenItem(nested, prefix ? `${prefix} › ${key}` : key, output, visited, depth + 1, maxDepth, maxRows));
   }
 
   renderPropertyGroups(groups) {
