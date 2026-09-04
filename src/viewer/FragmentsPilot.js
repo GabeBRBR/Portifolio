@@ -198,7 +198,6 @@ export class FragmentsPilot {
     // placement click so it is reserved exclusively for choosing the floor.
     if (this.highlighter) this.highlighter.enabled = false;
     this.walk.mode = 'placement';
-    this.world.camera.controls.enabled = false;
     this.world.renderer.three.domElement.classList.add('ifc-place-cursor');
     this.walkHelp?.classList.remove('hidden');
     this.walkCrosshair?.classList.add('hidden');
@@ -228,7 +227,18 @@ export class FragmentsPilot {
       // Any hit surface is a valid spawn point. A point on a wall or in the
       // air deliberately starts above its elevation and gravity settles the
       // player on the next reachable floor.
-      this.world.camera.three.position.copy(hit.point).addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
+      const camera = this.world.camera.three;
+      const spawn = hit.point.clone().addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
+      const forward = camera.getWorldDirection(this.walkVectors.forward).setY(0);
+      if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1); else forward.normalize();
+      const target = spawn.clone().add(forward);
+      // CameraControls owns the camera transform even when orbit input is
+      // disabled. Update its internal target first, otherwise its next frame
+      // restores the distant orbit position after Pointer Lock is granted.
+      camera.zoom = 1;
+      camera.updateProjectionMatrix();
+      await this.world.camera.controls.setLookAt(spawn.x, spawn.y, spawn.z, target.x, target.y, target.z, false);
+      this.world.camera.controls.enabled = false;
       if (this.highlighter) {
         await this.highlighter.clear('select');
         this.highlighter.enabled = false;
