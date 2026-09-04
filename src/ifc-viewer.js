@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { IfcAPI, IFCBUILDINGSTOREY, IFCRELCONTAINEDINSPATIALSTRUCTURE, IFCCOLUMN, IFCCURTAINWALL, IFCRAMP, IFCROOF, IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCWALL, IFCWALLSTANDARDCASE } from 'web-ifc';
+import { IfcAPI, IFCBUILDINGELEMENTPROXY, IFCBUILDINGSTOREY, IFCCOLUMN, IFCCURTAINWALL, IFCFOOTING, IFCGEOGRAPHICELEMENT, IFCPAVEMENT, IFCRAMP, IFCRELCONTAINEDINSPATIALSTRUCTURE, IFCROOF, IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCWALL, IFCWALLSTANDARDCASE } from 'web-ifc';
 import wasmUrl from 'web-ifc/web-ifc.wasm?url';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
 import { PerformanceMonitor } from './viewer/performance/PerformanceMonitor.js';
@@ -35,7 +35,9 @@ const UI_IDS = Object.freeze({
   walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair'
 });
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
-const FLOOR_COLLIDER_TYPES = new Set([IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP]);
+// Alguns exportadores classificam terreno e pisos como elementos genéricos, e não IfcSlab.
+// Estes tipos só entram no raycast vertical; nunca na colisão lateral do jogador.
+const FLOOR_COLLIDER_TYPES = new Set([IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING, IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY]);
 const OBSTACLE_COLLIDER_TYPES = new Set([IFCWALL, IFCWALLSTANDARDCASE, IFCCOLUMN, IFCCURTAINWALL, IFCROOF]);
 const fmtSize = (value) => value < 1024 ** 2 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1024 ** 2).toFixed(1)} MB`;
 const primitive = (value) => value && typeof value === 'object' && 'value' in value ? primitive(value.value) : value;
