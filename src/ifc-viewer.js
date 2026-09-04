@@ -69,6 +69,7 @@ class IFCViewer {
     this.clipPlanes = [];
     this.explodeDistance = 0;
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
+    this.engine = new URLSearchParams(window.location.search).get('ifcEngine') === 'fragments' ? 'fragments' : 'legacy';
     this.walk = { keys: new Set(), jumpRequested: false, velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1 };
     this.lastFrame = performance.now();
     this.lastRender = 0;
@@ -87,6 +88,8 @@ class IFCViewer {
       onUpdate: (metrics) => this.renderDiagnostics(metrics)
     });
     this.modelDisposer = new ModelDisposer();
+    this.fragmentsPilot = null;
+    this.fragmentsPilotPromise = null;
     this.bindUi();
   }
 
@@ -173,6 +176,10 @@ class IFCViewer {
     this.modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     try {
+      if (this.engine === 'fragments') {
+        await this.openFragmentsPilot();
+        return;
+      }
       await this.ensureScene();
       if (this.safeProfile) this.showStatus('Modo econômico ativo: renderização reduzida para este dispositivo com até 8 GB de RAM.');
       if (!this.models.size) await this.loadDemo(workKey);
@@ -183,12 +190,14 @@ class IFCViewer {
 
   closeViewer() {
     this.pointer?.unlock();
+    this.fragmentsPilot?.setActive(false);
     this.setMode('orbit');
     this.modal.classList.add('hidden');
     document.body.style.overflow = '';
   }
 
   async loadDemo(key) {
+    if (this.engine === 'fragments') return this.openFragmentsPilot();
     this.demoKey = key;
     this.performanceMonitor.beginFirstUsableFrame();
     const definitions = DEMOS[key] || DEMOS['casa-terrea'];
@@ -209,6 +218,7 @@ class IFCViewer {
   }
 
   async addFiles(fileList) {
+    if (this.engine === 'fragments') return this.showStatus('O piloto Fragments desta fase usa somente a Casa Térrea hospedada. Upload IFC permanece disponível no motor padrão.');
     const files = [...(fileList || [])].filter((file) => /\.ifc$/i.test(file.name));
     if (!files.length) return this.showStatus('Selecione arquivos no formato IFC.');
     if (this.models.size + files.length > MAX_MODELS) return this.showStatus(`O visualizador aceita no máximo ${MAX_MODELS} modelos de cada vez. Remova um modelo antes de adicionar outro.`);
@@ -344,7 +354,29 @@ class IFCViewer {
 
   fitModelToView() { if (!this.meshes.length) return; const box = new THREE.Box3(); this.meshes.filter((mesh) => mesh.parent?.visible).forEach((mesh) => box.expandByObject(mesh)); if (box.isEmpty()) return; const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const distance = Math.max(12, Math.max(size.x, size.y, size.z) * 1.35); this.orbit.target.copy(center); this.camera.position.set(center.x + distance, center.y + distance * .62, center.z + distance); this.orbit.update(); this.requestRender(); }
 
-  handleAction(action) { if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel'); }
+  handleAction(action) {
+    if (this.engine === 'fragments') {
+      if (action === 'fit') return this.fragmentsPilot?.fit();
+      if (action === 'orbit') return this.showStatus('Piloto Fragments: use o mouse para órbita, zoom e pan.');
+      return this.showStatus('Este recurso continua no motor padrão e será migrado nas próximas fases do plano.');
+    }
+    if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel');
+  }
+  async openFragmentsPilot() {
+    if (!this.fragmentsPilotPromise) {
+      this.fragmentsPilotPromise = import('./viewer/FragmentsPilot.js').then(({ FragmentsPilot }) => {
+        this.fragmentsPilot = new FragmentsPilot({
+          container: this.container,
+          list: this.list,
+          empty: this.empty,
+          setLoading: (...args) => this.setLoading(...args),
+          showStatus: (message) => this.showStatus(message)
+        });
+        return this.fragmentsPilot;
+      });
+    }
+    return (await this.fragmentsPilotPromise).open();
+  }
   togglePanel(id) {
     const panel = document.getElementById(id);
     const shouldOpen = panel.classList.contains('hidden');
