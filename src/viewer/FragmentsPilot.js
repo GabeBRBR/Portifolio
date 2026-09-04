@@ -205,7 +205,10 @@ export class FragmentsPilot {
     if (this.walk.mode === 'placement') {
       const hit = this.pickCollision(event);
       const normal = hit?.face?.normal?.clone().transformDirection(hit.object.matrixWorld);
-      if (!hit || !normal || normal.y < 0.55) return this.showStatus('Escolha uma superfície aproximadamente horizontal para iniciar a caminhada.');
+      // Revit's Generic Models frequently arrive with their triangulation
+      // winding reversed. A horizontal slab is still a valid floor whether
+      // its exported normal points up or down.
+      if (!hit || !normal || Math.abs(normal.y) < 0.55) return this.showStatus('Escolha uma superfície aproximadamente horizontal para iniciar a caminhada.');
       this.world.camera.three.position.copy(hit.point).addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
       this.walk.velocityY = 0;
       this.walk.grounded = true;
@@ -281,7 +284,7 @@ export class FragmentsPilot {
     const hit = this.collisionRay(origin, this.walkVectors.down, lift + maxDrop);
     if (!hit?.face) return null;
     const normal = this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
-    return normal.y > 0.55 ? hit : null;
+    return Math.abs(normal.y) > 0.55 ? hit : null;
   }
 
   hitsWall(position, direction, distance) {
@@ -354,8 +357,33 @@ export class FragmentsPilot {
   }
 
   async fit() {
-    if (!this.world?.meshes.size) return;
-    await this.world.camera.fit(this.world.meshes, 1.25);
+    if (!this.world) return;
+    const bounds = new THREE.Box3();
+    let hasVisibleModel = false;
+    this.fragments?.list.forEach((model, modelId) => {
+      if (!this.modelRecords.get(modelId)?.visible) return;
+      model.object.updateWorldMatrix(true, true);
+      bounds.expandByObject(model.object);
+      hasVisibleModel = true;
+    });
+    if (!hasVisibleModel || bounds.isEmpty()) return;
+
+    // `world.meshes` is not populated by every Fragments import. Framing the
+    // real model roots prevents a newly selected work (notably the galpao)
+    // from keeping the previous work's distant camera target.
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const camera = this.world.camera.three;
+    const verticalFov = THREE.MathUtils.degToRad(camera.fov || 50);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * (camera.aspect || 1));
+    const distance = Math.max(
+      size.y / (2 * Math.tan(verticalFov / 2)),
+      size.x / (2 * Math.tan(horizontalFov / 2)),
+      size.z / (2 * Math.tan(horizontalFov / 2)),
+      3
+    ) * 1.45;
+    const eye = center.clone().add(new THREE.Vector3(1, 0.72, 1).normalize().multiplyScalar(distance));
+    await this.world.camera.controls.setLookAt(eye.x, eye.y, eye.z, center.x, center.y, center.z, false);
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
   }
