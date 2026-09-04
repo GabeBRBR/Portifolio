@@ -1,6 +1,8 @@
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { ObjectBVH } from 'three-mesh-bvh';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
@@ -10,17 +12,21 @@ const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
  * until selection, properties and walking are migrated in later phases.
  */
 export class FragmentsPilot {
-  constructor({ container, list, empty, properties, search, tree, setLoading, showStatus }) {
+  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, setLoading, showStatus }) {
     this.container = container;
     this.list = list;
     this.empty = empty;
     this.properties = properties;
     this.search = search;
     this.tree = tree;
+    this.walkHelp = walkHelp;
+    this.walkCrosshair = walkCrosshair;
     this.setLoading = setLoading;
     this.showStatus = showStatus;
     this.loadedWork = null;
     this.modelRecords = new Map();
+    this.walk = { mode: 'orbit', keys: new Set(), jumpRequested: false, velocityY: 0, grounded: false, height: 1.7, radius: 0.28, stepHeight: 0.2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1, lastFrame: performance.now(), mouseReleased: false, ignoreEscapeUntil: 0 };
+    this.walkVectors = { down: new THREE.Vector3(0, -1, 0), forward: new THREE.Vector3(), right: new THREE.Vector3(), move: new THREE.Vector3(), next: new THREE.Vector3(), origin: new THREE.Vector3(), normal: new THREE.Vector3() };
   }
 
   async open(workKey = 'casa-terrea') {
@@ -43,6 +49,13 @@ export class FragmentsPilot {
     this.world.renderer.three.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
     this.world.camera = new OBC.OrthoPerspectiveCamera(this.components);
     this.components.init();
+    this.walkControls = new PointerLockControls(this.world.camera.three, this.world.renderer.three.domElement);
+    this.walkControls.pointerSpeed = 0.85;
+    this.walkControls.addEventListener('unlock', () => this.onWalkUnlock());
+    this.world.renderer.three.domElement.addEventListener('click', (event) => this.onWalkCanvasClick(event));
+    this.world.renderer.three.domElement.addEventListener('wheel', (event) => this.onWalkWheel(event), { passive: false });
+    window.addEventListener('keydown', (event) => this.onWalkKey(event, true));
+    window.addEventListener('keyup', (event) => this.onWalkKey(event, false));
 
     this.fragments = this.components.get(OBC.FragmentsManager);
     // Vite emits this dependency as a local worker asset, keeping Pages/CDN-independent.
@@ -69,6 +82,7 @@ export class FragmentsPilot {
       this.world.renderer.needsUpdate = true;
     });
     await this.world.camera.controls.setLookAt(18, 14, 18, 0, 0, 0);
+    this.animateWalk();
   }
 
   async loadWork(workKey) {
@@ -101,6 +115,7 @@ export class FragmentsPilot {
     this.setLoading(false);
     this.renderModels(workName);
     this.renderTree(workName);
+    this.buildCollisionProxy();
     await this.fit();
     this.showStatus(`${workName} otimizado ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.`);
   }
@@ -133,6 +148,7 @@ export class FragmentsPilot {
     if (!record || !model) return;
     record.visible = visible;
     model.object.visible = visible;
+    this.buildCollisionProxy();
     if (!visible) await this.clearSelection();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
@@ -147,8 +163,194 @@ export class FragmentsPilot {
     });
     this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
     await this.clearSelection();
+    this.buildCollisionProxy();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
+  }
+
+  buildCollisionProxy() {
+    const roots = [...this.fragments.list.entries()]
+      .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
+      .map(([, model]) => model.object);
+    this.collisionProxy = roots.length ? new ObjectBVH(roots, { precise: false, includeInstances: true }) : null;
+  }
+
+  startWalkPlacement() {
+    if (!this.collisionProxy) return this.showStatus('Aguarde o carregamento de uma disciplina para iniciar a caminhada.');
+    this.clearSelection();
+    this.walk.mode = 'placement';
+    this.world.camera.controls.enabled = false;
+    this.world.renderer.three.domElement.classList.add('ifc-place-cursor');
+    this.walkHelp?.classList.remove('hidden');
+    this.walkCrosshair?.classList.add('hidden');
+    this.showStatus('Clique em um piso para posicionar-se. Depois use WASD, Espaço para pular e Shift para correr.');
+  }
+
+  async exitWalk({ fit = true } = {}) {
+    const wasWalking = this.walk.mode !== 'orbit';
+    this.walk.mode = 'orbit';
+    this.walk.keys.clear();
+    this.walk.jumpRequested = false;
+    this.walk.velocityY = 0;
+    if (this.walkControls?.isLocked) this.walkControls.unlock();
+    this.world?.camera && (this.world.camera.controls.enabled = true);
+    this.world?.renderer?.three.domElement.classList.remove('ifc-place-cursor');
+    this.walkHelp?.classList.add('hidden');
+    this.walkCrosshair?.classList.add('hidden');
+    if (wasWalking && fit) await this.fit();
+    if (wasWalking) this.showStatus('Caminhada encerrada. Órbita e zoom restaurados.');
+  }
+
+  onWalkCanvasClick(event) {
+    if (this.walk.mode === 'placement') {
+      const hit = this.pickCollision(event);
+      const normal = hit?.face?.normal?.clone().transformDirection(hit.object.matrixWorld);
+      if (!hit || !normal || normal.y < 0.55) return this.showStatus('Escolha uma superfície aproximadamente horizontal para iniciar a caminhada.');
+      this.world.camera.three.position.copy(hit.point).addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
+      this.walk.velocityY = 0;
+      this.walk.grounded = true;
+      this.walk.mode = 'walk';
+      this.walkHelp?.classList.add('hidden');
+      this.walkCrosshair?.classList.remove('hidden');
+      this.world.renderer.three.domElement.classList.remove('ifc-place-cursor');
+      this.walkControls.lock(true);
+      return;
+    }
+    if (this.walk.mode === 'walk' && !this.walkControls.isLocked) {
+      this.walk.mouseReleased = false;
+      this.walkControls.lock(true);
+    }
+  }
+
+  onWalkUnlock() {
+    if (this.walk.mode !== 'walk') return;
+    this.walk.keys.clear();
+    this.walk.jumpRequested = false;
+    this.walk.mouseReleased = true;
+    this.walk.ignoreEscapeUntil = performance.now() + 150;
+    this.showStatus('Mouse liberado. Clique no modelo para continuar caminhando ou pressione Esc novamente para sair.');
+  }
+
+  onWalkWheel(event) {
+    if (this.walk.mode !== 'walk' || !this.walkControls?.isLocked) return;
+    event.preventDefault();
+    this.walk.zoom = THREE.MathUtils.clamp(this.walk.zoom - event.deltaY * 0.0015, 0.65, 2.5);
+    this.world.camera.three.zoom = this.walk.zoom;
+    this.world.camera.three.updateProjectionMatrix();
+    this.world.renderer.needsUpdate = true;
+  }
+
+  onWalkKey(event, down) {
+    if (this.walk.mode !== 'walk') return;
+    if (event.code === 'Escape' && down) {
+      if (this.walkControls?.isLocked) this.walkControls.unlock();
+      else if (performance.now() >= this.walk.ignoreEscapeUntil) this.exitWalk();
+      return;
+    }
+    if (event.code === 'Space') {
+      event.preventDefault();
+      if (down && !event.repeat) this.walk.jumpRequested = true;
+      return;
+    }
+    if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight'].includes(event.code)) {
+      event.preventDefault();
+      if (down) this.walk.keys.add(event.code); else this.walk.keys.delete(event.code);
+    }
+  }
+
+  pickCollision(event) {
+    if (!this.collisionProxy) return null;
+    const rect = this.world.renderer.three.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    raycaster.firstHitOnly = true;
+    raycaster.setFromCamera(mouse, this.world.camera.three);
+    return this.collisionProxy.raycast(raycaster, [])[0] || null;
+  }
+
+  collisionRay(origin, direction, far) {
+    if (!this.collisionProxy) return null;
+    const raycaster = new THREE.Raycaster(origin, direction, 0, far);
+    raycaster.firstHitOnly = true;
+    return this.collisionProxy.raycast(raycaster, [])[0] || null;
+  }
+
+  floorBelow(position, lift = 0, maxDrop = 6) {
+    const origin = this.walkVectors.origin.copy(position);
+    origin.y -= this.walk.height - lift;
+    const hit = this.collisionRay(origin, this.walkVectors.down, lift + maxDrop);
+    if (!hit?.face) return null;
+    const normal = this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
+    return normal.y > 0.55 ? hit : null;
+  }
+
+  hitsWall(position, direction, distance) {
+    if (!distance) return false;
+    const feet = position.y - this.walk.height;
+    return [0.2, this.walk.height * 0.55, this.walk.height - 0.12].some((height) => {
+      const origin = this.walkVectors.origin.copy(position).addScaledVector(direction, 0.01);
+      origin.y = feet + height;
+      const hit = this.collisionRay(origin, direction, distance + this.walk.radius);
+      if (!hit?.face || hit.distance >= distance + this.walk.radius) return false;
+      return Math.abs(this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).y) < 0.55;
+    });
+  }
+
+  updateWalk(delta) {
+    if (this.walk.mode !== 'walk' || !this.walkControls?.isLocked) return;
+    if (this.walk.jumpRequested && this.walk.grounded) {
+      this.walk.velocityY = 8.5;
+      this.walk.grounded = false;
+    }
+    this.walk.jumpRequested = false;
+    const speed = this.walk.keys.has('ShiftLeft') || this.walk.keys.has('ShiftRight') ? this.walk.run : this.walk.speed;
+    const forwardInput = Number(this.walk.keys.has('KeyW')) - Number(this.walk.keys.has('KeyS'));
+    const sideInput = Number(this.walk.keys.has('KeyD')) - Number(this.walk.keys.has('KeyA'));
+    const { move, forward, right, next } = this.walkVectors;
+    this.walkControls.getDirection(forward);
+    forward.y = 0;
+    if (forward.lengthSq() > 0.0001) forward.normalize();
+    right.set(-forward.z, 0, forward.x);
+    move.copy(forward).multiplyScalar(forwardInput).addScaledVector(right, sideInput);
+    if (move.lengthSq()) {
+      move.normalize().multiplyScalar(speed * delta);
+      next.copy(this.world.camera.three.position).add(move);
+      const feet = this.world.camera.three.position.y - this.walk.height;
+      const step = this.floorBelow(next, this.walk.stepHeight + 0.06);
+      const stepY = step?.point.y;
+      const canStep = this.walk.grounded && stepY !== undefined && stepY >= feet - 0.08 && stepY <= feet + this.walk.stepHeight;
+      if (!this.hitsWall(this.world.camera.three.position, move.clone().normalize(), move.length()) || canStep) {
+        this.world.camera.three.position.x = next.x;
+        this.world.camera.three.position.z = next.z;
+        if (canStep) {
+          this.world.camera.three.position.y = stepY + this.walk.height;
+          this.walk.velocityY = 0;
+          this.walk.grounded = true;
+        }
+      }
+    }
+    this.walk.velocityY = Math.max(this.walk.velocityY - this.walk.gravity * delta, -this.walk.terminalVelocity);
+    const feet = this.world.camera.three.position.y - this.walk.height;
+    const floor = this.floorBelow(this.world.camera.three.position, this.walk.stepHeight + 0.08);
+    const floorY = floor?.point.y;
+    const nextY = this.world.camera.three.position.y + this.walk.velocityY * delta;
+    if (floorY !== undefined && this.walk.velocityY <= 0 && floorY <= feet + 0.08 && nextY - this.walk.height <= floorY) {
+      this.world.camera.three.position.y = floorY + this.walk.height;
+      this.walk.velocityY = 0;
+      this.walk.grounded = true;
+    } else {
+      this.world.camera.three.position.y = nextY;
+      this.walk.grounded = false;
+    }
+    this.world.renderer.needsUpdate = true;
+  }
+
+  animateWalk() {
+    requestAnimationFrame(() => this.animateWalk());
+    const now = performance.now();
+    const delta = Math.min(0.05, (now - this.walk.lastFrame) / 1000);
+    this.walk.lastFrame = now;
+    this.updateWalk(delta);
   }
 
   async fit() {
@@ -254,6 +456,7 @@ export class FragmentsPilot {
 
   setActive(active) {
     if (!this.components) return;
+    if (!active && this.walk.mode !== 'orbit') this.exitWalk({ fit: false });
     this.components.enabled = active;
     this.world.enabled = active;
     if (active) this.world.renderer.needsUpdate = true;
