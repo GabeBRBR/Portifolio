@@ -177,7 +177,7 @@ class IFCViewer {
     document.body.style.overflow = 'hidden';
     try {
       if (this.engine === 'fragments') {
-        await this.openFragmentsPilot();
+        await this.openFragmentsPilot(workKey);
         return;
       }
       await this.ensureScene();
@@ -197,7 +197,7 @@ class IFCViewer {
   }
 
   async loadDemo(key) {
-    if (this.engine === 'fragments') return this.openFragmentsPilot();
+    if (this.engine === 'fragments') return this.openFragmentsPilot(key);
     this.demoKey = key;
     this.performanceMonitor.beginFirstUsableFrame();
     const definitions = DEMOS[key] || DEMOS['casa-terrea'];
@@ -362,7 +362,7 @@ class IFCViewer {
     }
     if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel');
   }
-  async openFragmentsPilot() {
+  async openFragmentsPilot(workKey = 'casa-terrea') {
     if (!this.fragmentsPilotPromise) {
       this.fragmentsPilotPromise = import('./viewer/FragmentsPilot.js').then(({ FragmentsPilot }) => {
         this.fragmentsPilot = new FragmentsPilot({
@@ -375,7 +375,7 @@ class IFCViewer {
         return this.fragmentsPilot;
       });
     }
-    return (await this.fragmentsPilotPromise).open();
+    return (await this.fragmentsPilotPromise).open(workKey);
   }
   togglePanel(id) {
     const panel = document.getElementById(id);
