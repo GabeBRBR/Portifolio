@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/copy-assets.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "convert:fragments": "node scripts/convert-ifc-to-fragments.mjs"
   },
   "dependencies": {
     "@thatopen/components": "3.4.8",
