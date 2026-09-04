@@ -357,7 +357,8 @@ class IFCViewer {
   handleAction(action) {
     if (this.engine === 'fragments') {
       if (action === 'fit') return this.fragmentsPilot?.fit();
-      if (action === 'orbit') return this.showStatus('Piloto Fragments: use o mouse para órbita, zoom e pan.');
+      if (action === 'orbit') return this.fragmentsPilot?.exitWalk();
+      if (action === 'walk') return this.fragmentsPilot?.startWalkPlacement();
       return this.showStatus('Este recurso continua no motor padrão e será migrado nas próximas fases do plano.');
     }
     if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel');
@@ -372,6 +373,8 @@ class IFCViewer {
           properties: this.properties,
           search: this.search,
           tree: this.ui.bimTree,
+          walkHelp: this.walkHelp,
+          walkCrosshair: this.walkCrosshair,
           setLoading: (...args) => this.setLoading(...args),
           showStatus: (message) => this.showStatus(message)
         });
