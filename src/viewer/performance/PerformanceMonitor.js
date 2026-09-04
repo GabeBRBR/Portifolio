@@ -13,6 +13,7 @@ export class PerformanceMonitor {
     this.frameTimes = [];
     this.walkTimes = [];
     this.operations = new Map();
+    this.resourceCycles = [];
     this.lastPublish = 0;
     this.firstUsableStartedAt = 0;
     this.firstUsableMs = null;
@@ -29,6 +30,11 @@ export class PerformanceMonitor {
     this.firstUsableMs = null;
   }
   recordWalkPhysics(milliseconds) { if (this.enabled) this.push(this.walkTimes, milliseconds); }
+  recordResourceCycle(name, before, after, disposed) {
+    if (!this.enabled) return;
+    this.resourceCycles.push({ name, before, after, disposed });
+    if (this.resourceCycles.length > 4) this.resourceCycles.shift();
+  }
   recordFrame({ now, deltaMs, renderer, meshCount, materialCount }) {
     if (!this.enabled) return;
     this.push(this.frameTimes, deltaMs);
@@ -39,7 +45,7 @@ export class PerformanceMonitor {
     this.onUpdate?.({
       fps: Math.round(1000 / Math.max(mean(this.frameTimes), 0.001)), frameMs: mean(this.frameTimes), frameP95: percentile(this.frameTimes, .95), walkMs: mean(this.walkTimes),
       calls: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures,
-      meshes: meshCount, materials: materialCount, firstUsableMs: this.firstUsableMs, operations: Object.fromEntries(this.operations)
+      meshes: meshCount, materials: materialCount, firstUsableMs: this.firstUsableMs, operations: Object.fromEntries(this.operations), resourceCycle: this.resourceCycles.at(-1)
     });
   }
   push(values, value) { values.push(value); if (values.length > 120) values.shift(); }
