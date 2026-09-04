@@ -233,9 +233,9 @@ export class FragmentsPilot {
         await this.highlighter.clear('select');
         this.highlighter.enabled = false;
       }
-      // At this point the visible tiles beneath the chosen floor are loaded,
-      // so the inexpensive BVH proxy can be rebuilt once for motion physics.
-      this.buildCollisionProxy();
+      // Do not rebuild the collision BVH here. Constructing it while the
+      // pointer is being locked can stall the main thread on complex models;
+      // the proxy prepared at load/visibility time remains in use.
       this.walk.velocityY = 0;
       this.walk.grounded = true;
       this.walk.mode = 'walk';
