@@ -1,13 +1,7 @@
 import * as OBC from '@thatopen/components';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 
-const CASA_TEREA = [
-  ['Arquitetura', 'assets/IFC/Casa Térrea/CASA-AQR.ifc'],
-  ['Estrutural', 'assets/IFC/Casa Térrea/CASA-EST.ifc'],
-  ['Elétrica', 'assets/IFC/Casa Térrea/CASA-ELE.ifc'],
-  ['Hidráulica', 'assets/IFC/Casa Térrea/CASA-HID.ifc'],
-  ['Sanitária', 'assets/IFC/Casa Térrea/CASA-ESG.ifc']
-];
+const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 
 /**
  * Isolated Fragments proof of concept. The legacy viewer stays active by default
@@ -20,13 +14,13 @@ export class FragmentsPilot {
     this.empty = empty;
     this.setLoading = setLoading;
     this.showStatus = showStatus;
-    this.loaded = false;
+    this.loadedWork = null;
   }
 
-  async open() {
+  async open(workKey = 'casa-terrea') {
     if (!this.components) await this.setup();
     this.setActive(true);
-    if (!this.loaded) await this.loadCasaTerrea();
+    if (this.loadedWork !== workKey) await this.loadWork(workKey);
   }
 
   async setup() {
@@ -50,13 +44,6 @@ export class FragmentsPilot {
     // Keep every discipline in its IFC's shared coordinates. The Fragments
     // core otherwise coordinates each imported file around its first origin.
     this.fragments.core.settings.autoCoordinate = false;
-    this.ifcLoader = this.components.get(OBC.IfcLoader);
-    await this.ifcLoader.setup({
-      autoSetWasm: false,
-      wasm: { path: new URL('./assets/wasm/', window.location.href).href, absolute: true },
-      webIfc: { COORDINATE_TO_ORIGIN: false }
-    });
-
     this.fragments.list.onItemSet.add(({ value: model }) => {
       model.useCamera(this.world.camera.three);
       this.world.scene.three.add(model.object);
@@ -70,32 +57,38 @@ export class FragmentsPilot {
     await this.world.camera.controls.setLookAt(18, 14, 18, 0, 0, 0);
   }
 
-  async loadCasaTerrea() {
-    this.setLoading(true, 'Iniciando piloto Fragments…', 0);
+  async loadWork(workKey) {
+    const workName = workKey === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea';
+    this.setLoading(true, `Carregando ${workName} otimizado…`, 0);
     this.list.innerHTML = '';
     this.empty.classList.add('hidden');
-    for (let index = 0; index < CASA_TEREA.length; index += 1) {
-      const [discipline, path] = CASA_TEREA[index];
+    const response = await fetch(FRAGMENTS_MANIFEST);
+    if (!response.ok) throw new Error(`manifesto Fragments não encontrado (${response.status})`);
+    const manifest = await response.json();
+    const models = manifest.models.filter((model) => model.work === workKey);
+    if (!models.length) throw new Error(`nenhum modelo otimizado encontrado para ${workName}`);
+    if (this.loadedWork) {
+      for (const modelId of this.fragments.list.keys()) await this.fragments.core.disposeModel(modelId);
+    }
+    for (let index = 0; index < models.length; index += 1) {
+      const model = models[index];
       try {
-        this.setLoading(true, `Convertendo ${discipline} para Fragments…`, Math.round((index / CASA_TEREA.length) * 100));
-        const response = await fetch(path);
-        if (!response.ok) throw new Error(`arquivo não encontrado (${response.status})`);
-        const buffer = new Uint8Array(await response.arrayBuffer());
-        await this.ifcLoader.load(buffer, false, `casa-terrea-${discipline.toLowerCase()}`, {
-          processData: { progressCallback: (progress) => this.setLoading(true, `Convertendo ${discipline} para Fragments…`, Math.round((index + progress) / CASA_TEREA.length * 100)) }
-        });
+        this.setLoading(true, `Carregando ${model.discipline} otimizado…`, Math.round((index / models.length) * 100));
+        const fragmentResponse = await fetch(model.fragment);
+        if (!fragmentResponse.ok) throw new Error(`arquivo otimizado não encontrado (${fragmentResponse.status})`);
+        await this.fragments.core.load(await fragmentResponse.arrayBuffer(), { modelId: model.id });
         const row = document.createElement('div');
         row.className = 'ifc-model-row';
-        row.textContent = `${discipline} · Fragments`;
+        row.textContent = `${model.discipline} · Fragments`;
         this.list.append(row);
       } catch (error) {
-        this.showStatus(`Piloto Fragments: não foi possível converter ${discipline}: ${error.message}`);
+        this.showStatus(`Piloto Fragments: não foi possível carregar ${model.discipline}: ${error.message}`);
       }
     }
-    this.loaded = true;
+    this.loadedWork = workKey;
     this.setLoading(false);
     await this.fit();
-    this.showStatus('Piloto Fragments ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.');
+    this.showStatus(`${workName} otimizado ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.`);
   }
 
   async fit() {
