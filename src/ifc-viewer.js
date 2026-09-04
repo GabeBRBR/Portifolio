@@ -5,6 +5,7 @@ import { IfcAPI, IFCBUILDINGELEMENTPROXY, IFCBUILDINGSTOREY, IFCCOLUMN, IFCCURTA
 import wasmUrl from 'web-ifc/web-ifc.wasm?url';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
 import { PerformanceMonitor } from './viewer/performance/PerformanceMonitor.js';
+import { ModelDisposer } from './viewer/performance/ModelDisposer.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -85,6 +86,7 @@ class IFCViewer {
       enabled: new URLSearchParams(window.location.search).has('ifcDebug'),
       onUpdate: (metrics) => this.renderDiagnostics(metrics)
     });
+    this.modelDisposer = new ModelDisposer();
     this.bindUi();
   }
 
@@ -308,7 +310,36 @@ class IFCViewer {
     if (output) output.textContent = `${Math.round(transparency * 100)}%`;
     this.requestRender();
   }
-  async removeModel(id) { const model = this.models.get(id); if (!model) return; this.clearSelection(); model.meshes.forEach((mesh) => { this.meshes = this.meshes.filter((entry) => entry !== mesh); mesh.geometry.disposeBoundsTree?.(); mesh.geometry.dispose(); mesh.material.dispose(); }); this.root.remove(model.group); this.api.CloseModel(model.modelID); this.models.delete(id); this.refreshCollisionMeshes(); this.refreshExplosionCache(); if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance); this.renderModels(); this.resetClipBox(); this.requestRender(); }
+  resourceSnapshot() {
+    return {
+      models: this.models.size,
+      meshes: this.meshes.length,
+      geometries: new Set(this.meshes.map((mesh) => mesh.geometry)).size,
+      materials: new Set(this.meshes.flatMap((mesh) => Array.isArray(mesh.material) ? mesh.material : [mesh.material])).size,
+      rendererGeometries: this.renderer?.info.memory.geometries ?? 0,
+      rendererTextures: this.renderer?.info.memory.textures ?? 0
+    };
+  }
+  async removeModel(id) {
+    const model = this.models.get(id);
+    if (!model) return;
+    this.clearSelection();
+    const before = this.resourceSnapshot();
+    const disposeStartedAt = this.performanceMonitor.start();
+    const modelMeshes = new Set(model.meshes);
+    // Break application references first, then free GPU/IFC resources in one place.
+    this.models.delete(id);
+    this.meshes = this.meshes.filter((mesh) => !modelMeshes.has(mesh));
+    const disposed = this.modelDisposer.dispose(model, this.api);
+    this.performanceMonitor.end(`dispose:${model.name}`, disposeStartedAt);
+    this.refreshCollisionMeshes();
+    this.refreshExplosionCache();
+    if (this.explodeDistance) this.setExplodeDistance(this.explodeDistance);
+    this.renderModels();
+    this.resetClipBox();
+    this.performanceMonitor.recordResourceCycle(model.name, before, this.resourceSnapshot(), disposed);
+    this.requestRender();
+  }
   async removeAllModels() { await Promise.all([...this.models.keys()].map((id) => this.removeModel(id))); }
 
   fitModelToView() { if (!this.meshes.length) return; const box = new THREE.Box3(); this.meshes.filter((mesh) => mesh.parent?.visible).forEach((mesh) => box.expandByObject(mesh)); if (box.isEmpty()) return; const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const distance = Math.max(12, Math.max(size.x, size.y, size.z) * 1.35); this.orbit.target.copy(center); this.camera.position.set(center.x + distance, center.y + distance * .62, center.z + distance); this.orbit.update(); this.requestRender(); }
@@ -556,7 +587,9 @@ class IFCViewer {
       this.container.append(this.diagnostics);
     }
     const operationText = Object.entries(metrics.operations).map(([name, value]) => `${name}: ${value.toFixed(0)} ms`).join('\n');
-    this.diagnostics.textContent = `DIAGNÓSTICO\n${metrics.fps} FPS · ${metrics.frameMs.toFixed(1)} ms · p95 ${metrics.frameP95.toFixed(1)} ms\nDraw calls ${metrics.calls} · Triângulos ${metrics.triangles}\nMeshes ${metrics.meshes} · Materiais ${metrics.materials}\nGeometrias ${metrics.geometries} · Texturas ${metrics.textures}\nCaminhada/raycast ${metrics.walkMs.toFixed(2)} ms · Primeiro frame ${metrics.firstUsableMs?.toFixed(0) ?? '—'} ms\nReferências: ${BENCHMARK_MODELS.small} / ${BENCHMARK_MODELS.medium} / ${BENCHMARK_MODELS.heavy}\n${operationText}`;
+    const cycle = metrics.resourceCycle;
+    const resourceText = cycle ? `\nLiberação ${cycle.name}: ${cycle.disposed.meshes} meshes / ${cycle.disposed.geometries} geometrias / ${cycle.disposed.materials} materiais\nReferências: ${cycle.before.meshes} → ${cycle.after.meshes} meshes · ${cycle.before.models} → ${cycle.after.models} modelos` : '';
+    this.diagnostics.textContent = `DIAGNÓSTICO\n${metrics.fps} FPS · ${metrics.frameMs.toFixed(1)} ms · p95 ${metrics.frameP95.toFixed(1)} ms\nDraw calls ${metrics.calls} · Triângulos ${metrics.triangles}\nMeshes ${metrics.meshes} · Materiais ${metrics.materials}\nGeometrias ${metrics.geometries} · Texturas ${metrics.textures}\nCaminhada/raycast ${metrics.walkMs.toFixed(2)} ms · Primeiro frame ${metrics.firstUsableMs?.toFixed(0) ?? '—'} ms\nReferências: ${BENCHMARK_MODELS.small} / ${BENCHMARK_MODELS.medium} / ${BENCHMARK_MODELS.heavy}${resourceText}\n${operationText}`;
   }
   animate() {
     requestAnimationFrame(() => this.animate());
