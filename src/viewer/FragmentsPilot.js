@@ -224,11 +224,10 @@ export class FragmentsPilot {
   async onWalkCanvasClick(event) {
     if (this.walk.mode === 'placement') {
       const hit = await this.pickWalkSurface(event);
-      const normal = hit?.normal;
-      // Revit's Generic Models frequently arrive with their triangulation
-      // winding reversed. A horizontal slab is still a valid floor whether
-      // its exported normal points up or down.
-      if (!hit || !normal || Math.abs(normal.y) < 0.55) return this.showStatus('Escolha uma superfície aproximadamente horizontal para iniciar a caminhada.');
+      if (!hit) return this.showStatus('Não foi possível usar esse ponto. Clique novamente em um elemento visível.');
+      // Any hit surface is a valid spawn point. A point on a wall or in the
+      // air deliberately starts above its elevation and gravity settles the
+      // player on the next reachable floor.
       this.world.camera.three.position.copy(hit.point).addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
       // At this point the visible tiles beneath the chosen floor are loaded,
       // so the inexpensive BVH proxy can be rebuilt once for motion physics.
