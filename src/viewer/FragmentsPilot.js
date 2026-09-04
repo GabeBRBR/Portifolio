@@ -114,6 +114,7 @@ export class FragmentsPilot {
           loadedModel.useCamera(this.world.camera.three);
           this.world.scene.three.add(loadedModel.object);
           loadedModel.object.visible = true;
+          await this.hideSpaces(loadedModel);
         }
         this.modelRecords.set(model.id, { ...model, visible: true });
       } catch (error) {
@@ -184,6 +185,12 @@ export class FragmentsPilot {
     this.collisionProxy = roots.length ? new ObjectBVH(roots, { precise: false, includeInstances: true }) : null;
   }
 
+  async hideSpaces(model) {
+    const byCategory = await model.getItemsOfCategories([/^IFCSPACE$/i]);
+    const spaces = Object.values(byCategory).flat();
+    if (spaces.length) await model.setVisible(spaces, false);
+  }
+
   startWalkPlacement() {
     if (!this.collisionProxy) return this.showStatus('Aguarde o carregamento de uma disciplina para iniciar a caminhada.');
     this.clearSelection();
@@ -214,15 +221,18 @@ export class FragmentsPilot {
     if (wasWalking) this.showStatus('Caminhada encerrada. Órbita e zoom restaurados.');
   }
 
-  onWalkCanvasClick(event) {
+  async onWalkCanvasClick(event) {
     if (this.walk.mode === 'placement') {
-      const hit = this.pickCollision(event);
-      const normal = hit?.face?.normal?.clone().transformDirection(hit.object.matrixWorld);
+      const hit = await this.pickWalkSurface(event);
+      const normal = hit?.normal;
       // Revit's Generic Models frequently arrive with their triangulation
       // winding reversed. A horizontal slab is still a valid floor whether
       // its exported normal points up or down.
       if (!hit || !normal || Math.abs(normal.y) < 0.55) return this.showStatus('Escolha uma superfície aproximadamente horizontal para iniciar a caminhada.');
       this.world.camera.three.position.copy(hit.point).addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
+      // At this point the visible tiles beneath the chosen floor are loaded,
+      // so the inexpensive BVH proxy can be rebuilt once for motion physics.
+      this.buildCollisionProxy();
       this.walk.velocityY = 0;
       this.walk.grounded = true;
       this.walk.mode = 'walk';
@@ -282,6 +292,16 @@ export class FragmentsPilot {
     raycaster.firstHitOnly = true;
     raycaster.setFromCamera(mouse, this.world.camera.three);
     return this.collisionProxy.raycast(raycaster, [])[0] || null;
+  }
+
+  async pickWalkSurface(event) {
+    const rect = this.world.renderer.three.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+    const dom = this.world.renderer.three.domElement;
+    const hits = await Promise.all([...this.fragments.list.entries()]
+      .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
+      .map(([, model]) => model.raycast({ camera: this.world.camera.three, mouse, dom })));
+    return hits.filter(Boolean).sort((a, b) => a.distance - b.distance)[0] || null;
   }
 
   collisionRay(origin, direction, far) {
