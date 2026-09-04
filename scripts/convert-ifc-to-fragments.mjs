@@ -28,8 +28,10 @@ for (const [work, discipline, sourcePath, id] of models) {
   const source = await readFile(absoluteSource);
   const importer = new IfcImporter();
   importer.wasm = { path: `${wasmDirectory}${path.sep}`, absolute: true };
-  // Preserve the common IFC origin so federated disciplines remain aligned.
-  importer.webIfcSettings = { COORDINATE_TO_ORIGIN: false };
+  // The Galpao IFCs retain large survey coordinates. Normalize that set at
+  // conversion time to avoid precision/culling loss in WebGL; its disciplines
+  // share the same source origin and remain federated with each other.
+  importer.webIfcSettings = { COORDINATE_TO_ORIGIN: work === 'galpao' };
   // Match the existing viewer, which renders IFC materials double-sided.
   importer.doubleSidedMaterials = true;
   const converted = await importer.process({ bytes: new Uint8Array(source), raw: false });

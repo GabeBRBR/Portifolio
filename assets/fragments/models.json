@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-04T00:52:21.327Z",
+  "generatedAt": "2026-09-04T12:40:23.774Z",
   "models": [
     {
       "id": "casa-terrea-arquitetura",
@@ -9,9 +9,9 @@
       "source": "assets/IFC/Casa Térrea/CASA-AQR.ifc",
       "sourceHash": "cbd61eff3ea613072755dad05136f3c2eae64284892bf14609b5a0bfcd333e24",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-arquitetura.frag",
-      "fragmentHash": "e79c022a6bf9423ab7b62cf31ecf2e953b08f2a4133ee8f037be023939a5a0db",
+      "fragmentHash": "31273243d51e2b4a502fd9c010114137d301c12b2de91dda3ec65e6cba562378",
       "sourceBytes": 16096012,
-      "fragmentBytes": 945571
+      "fragmentBytes": 945565
     },
     {
       "id": "casa-terrea-estrutural",
@@ -20,7 +20,7 @@
       "source": "assets/IFC/Casa Térrea/CASA-EST.ifc",
       "sourceHash": "55ac31c25e75ca5a895c8ea1d39b2608c86ece71965111783543af6b9a4402e9",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-estrutural.frag",
-      "fragmentHash": "4f839c363fd8f6ba9683e9361d327961539ecf32363be4d5f50921286044eba9",
+      "fragmentHash": "1ba81281fe8fd33ed18733a00024964d39abc44f9b89748e9e87bdd347c83698",
       "sourceBytes": 336766,
       "fragmentBytes": 76349
     },
@@ -31,9 +31,9 @@
       "source": "assets/IFC/Casa Térrea/CASA-ELE.ifc",
       "sourceHash": "75f9d1f10eb0babe6b5456c225d64c07a862a50549647dc2dc9093201418d4f0",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-eletrica.frag",
-      "fragmentHash": "7471dbb29c46f1042245a4beaa49a75bae5e8439fbd50e23702d517118ebe381",
+      "fragmentHash": "19983a295f1299e40c790b7a5eddd404707a8210cf78d75f842d8fc113d98b9e",
       "sourceBytes": 12623391,
-      "fragmentBytes": 832745
+      "fragmentBytes": 832743
     },
     {
       "id": "casa-terrea-hidraulica",
@@ -42,7 +42,7 @@
       "source": "assets/IFC/Casa Térrea/CASA-HID.ifc",
       "sourceHash": "c70a3bdf0b4a782457e2c0bb628ded40cbdb78279eb36a8d72fc474e5c9f8c94",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-hidraulica.frag",
-      "fragmentHash": "b1608dcc4aed3f9dd68d6bf4cca1942e801117dd51fbef1b1b6e150fd669dc7a",
+      "fragmentHash": "70c1c5996600eb1fc7a668bad949db0f4e1559588425232b3c9d9ead3acc83da",
       "sourceBytes": 10488564,
       "fragmentBytes": 760701
     },
@@ -53,9 +53,9 @@
       "source": "assets/IFC/Casa Térrea/CASA-ESG.ifc",
       "sourceHash": "b9a8dca9d32f3795feaecf8ffa568f5ae90cd758471cded827c39b1231f8e057",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-sanitaria.frag",
-      "fragmentHash": "2064f30b3573454d9d2b7541a60120a01b62cd7eb099f2afb2439c71d577cf52",
+      "fragmentHash": "14a2e12e183c76b02dd6b2e517ce64787c7f2894f11bc8adcb716bd5592c24cf",
       "sourceBytes": 13557352,
-      "fragmentBytes": 742913
+      "fragmentBytes": 742912
     },
     {
       "id": "galpao-arquitetura",
@@ -64,9 +64,9 @@
       "source": "assets/IFC/Galpão/ARQ.ifc",
       "sourceHash": "a4aec301f9bf2e62d85cbf4aa277b69ddb325134f7561599f573bdcfce076521",
       "fragment": "assets/fragments/galpao/galpao-arquitetura.frag",
-      "fragmentHash": "51de99f9e1a063b3ff9186d2f4d24d0304923a0dcf1581a409f36ef554bde23c",
+      "fragmentHash": "4dcf1726657f3f7e9efd2dc006d205a4f38fc20b895eacaa1f32120b2c33bdcc",
       "sourceBytes": 6966824,
-      "fragmentBytes": 556174
+      "fragmentBytes": 556202
     },
     {
       "id": "galpao-estrutural",
@@ -75,9 +75,9 @@
       "source": "assets/IFC/Galpão/EST.ifc",
       "sourceHash": "10a3721bd4887950e686b973f801c04b4864b69f1fd1dde96cb6321612f811e5",
       "fragment": "assets/fragments/galpao/galpao-estrutural.frag",
-      "fragmentHash": "6649419d773570b72346912aa639edc39cd931f1cf149ae73b85e71e952633ae",
+      "fragmentHash": "1543cb50c8c057feaa0764f17baa5293c2ddb419f92225eab1acf59e0e18994a",
       "sourceBytes": 3943748,
-      "fragmentBytes": 203131
+      "fragmentBytes": 203580
     }
   ]
 }
