@@ -1,4 +1,6 @@
 import * as OBC from '@thatopen/components';
+import * as OBCF from '@thatopen/components-front';
+import * as THREE from 'three';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
@@ -8,13 +10,17 @@ const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
  * until selection, properties and walking are migrated in later phases.
  */
 export class FragmentsPilot {
-  constructor({ container, list, empty, setLoading, showStatus }) {
+  constructor({ container, list, empty, properties, search, tree, setLoading, showStatus }) {
     this.container = container;
     this.list = list;
     this.empty = empty;
+    this.properties = properties;
+    this.search = search;
+    this.tree = tree;
     this.setLoading = setLoading;
     this.showStatus = showStatus;
     this.loadedWork = null;
+    this.modelRecords = new Map();
   }
 
   async open(workKey = 'casa-terrea') {
@@ -44,6 +50,14 @@ export class FragmentsPilot {
     // Keep every discipline in its IFC's shared coordinates. The Fragments
     // core otherwise coordinates each imported file around its first origin.
     this.fragments.core.settings.autoCoordinate = false;
+    this.highlighter = this.components.get(OBCF.Highlighter);
+    this.highlighter.setup({
+      world: this.world,
+      selectMaterialDefinition: { color: new THREE.Color('#b8860b'), opacity: 0.8, transparent: false, preserveOriginalMaterial: true },
+      zoomToSelection: false
+    });
+    this.highlighter.events.select.onHighlight.add((selection) => this.inspectSelection(selection));
+    this.highlighter.events.select.onClear.add(() => this.renderEmptyProperties());
     this.fragments.list.onItemSet.add(({ value: model }) => {
       model.useCamera(this.world.camera.three);
       this.world.scene.three.add(model.object);
@@ -69,6 +83,7 @@ export class FragmentsPilot {
     if (!models.length) throw new Error(`nenhum modelo otimizado encontrado para ${workName}`);
     if (this.loadedWork) {
       for (const modelId of this.fragments.list.keys()) await this.fragments.core.disposeModel(modelId);
+      this.modelRecords.clear();
     }
     for (let index = 0; index < models.length; index += 1) {
       const model = models[index];
@@ -77,18 +92,63 @@ export class FragmentsPilot {
         const fragmentResponse = await fetch(model.fragment);
         if (!fragmentResponse.ok) throw new Error(`arquivo otimizado não encontrado (${fragmentResponse.status})`);
         await this.fragments.core.load(await fragmentResponse.arrayBuffer(), { modelId: model.id });
-        const row = document.createElement('div');
-        row.className = 'ifc-model-row';
-        row.textContent = `${model.discipline} · Fragments`;
-        this.list.append(row);
+        this.modelRecords.set(model.id, { ...model, visible: true });
       } catch (error) {
         this.showStatus(`Piloto Fragments: não foi possível carregar ${model.discipline}: ${error.message}`);
       }
     }
     this.loadedWork = workKey;
     this.setLoading(false);
+    this.renderModels(workName);
+    this.renderTree(workName);
     await this.fit();
     this.showStatus(`${workName} otimizado ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.`);
+  }
+
+  renderModels(workName) {
+    this.list.innerHTML = '';
+    this.empty.classList.toggle('hidden', this.modelRecords.size > 0);
+    this.modelRecords.forEach((record) => {
+      const row = document.createElement('div');
+      row.className = 'ifc-model-row';
+      row.innerHTML = `<input type="checkbox" ${record.visible ? 'checked' : ''} aria-label="Mostrar ${record.discipline}"><div><strong>${record.discipline}</strong><small>Fragments · ${(record.fragmentBytes / 1024).toFixed(0)} KB</small><button class="ifc-model-isolate" type="button">Isolar disciplina</button></div>`;
+      row.querySelector('input').addEventListener('change', (event) => this.setModelVisibility(record.id, event.target.checked));
+      row.querySelector('.ifc-model-isolate').addEventListener('click', () => this.isolateModel(record.id));
+      this.list.append(row);
+    });
+    this.showStatus(`${workName}: ${this.modelRecords.size} disciplina(s) em Fragments. Clique em um elemento para consultar dados BIM.`);
+  }
+
+  renderTree(workName, selected = null) {
+    if (!this.tree) return;
+    const disciplines = [...this.modelRecords.values()].map((record) => `<li>${this.escape(record.discipline)} <span>(${this.escape(record.id)})</span></li>`).join('');
+    const selectedLine = selected ? `<li>Elemento: ${this.escape(selected.type || 'IFC')} · ${this.escape(selected.name || 'Sem nome')}</li>` : '<li>Selecione um elemento para revelar sua classe e relações espaciais.</li>';
+    this.tree.innerHTML = `<details open><summary>Estrutura BIM</summary><ul><li>Projeto: ${this.escape(workName)}<ul>${disciplines}</ul></li>${selectedLine}</ul></details>`;
+    this.tree.classList.remove('hidden');
+  }
+
+  async setModelVisibility(modelId, visible) {
+    const record = this.modelRecords.get(modelId);
+    const model = this.fragments.list.get(modelId);
+    if (!record || !model) return;
+    record.visible = visible;
+    model.object.visible = visible;
+    if (!visible) await this.clearSelection();
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
+  }
+
+  async isolateModel(modelId) {
+    this.modelRecords.forEach((record, id) => {
+      const visible = id === modelId;
+      record.visible = visible;
+      const model = this.fragments.list.get(id);
+      if (model) model.object.visible = visible;
+    });
+    this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    await this.clearSelection();
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
   }
 
   async fit() {
@@ -96,6 +156,98 @@ export class FragmentsPilot {
     await this.world.camera.fit(this.world.meshes, 1.25);
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
+  }
+
+  async inspectSelection(selection) {
+    const first = Object.entries(selection).find(([, localIds]) => localIds.size);
+    if (!first) return this.renderEmptyProperties();
+    const [modelId, localIds] = first;
+    const localId = [...localIds][0];
+    this.properties.innerHTML = '<p class="ifc-empty-copy">Consultando propriedades BIM…</p>';
+    try {
+      const dataByModel = await this.fragments.getData({ [modelId]: new Set([localId]) }, {
+        attributesDefault: true,
+        relations: {
+          IsDefinedBy: { attributes: true, relations: true },
+          DefinesOccurrence: { attributes: true, relations: true },
+          HasAssociations: { attributes: true, relations: true },
+          ContainedInStructure: { attributes: true, relations: true },
+          Decomposes: { attributes: true, relations: true }
+        }
+      });
+      const item = dataByModel[modelId]?.[0];
+      if (!item) throw new Error('dados do elemento não foram encontrados no Fragment');
+      const record = this.modelRecords.get(modelId);
+      const rows = [];
+      this.flattenItem(item, '', rows);
+      const identityKeys = new Set(['Entity', 'Name', 'ObjectType', 'Tag', 'GlobalId', 'expressID']);
+      const identity = {
+        'Model ID': modelId,
+        'Local ID': localId,
+        Disciplina: record?.discipline || '—'
+      };
+      const details = {};
+      for (const { key, value } of rows) {
+        const target = identityKeys.has(key) ? identity : details;
+        target[key] = value;
+      }
+      if (!identity['Classe IFC'] && identity.Entity) identity['Classe IFC'] = identity.Entity;
+      this.properties.innerHTML = this.renderPropertyGroups({ Identificação: identity, Propriedades: details });
+      this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea', { type: identity.Entity || identity['Classe IFC'], name: identity.Name });
+      this.filterProperties();
+    } catch (error) {
+      this.properties.innerHTML = `<p class="ifc-empty-copy">Não foi possível obter as propriedades: ${this.escape(error.message)}</p>`;
+    }
+  }
+
+  flattenItem(value, prefix, output, visited = new WeakSet()) {
+    if (value === null || value === undefined) return;
+    if (typeof value !== 'object') {
+      output.push({ key: prefix || 'Valor', value: String(value) });
+      return;
+    }
+    if (visited.has(value)) return;
+    visited.add(value);
+    if (Object.prototype.hasOwnProperty.call(value, 'value')) {
+      const plain = value.value;
+      if (plain === null || plain === undefined || typeof plain !== 'object') output.push({ key: prefix || 'Valor', value: plain ?? '—' });
+      else this.flattenItem(plain, prefix, output, visited);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((entry, index) => this.flattenItem(entry, prefix ? `${prefix} ${index + 1}` : `Item ${index + 1}`, output, visited));
+      return;
+    }
+    Object.entries(value).forEach(([key, nested]) => this.flattenItem(nested, prefix ? `${prefix} › ${key}` : key, output, visited));
+  }
+
+  renderPropertyGroups(groups) {
+    return Object.entries(groups).map(([title, values]) => {
+      const entries = Object.entries(values).filter(([, value]) => value !== undefined);
+      if (!entries.length) return '';
+      return `<section class="ifc-property-group"><h3>${this.escape(title)}</h3>${entries.map(([key, value]) => `<dl class="ifc-property-row"><dt>${this.escape(key)}</dt><dd>${this.escape(value)}</dd></dl>`).join('')}</section>`;
+    }).join('');
+  }
+
+  renderEmptyProperties() {
+    if (!this.properties) return;
+    this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>';
+    if (this.search) this.search.value = '';
+    this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+  }
+
+  async clearSelection() {
+    if (this.highlighter) await this.highlighter.clear('select');
+    this.renderEmptyProperties();
+  }
+
+  filterProperties() {
+    const query = this.search?.value.trim().toLocaleLowerCase('pt-BR') || '';
+    this.properties.querySelectorAll('.ifc-property-row').forEach((row) => row.classList.toggle('is-hidden', !!query && !row.textContent.toLocaleLowerCase('pt-BR').includes(query)));
+  }
+
+  escape(value) {
+    return String(value ?? '—').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
   }
 
   setActive(active) {
