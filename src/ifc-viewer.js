@@ -33,7 +33,7 @@ const UI_IDS = Object.freeze({
   properties: 'ifc-properties-content', propertySearch: 'ifc-property-search', clearSelection: 'ifc-clear-selection',
   close: 'ifc-close-btn', fullscreen: 'ifc-fullscreen-btn', files: 'ifc-file-input', loadDemo: 'ifc-load-demo-btn',
   explodeRange: 'ifc-explode-range', explodeValue: 'ifc-explode-value', background: 'ifc-background-input', resetClip: 'ifc-reset-clip', clipRanges: 'ifc-clip-ranges',
-  walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair'
+  walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair', bimTree: 'ifc-bim-tree'
 });
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
 // Alguns exportadores classificam terreno e pisos como elementos genéricos, e não IfcSlab.
@@ -369,6 +369,9 @@ class IFCViewer {
           container: this.container,
           list: this.list,
           empty: this.empty,
+          properties: this.properties,
+          search: this.search,
+          tree: this.ui.bimTree,
           setLoading: (...args) => this.setLoading(...args),
           showStatus: (message) => this.showStatus(message)
         });
@@ -486,7 +489,7 @@ class IFCViewer {
     finally { this.performanceMonitor.end('selection', selectionStartedAt); }
   }
 
-  clearSelection() { if (this.selection) { this.selection.material.emissive = new THREE.Color(0x000000); this.selection.material.emissiveIntensity = 0; } this.selection = null; this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>'; this.search.value = ''; this.requestRender(); }
+  clearSelection() { if (this.engine === 'fragments') return this.fragmentsPilot?.clearSelection(); if (this.selection) { this.selection.material.emissive = new THREE.Color(0x000000); this.selection.material.emissiveIntensity = 0; } this.selection = null; this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>'; this.search.value = ''; this.requestRender(); }
   filterProperties() { const query = this.search.value.trim().toLocaleLowerCase('pt-BR'); this.properties.querySelectorAll('.ifc-property-row').forEach((row) => row.classList.toggle('is-hidden', !!query && !row.textContent.toLocaleLowerCase('pt-BR').includes(query))); }
 
   setExplodeDistance(distance) {
