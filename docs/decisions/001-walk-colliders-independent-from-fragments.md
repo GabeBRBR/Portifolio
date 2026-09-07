@@ -19,10 +19,10 @@ A colisão do jogador precisa ser estável, pequena e independente da qualidade 
 Gerar, durante `pnpm run convert:fragments`, um arquivo binário `.collider` para cada disciplina arquitetônica ou estrutural:
 
 - pisos: lajes, escadas, lances, rampas, fundações, pavimentos, terreno e modelos genéricos;
-- obstáculos: paredes, colunas, fachadas-cortina e coberturas;
+- obstáculos: paredes, colunas, fachadas-cortina, coberturas, estrutura, pavimentos, terreno e modelos genéricos;
 - portas, espaços IFC, MEP, mobiliário e demais categorias não entram no colisor.
 
-O arquivo contém posições e índices separados entre pisos e obstáculos. O navegador combina apenas os colliders das disciplinas visíveis e constrói um `MeshBVH` estático para cada grupo. Detecção de apoio consulta somente pisos; colisão lateral consulta somente obstáculos. O clique pode usar o seletor GPU dos Fragments para obter o ponto visual, mas nunca percorre recursivamente a geometria renderizada.
+O arquivo contém posições e índices separados entre pisos e obstáculos. O navegador combina apenas os colliders das disciplinas visíveis e constrói um `MeshBVH` estático para cada grupo. Raycasts verticais localizam pisos e degraus, enquanto uma cápsula de corpo inteiro é resolvida com `shapecast` contra o BVH sólido. A cápsula é a autoridade final para paredes, quinas, movimento diagonal, estrutura e terreno. O clique pode usar o seletor GPU dos Fragments para obter o ponto visual, mas nunca percorre recursivamente a geometria renderizada.
 
 ## Alternativas consideradas
 
@@ -48,3 +48,4 @@ O arquivo contém posições e índices separados entre pisos e obstáculos. O n
 - Os arquivos `.collider` precisam ser regenerados e publicados junto dos `.frag` quando um IFC muda.
 - Elementos excluídos da física continuam visíveis e selecionáveis, mas não bloqueiam o jogador.
 - Modelos genéricos arquitetônicos podem funcionar como piso, conforme necessário na Casa Térrea.
+- A cápsula impede que a câmera entre em paredes mesmo quando raios direcionais não detectam uma quina.
