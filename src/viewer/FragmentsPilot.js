@@ -12,7 +12,7 @@ const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
  * until selection, properties and walking are migrated in later phases.
  */
 export class FragmentsPilot {
-  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, setLoading, showStatus }) {
+  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, setLoading, showStatus, onWalkDebug }) {
     this.container = container;
     this.list = list;
     this.empty = empty;
@@ -23,10 +23,28 @@ export class FragmentsPilot {
     this.walkCrosshair = walkCrosshair;
     this.setLoading = setLoading;
     this.showStatus = showStatus;
+    this.onWalkDebug = onWalkDebug;
     this.loadedWork = null;
     this.modelRecords = new Map();
-    this.walk = { mode: 'orbit', keys: new Set(), jumpRequested: false, velocityY: 0, grounded: false, height: 1.7, radius: 0.28, stepHeight: 0.2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1, lastFrame: performance.now(), mouseReleased: false, ignoreEscapeUntil: 0 };
-    this.walkVectors = { down: new THREE.Vector3(0, -1, 0), forward: new THREE.Vector3(), right: new THREE.Vector3(), move: new THREE.Vector3(), next: new THREE.Vector3(), origin: new THREE.Vector3(), normal: new THREE.Vector3() };
+    // The player is intentionally independent from the camera. CameraControls
+    // owns the orbit camera, while PointerLockControls owns only its rotation.
+    // Keeping a feet position here prevents either control from restoring an
+    // old orbit position in the first frame after a teleport.
+    this.walk = {
+      mode: 'orbit', keys: new Set(), jumpRequested: false, velocityY: 0,
+      grounded: false, height: 1.7, radius: 0.28, stepHeight: 0.2,
+      gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1,
+      lastFrame: performance.now(), accumulator: 0, fixedStep: 1 / 60,
+      mouseReleased: false, ignoreEscapeUntil: 0, airborneSince: 0,
+      feet: new THREE.Vector3(), lastSafeFeet: new THREE.Vector3(), spawnFeet: new THREE.Vector3(),
+      hasSafeFeet: false, worldMinY: -Infinity, lastDebugAt: 0, lastFloorY: null
+    };
+    this.walkVectors = {
+      down: new THREE.Vector3(0, -1, 0), up: new THREE.Vector3(0, 1, 0),
+      forward: new THREE.Vector3(), right: new THREE.Vector3(), move: new THREE.Vector3(),
+      next: new THREE.Vector3(), origin: new THREE.Vector3(), normal: new THREE.Vector3(),
+      cameraPosition: new THREE.Vector3()
+    };
   }
 
   async open(workKey = 'casa-terrea') {
@@ -182,7 +200,15 @@ export class FragmentsPilot {
     const roots = [...this.fragments.list.entries()]
       .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
       .map(([, model]) => model.object);
+    const bounds = new THREE.Box3();
+    roots.forEach((root) => {
+      root.updateWorldMatrix(true, true);
+      bounds.expandByObject(root);
+    });
+    // The proxy is deliberately rebuilt only after a model visibility/load
+    // transition. Rebuilding it during placement or a fall causes frame stalls.
     this.collisionProxy = roots.length ? new ObjectBVH(roots, { precise: false, includeInstances: true }) : null;
+    this.walk.worldMinY = bounds.isEmpty() ? -Infinity : bounds.min.y - 8;
   }
 
   async hideSpaces(model) {
@@ -201,7 +227,7 @@ export class FragmentsPilot {
     this.world.renderer.three.domElement.classList.add('ifc-place-cursor');
     this.walkHelp?.classList.remove('hidden');
     this.walkCrosshair?.classList.add('hidden');
-    this.showStatus('Clique em um piso para posicionar-se. Depois use WASD, Espaço para pular e Shift para correr.');
+    this.showStatus('Clique em qualquer elemento visível para posicionar-se. Depois use WASD, Espaço para pular e Shift para correr.');
   }
 
   async exitWalk({ fit = true } = {}) {
@@ -210,6 +236,8 @@ export class FragmentsPilot {
     this.walk.keys.clear();
     this.walk.jumpRequested = false;
     this.walk.velocityY = 0;
+    this.walk.accumulator = 0;
+    this.walk.grounded = false;
     if (this.walkControls?.isLocked) this.walkControls.unlock();
     if (this.highlighter) this.highlighter.enabled = true;
     this.world?.camera && (this.world.camera.controls.enabled = true);
@@ -224,21 +252,29 @@ export class FragmentsPilot {
     if (this.walk.mode === 'placement') {
       const hit = await this.pickWalkSurface(event) || await this.pickHighlightedSurface();
       if (!hit) return this.showStatus('Não foi possível usar esse ponto. Clique novamente em um elemento visível.');
-      // Any hit surface is a valid spawn point. A point on a wall or in the
-      // air deliberately starts above its elevation and gravity settles the
-      // player on the next reachable floor.
+      // Any element can start a walk. Prefer a horizontal surface below the
+      // click, but keep the clicked elevation when the point is over void so
+      // gravity can take over naturally.
       const camera = this.world.camera.three;
-      const spawn = hit.point.clone().addScaledVector(this.walkVectors.normal.set(0, 1, 0), this.walk.height);
-      const forward = camera.getWorldDirection(this.walkVectors.forward).setY(0);
-      if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1); else forward.normalize();
-      const target = spawn.clone().add(forward);
-      // CameraControls owns the camera transform even when orbit input is
-      // disabled. Update its internal target first, otherwise its next frame
-      // restores the distant orbit position after Pointer Lock is granted.
+      this.world.scene.three.updateMatrixWorld(true);
+      const floor = this.findFloorAt(hit.point.x, hit.point.z, hit.point.y + 0.12, 80);
+      const spawnFeet = this.walkVectors.next.set(hit.point.x, floor?.point.y ?? hit.point.y, hit.point.z);
+
+      // Suspend orbit ownership before writing the camera position. Calling
+      // CameraControls.setLookAt here was the source of the stale-orbit spawn.
+      this.world.camera.controls.enabled = false;
       camera.zoom = 1;
       camera.updateProjectionMatrix();
-      await this.world.camera.controls.setLookAt(spawn.x, spawn.y, spawn.z, target.x, target.y, target.z, false);
-      this.world.camera.controls.enabled = false;
+      this.walk.zoom = 1;
+      this.walk.feet.copy(spawnFeet);
+      this.walk.spawnFeet.copy(spawnFeet);
+      this.walk.lastSafeFeet.copy(spawnFeet);
+      this.walk.hasSafeFeet = !!floor;
+      this.walk.lastFloorY = floor?.point.y ?? null;
+      this.walk.velocityY = 0;
+      this.walk.grounded = !!floor;
+      this.walk.airborneSince = floor ? 0 : performance.now();
+      this.syncCameraToPlayer();
       if (this.highlighter) {
         await this.highlighter.clear('select');
         this.highlighter.enabled = false;
@@ -246,8 +282,7 @@ export class FragmentsPilot {
       // Do not rebuild the collision BVH here. Constructing it while the
       // pointer is being locked can stall the main thread on complex models;
       // the proxy prepared at load/visibility time remains in use.
-      this.walk.velocityY = 0;
-      this.walk.grounded = true;
+      this.walk.accumulator = 0;
       this.walk.mode = 'walk';
       this.walkHelp?.classList.add('hidden');
       this.walkCrosshair?.classList.remove('hidden');
@@ -342,32 +377,61 @@ export class FragmentsPilot {
     return this.collisionProxy.raycast(raycaster, [])[0] || null;
   }
 
-  floorBelow(position, lift = 0, maxDrop = 6) {
-    const origin = this.walkVectors.origin.copy(position);
-    origin.y -= this.walk.height - lift;
-    const hit = this.collisionRay(origin, this.walkVectors.down, lift + maxDrop);
+  findFloorAt(x, z, startY, maxDrop = 6) {
+    const origin = this.walkVectors.origin.set(x, startY, z);
+    const hit = this.collisionRay(origin, this.walkVectors.down, maxDrop);
     if (!hit?.face) return null;
     const normal = this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
-    return Math.abs(normal.y) > 0.55 ? hit : null;
+    return normal.y > 0.55 ? hit : null;
   }
 
-  hitsWall(position, direction, distance) {
+  floorBelow(feet, lift = 0.35, maxDrop = 6) {
+    return this.findFloorAt(feet.x, feet.z, feet.y + lift, lift + maxDrop);
+  }
+
+  hitsWall(feet, direction, distance) {
     if (!distance) return false;
-    const feet = position.y - this.walk.height;
     return [0.2, this.walk.height * 0.55, this.walk.height - 0.12].some((height) => {
-      const origin = this.walkVectors.origin.copy(position).addScaledVector(direction, 0.01);
-      origin.y = feet + height;
+      const origin = this.walkVectors.origin.copy(feet).addScaledVector(direction, 0.01);
+      origin.y += height;
       const hit = this.collisionRay(origin, direction, distance + this.walk.radius);
       if (!hit?.face || hit.distance >= distance + this.walk.radius) return false;
       return Math.abs(this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).y) < 0.55;
     });
   }
 
-  updateWalk(delta) {
-    if (this.walk.mode !== 'walk' || !this.walkControls?.isLocked) return;
+  syncCameraToPlayer() {
+    const camera = this.world.camera.three;
+    camera.position.copy(this.walk.feet).addScaledVector(this.walkVectors.up, this.walk.height);
+    camera.updateMatrixWorld(true);
+    this.world.renderer.needsUpdate = true;
+  }
+
+  recoverWalk(reason) {
+    const feet = this.walk.hasSafeFeet ? this.walk.lastSafeFeet : this.walk.spawnFeet;
+    this.walk.feet.copy(feet);
+    this.walk.velocityY = 0;
+    this.walk.grounded = this.walk.hasSafeFeet;
+    this.walk.airborneSince = 0;
+    this.walk.lastFloorY = feet.y;
+    this.syncCameraToPlayer();
+    this.showStatus(`Posição recuperada (${reason}).`);
+  }
+
+  reportWalkDebug(rayStartedAt) {
+    if (!this.onWalkDebug || !new URLSearchParams(window.location.search).has('ifcDebug')) return;
+    const now = performance.now();
+    if (now - this.walk.lastDebugAt < 350) return;
+    this.walk.lastDebugAt = now;
+    const { feet, grounded, velocityY, lastFloorY } = this.walk;
+    this.onWalkDebug(`Caminhada: pés ${feet.x.toFixed(2)}, ${feet.y.toFixed(2)}, ${feet.z.toFixed(2)} · ${grounded ? 'no chão' : 'no ar'} · vY ${velocityY.toFixed(2)} · piso ${lastFloorY?.toFixed(2) ?? '—'} · raycast ${(performance.now() - rayStartedAt).toFixed(2)} ms`);
+  }
+
+  stepWalk(delta) {
     if (this.walk.jumpRequested && this.walk.grounded) {
       this.walk.velocityY = 8.5;
       this.walk.grounded = false;
+      this.walk.airborneSince = performance.now();
     }
     this.walk.jumpRequested = false;
     const speed = this.walk.keys.has('ShiftLeft') || this.walk.keys.has('ShiftRight') ? this.walk.run : this.walk.speed;
@@ -381,41 +445,60 @@ export class FragmentsPilot {
     move.copy(forward).multiplyScalar(forwardInput).addScaledVector(right, sideInput);
     if (move.lengthSq()) {
       move.normalize().multiplyScalar(speed * delta);
-      next.copy(this.world.camera.three.position).add(move);
-      const feet = this.world.camera.three.position.y - this.walk.height;
-      const step = this.floorBelow(next, this.walk.stepHeight + 0.06);
+      next.copy(this.walk.feet).add(move);
+      const step = this.floorBelow(next, this.walk.stepHeight + 0.08, this.walk.stepHeight + 0.14);
       const stepY = step?.point.y;
-      const canStep = this.walk.grounded && stepY !== undefined && stepY >= feet - 0.08 && stepY <= feet + this.walk.stepHeight;
-      if (!this.hitsWall(this.world.camera.three.position, move.clone().normalize(), move.length()) || canStep) {
-        this.world.camera.three.position.x = next.x;
-        this.world.camera.three.position.z = next.z;
+      const canStep = this.walk.grounded && stepY !== undefined && stepY >= this.walk.feet.y - 0.08 && stepY <= this.walk.feet.y + this.walk.stepHeight;
+      if (!this.hitsWall(this.walk.feet, move.clone().normalize(), move.length()) || canStep) {
+        this.walk.feet.x = next.x;
+        this.walk.feet.z = next.z;
         if (canStep) {
-          this.world.camera.three.position.y = stepY + this.walk.height;
+          this.walk.feet.y = stepY;
           this.walk.velocityY = 0;
           this.walk.grounded = true;
+          this.walk.lastSafeFeet.copy(this.walk.feet);
+          this.walk.hasSafeFeet = true;
+          this.walk.lastFloorY = stepY;
         }
       }
     }
     this.walk.velocityY = Math.max(this.walk.velocityY - this.walk.gravity * delta, -this.walk.terminalVelocity);
-    const feet = this.world.camera.three.position.y - this.walk.height;
-    const floor = this.floorBelow(this.world.camera.three.position, this.walk.stepHeight + 0.08);
+    const floor = this.floorBelow(this.walk.feet, 0.35, 6);
     const floorY = floor?.point.y;
-    const nextY = this.world.camera.three.position.y + this.walk.velocityY * delta;
-    if (floorY !== undefined && this.walk.velocityY <= 0 && floorY <= feet + 0.08 && nextY - this.walk.height <= floorY) {
-      this.world.camera.three.position.y = floorY + this.walk.height;
+    const nextY = this.walk.feet.y + this.walk.velocityY * delta;
+    if (floorY !== undefined && this.walk.velocityY <= 0 && floorY <= this.walk.feet.y + 0.08 && nextY <= floorY) {
+      this.walk.feet.y = floorY;
       this.walk.velocityY = 0;
       this.walk.grounded = true;
+      this.walk.airborneSince = 0;
+      this.walk.lastSafeFeet.copy(this.walk.feet);
+      this.walk.hasSafeFeet = true;
+      this.walk.lastFloorY = floorY;
     } else {
-      this.world.camera.three.position.y = nextY;
+      this.walk.feet.y = nextY;
       this.walk.grounded = false;
+      if (!this.walk.airborneSince) this.walk.airborneSince = performance.now();
     }
-    this.world.renderer.needsUpdate = true;
+    this.syncCameraToPlayer();
+    if (this.walk.feet.y < this.walk.worldMinY) this.recoverWalk('queda fora do modelo');
+    else if (this.walk.airborneSince && performance.now() - this.walk.airborneSince > 10000) this.recoverWalk('queda sem apoio');
+  }
+
+  updateWalk(delta) {
+    if (this.walk.mode !== 'walk' || !this.walkControls?.isLocked) return;
+    const rayStartedAt = performance.now();
+    this.walk.accumulator = Math.min(this.walk.accumulator + Math.min(delta, 0.1), this.walk.fixedStep * 5);
+    while (this.walk.accumulator >= this.walk.fixedStep) {
+      this.stepWalk(this.walk.fixedStep);
+      this.walk.accumulator -= this.walk.fixedStep;
+    }
+    this.reportWalkDebug(rayStartedAt);
   }
 
   animateWalk() {
     requestAnimationFrame(() => this.animateWalk());
     const now = performance.now();
-    const delta = Math.min(0.05, (now - this.walk.lastFrame) / 1000);
+    const delta = Math.min(0.1, (now - this.walk.lastFrame) / 1000);
     this.walk.lastFrame = now;
     this.updateWalk(delta);
   }
