@@ -67,6 +67,9 @@ export class FragmentsPilot {
     this.world.renderer.three.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
     this.world.camera = new OBC.OrthoPerspectiveCamera(this.components);
     this.components.init();
+    // Uses Fragments' GPU picker directly. Unlike a per-model worker raycast,
+    // this is tied to the rendered pixel the user actually clicked.
+    this.sceneRaycaster = this.components.get(OBC.Raycasters).get(this.world);
     this.walkControls = new PointerLockControls(this.world.camera.three, this.world.renderer.three.domElement);
     this.walkControls.pointerSpeed = 0.85;
     this.walkControls.addEventListener('unlock', () => this.onWalkUnlock());
@@ -250,10 +253,11 @@ export class FragmentsPilot {
 
   async onWalkCanvasClick(event) {
     if (this.walk.mode === 'placement') {
-      // Both pickers are read-only and do not touch the Highlighter. The
-      // placement click must never select an item or populate its properties.
-      const hit = this.pickCollision(event) || await this.pickWalkSurface(event);
-      if (!hit) return this.showStatus('Não foi possível usar esse ponto. Clique novamente em um elemento visível.');
+      try {
+        // Both pickers are read-only and do not touch the Highlighter. The
+        // placement click must never select an item or populate its properties.
+        const hit = await this.pickWalkSurface(event) || this.pickCollision(event);
+        if (!hit?.point) return this.showStatus('Não foi possível localizar este ponto no modelo. Clique diretamente em uma geometria visível.');
       // Any element can start a walk. Prefer a horizontal surface below the
       // click, but keep the clicked elevation when the point is over void so
       // gravity can take over naturally.
@@ -289,7 +293,11 @@ export class FragmentsPilot {
       this.walkHelp?.classList.add('hidden');
       this.walkCrosshair?.classList.remove('hidden');
       this.world.renderer.three.domElement.classList.remove('ifc-place-cursor');
-      this.walkControls.lock(true);
+        this.walkControls.lock(true);
+      } catch (error) {
+        console.error('Falha ao posicionar caminhada:', error);
+        this.showStatus(`Não foi possível iniciar a caminhada: ${error.message || 'erro no raycast'}.`);
+      }
       return;
     }
     if (this.walk.mode === 'walk' && !this.walkControls.isLocked) {
@@ -345,15 +353,15 @@ export class FragmentsPilot {
   }
 
   async pickWalkSurface(event) {
-    // Fragments' RaycastManager converts client pixels to normalized device
-    // coordinates internally. Supplying NDC values here made every placement
-    // ray miss the model.
-    const mouse = new THREE.Vector2(event.clientX, event.clientY);
-    const dom = this.world.renderer.three.domElement;
-    const hits = await Promise.all([...this.fragments.list.entries()]
-      .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
-      .map(([, model]) => model.raycast({ camera: this.world.camera.three, mouse, dom })));
-    return hits.filter(Boolean).sort((a, b) => a.distance - b.distance)[0] || null;
+    const rect = this.world.renderer.three.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    // Passing an empty item list asks SimpleRaycaster to use only the fast
+    // Fragments picker. It avoids a slow worker request for every federation
+    // member and, importantly, cannot hang the placement click.
+    return this.sceneRaycaster.castRay({ items: [], position: mouse });
   }
 
   collisionRay(origin, direction, far) {
