@@ -26,6 +26,7 @@ export class FragmentsPilot {
     this.onWalkDebug = onWalkDebug;
     this.loadedWork = null;
     this.modelRecords = new Map();
+    this.collisionBounds = new THREE.Box3();
     // The player is intentionally independent from the camera. CameraControls
     // owns the orbit camera, while PointerLockControls owns only its rotation.
     // Keeping a feet position here prevents either control from restoring an
@@ -146,8 +147,13 @@ export class FragmentsPilot {
     this.setLoading(false);
     this.renderModels(workName);
     this.renderTree(workName);
-    this.buildCollisionProxy();
     await this.fit();
+    // Fragments materializes its visible LOD after the first camera update.
+    // Build the collision tree after fitting so it contains the geometry the
+    // user can actually see and click.
+    this.fragments.core.update(true);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    this.buildCollisionProxy();
     this.showStatus(`${workName} otimizado ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.`);
   }
 
@@ -211,6 +217,7 @@ export class FragmentsPilot {
     // The proxy is deliberately rebuilt only after a model visibility/load
     // transition. Rebuilding it during placement or a fall causes frame stalls.
     this.collisionProxy = roots.length ? new ObjectBVH(roots, { precise: false, includeInstances: true }) : null;
+    this.collisionBounds.copy(bounds);
     this.walk.worldMinY = bounds.isEmpty() ? -Infinity : bounds.min.y - 8;
   }
 
@@ -256,43 +263,47 @@ export class FragmentsPilot {
       try {
         // Both pickers are read-only and do not touch the Highlighter. The
         // placement click must never select an item or populate its properties.
-        const hit = await this.pickWalkSurface(event) || this.pickCollision(event);
+        const hit = await this.pickWalkSurface(event)
+          || this.pickCollision(event)
+          || this.pickRenderedGeometry(event)
+          || this.pickModelBounds(event);
         if (!hit?.point) return this.showStatus('Não foi possível localizar este ponto no modelo. Clique diretamente em uma geometria visível.');
-      // Any element can start a walk. Prefer a horizontal surface below the
-      // click, but keep the clicked elevation when the point is over void so
-      // gravity can take over naturally.
-      const camera = this.world.camera.three;
-      this.world.scene.three.updateMatrixWorld(true);
-      const floor = this.findFloorAt(hit.point.x, hit.point.z, hit.point.y + 0.12, 80);
-      const spawnFeet = this.walkVectors.next.set(hit.point.x, floor?.point.y ?? hit.point.y, hit.point.z);
 
-      // Suspend orbit ownership before writing the camera position. Calling
-      // CameraControls.setLookAt here was the source of the stale-orbit spawn.
-      this.world.camera.controls.enabled = false;
-      camera.zoom = 1;
-      camera.updateProjectionMatrix();
-      this.walk.zoom = 1;
-      this.walk.feet.copy(spawnFeet);
-      this.walk.spawnFeet.copy(spawnFeet);
-      this.walk.lastSafeFeet.copy(spawnFeet);
-      this.walk.hasSafeFeet = !!floor;
-      this.walk.lastFloorY = floor?.point.y ?? null;
-      this.walk.velocityY = 0;
-      this.walk.grounded = !!floor;
-      this.walk.airborneSince = floor ? 0 : performance.now();
-      this.syncCameraToPlayer();
-      if (this.highlighter) {
-        await this.highlighter.clear('select');
-        this.highlighter.enabled = false;
-      }
-      // Do not rebuild the collision BVH here. Constructing it while the
-      // pointer is being locked can stall the main thread on complex models;
-      // the proxy prepared at load/visibility time remains in use.
-      this.walk.accumulator = 0;
-      this.walk.mode = 'walk';
-      this.walkHelp?.classList.add('hidden');
-      this.walkCrosshair?.classList.remove('hidden');
-      this.world.renderer.three.domElement.classList.remove('ifc-place-cursor');
+        // Any element can start a walk. Prefer a horizontal surface below the
+        // click, but keep the clicked elevation when the point is over void so
+        // gravity can take over naturally.
+        const camera = this.world.camera.three;
+        this.world.scene.three.updateMatrixWorld(true);
+        const floor = this.findFloorAt(hit.point.x, hit.point.z, hit.point.y + 0.12, 80);
+        const spawnFeet = this.walkVectors.next.set(hit.point.x, floor?.point.y ?? hit.point.y, hit.point.z);
+
+        // Suspend orbit ownership before writing the camera position. Calling
+        // CameraControls.setLookAt here was the source of the stale-orbit spawn.
+        this.world.camera.controls.enabled = false;
+        camera.zoom = 1;
+        camera.updateProjectionMatrix();
+        this.walk.zoom = 1;
+        this.walk.feet.copy(spawnFeet);
+        this.walk.spawnFeet.copy(spawnFeet);
+        this.walk.lastSafeFeet.copy(spawnFeet);
+        this.walk.hasSafeFeet = !!floor;
+        this.walk.lastFloorY = floor?.point.y ?? null;
+        this.walk.velocityY = 0;
+        this.walk.grounded = !!floor;
+        this.walk.airborneSince = floor ? 0 : performance.now();
+        this.syncCameraToPlayer();
+        if (this.highlighter) {
+          await this.highlighter.clear('select');
+          this.highlighter.enabled = false;
+        }
+        // Do not rebuild the collision BVH here. Constructing it while the
+        // pointer is being locked can stall the main thread on complex models;
+        // the proxy prepared at load/visibility time remains in use.
+        this.walk.accumulator = 0;
+        this.walk.mode = 'walk';
+        this.walkHelp?.classList.add('hidden');
+        this.walkCrosshair?.classList.remove('hidden');
+        this.world.renderer.three.domElement.classList.remove('ifc-place-cursor');
         this.walkControls.lock(true);
       } catch (error) {
         console.error('Falha ao posicionar caminhada:', error);
@@ -344,12 +355,34 @@ export class FragmentsPilot {
 
   pickCollision(event) {
     if (!this.collisionProxy) return null;
+    const raycaster = this.createPointerRaycaster(event);
+    return this.collisionProxy.raycast(raycaster, [])[0] || null;
+  }
+
+  createPointerRaycaster(event) {
     const rect = this.world.renderer.three.domElement.getBoundingClientRect();
-    const mouse = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
     const raycaster = new THREE.Raycaster();
     raycaster.firstHitOnly = true;
     raycaster.setFromCamera(mouse, this.world.camera.three);
-    return this.collisionProxy.raycast(raycaster, [])[0] || null;
+    return raycaster;
+  }
+
+  pickRenderedGeometry(event) {
+    const roots = [...this.fragments.list.entries()]
+      .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
+      .map(([, model]) => model.object);
+    return this.createPointerRaycaster(event).intersectObjects(roots, true)[0] || null;
+  }
+
+  pickModelBounds(event) {
+    if (this.collisionBounds.isEmpty()) return null;
+    const raycaster = this.createPointerRaycaster(event);
+    const point = raycaster.ray.intersectBox(this.collisionBounds, new THREE.Vector3());
+    return point ? { point, distance: point.distanceTo(raycaster.ray.origin) } : null;
   }
 
   async pickWalkSurface(event) {
@@ -361,7 +394,10 @@ export class FragmentsPilot {
     // Passing an empty item list asks SimpleRaycaster to use only the fast
     // Fragments picker. It avoids a slow worker request for every federation
     // member and, importantly, cannot hang the placement click.
-    return this.sceneRaycaster.castRay({ items: [], position: mouse });
+    return Promise.race([
+      this.sceneRaycaster.castRay({ items: [], position: mouse }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 800))
+    ]);
   }
 
   collisionRay(origin, direction, far) {
