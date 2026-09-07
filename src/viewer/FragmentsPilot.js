@@ -33,7 +33,7 @@ export class FragmentsPilot {
     // old orbit position in the first frame after a teleport.
     this.walk = {
       mode: 'orbit', keys: new Set(), jumpRequested: false, velocityY: 0,
-      grounded: false, height: 1.7, radius: 0.28, stepHeight: 0.2,
+      grounded: false, height: 1.7, radius: 0.36, stepHeight: 0.2,
       gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1,
       lastFrame: performance.now(), accumulator: 0, fixedStep: 1 / 60,
       mouseReleased: false, ignoreEscapeUntil: 0, airborneSince: 0,
@@ -335,8 +335,12 @@ export class FragmentsPilot {
       try {
         // Both pickers are read-only and do not touch the Highlighter. The
         // placement click must never select an item or populate its properties.
-        const hit = await this.pickWalkSurface(event)
-          || this.pickCollision(event)
+        const visualHit = await this.pickWalkSurface(event);
+        const obstacleHit = this.pickObstacleCollision(event);
+        const colliderHit = this.pickCollision(event);
+        const hit = visualHit
+          || obstacleHit
+          || colliderHit
           || this.pickModelBounds(event);
         if (!hit?.point) return this.showStatus('Não foi possível localizar este ponto no modelo. Clique diretamente em uma geometria visível.');
 
@@ -345,8 +349,20 @@ export class FragmentsPilot {
         // gravity can take over naturally.
         const camera = this.world.camera.three;
         this.world.scene.three.updateMatrixWorld(true);
-        const floor = this.findFloorAt(hit.point.x, hit.point.z, hit.point.y + 0.12, 80);
-        const spawnFeet = this.walkVectors.next.set(hit.point.x, floor?.point.y ?? hit.point.y, hit.point.z);
+        const spawnFeet = this.walkVectors.next.copy(hit.point);
+        // A wall click is accepted as a spawn request, but its point lies on
+        // the solid surface. Move the player-radius toward the visible side
+        // before looking for the floor; otherwise the eye begins inside the
+        // wall and near-plane clipping looks like passing through it.
+        if (obstacleHit?.face && obstacleHit.point.distanceTo(hit.point) < 0.75) {
+          const normal = this.walkVectors.normal.copy(obstacleHit.face.normal).transformDirection(obstacleHit.object.matrixWorld);
+          if (Math.abs(normal.y) < 0.55) {
+            normal.y = 0;
+            spawnFeet.addScaledVector(normal.normalize(), this.walk.radius + 0.06);
+          }
+        }
+        const floor = this.findFloorAt(spawnFeet.x, spawnFeet.z, spawnFeet.y + 0.12, 80);
+        spawnFeet.y = floor?.point.y ?? spawnFeet.y;
 
         // Suspend orbit ownership before writing the camera position. Calling
         // CameraControls.setLookAt here was the source of the stale-orbit spawn.
@@ -432,6 +448,11 @@ export class FragmentsPilot {
     return raycaster.intersectObjects([this.floorCollider, this.obstacleCollider].filter(Boolean), false)[0] || null;
   }
 
+  pickObstacleCollision(event) {
+    if (!this.obstacleCollider) return null;
+    return this.createPointerRaycaster(event).intersectObject(this.obstacleCollider, false)[0] || null;
+  }
+
   createPointerRaycaster(event) {
     const rect = this.world.renderer.three.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
@@ -493,7 +514,10 @@ export class FragmentsPilot {
 
   hitsWall(feet, direction, distance) {
     if (!distance) return false;
-    return [0.2, this.walk.height * 0.55, this.walk.height - 0.12].some((height) => {
+    // The final probe sits at eye level. The old upper probe stopped below
+    // the camera, allowing it to clip a low wall even when the feet were
+    // stopped correctly.
+    return [0.2, this.walk.height * 0.55, this.walk.height - 0.04].some((height) => {
       const origin = this.walkVectors.origin.copy(feet).addScaledVector(direction, 0.01);
       origin.y += height;
       const hit = this.collisionRay(origin, direction, distance + this.walk.radius, 'obstacle');
