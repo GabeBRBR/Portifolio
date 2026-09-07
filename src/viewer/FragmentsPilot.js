@@ -38,7 +38,8 @@ export class FragmentsPilot {
       lastFrame: performance.now(), accumulator: 0, fixedStep: 1 / 60,
       mouseReleased: false, ignoreEscapeUntil: 0, airborneSince: 0,
       feet: new THREE.Vector3(), lastSafeFeet: new THREE.Vector3(), spawnFeet: new THREE.Vector3(),
-      hasSafeFeet: false, worldMinY: -Infinity, lastDebugAt: 0, lastFloorY: null
+      hasSafeFeet: false, worldMinY: -Infinity, lastDebugAt: 0, lastFloorY: null,
+      lastFragmentsUpdate: 0
     };
     this.walkVectors = {
       down: new THREE.Vector3(0, -1, 0), up: new THREE.Vector3(0, 1, 0),
@@ -68,6 +69,12 @@ export class FragmentsPilot {
     this.world.renderer.three.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
     this.world.camera = new OBC.OrthoPerspectiveCamera(this.components);
     this.components.init();
+    // The default far plane is intentionally conservative for small BIM
+    // views. A first-person camera needs enough depth to see the next room or
+    // bay before entering it; this only changes clipping, not the LOD policy.
+    const renderCamera = this.world.camera.three;
+    renderCamera.far = Math.max(renderCamera.far || 0, 2500);
+    renderCamera.updateProjectionMatrix();
     // Uses Fragments' GPU picker directly. Unlike a per-model worker raycast,
     // this is tied to the rendered pixel the user actually clicked.
     this.sceneRaycaster = this.components.get(OBC.Raycasters).get(this.world);
@@ -86,6 +93,11 @@ export class FragmentsPilot {
     // galpao in particular) retain large survey coordinates that push the
     // WebGL camera/culling precision beyond a practical range.
     this.fragments.core.settings.autoCoordinate = true;
+    // Fragments refreshes camera-driven visibility at most every 100 ms by
+    // default. That is acceptable for orbit, but creates noticeable pop-in
+    // when a player turns quickly. 40 ms stays below 25 updates/s while
+    // letting the worker prefetch the player's forward view.
+    this.fragments.core.settings.maxUpdateRate = 40;
     this.highlighter = this.components.get(OBCF.Highlighter);
     this.highlighter.setup({
       world: this.world,
@@ -360,6 +372,8 @@ export class FragmentsPilot {
         // the proxy prepared at load/visibility time remains in use.
         this.walk.accumulator = 0;
         this.walk.mode = 'walk';
+        this.walk.lastFragmentsUpdate = 0;
+        this.updateFragmentsForWalk();
         this.walkHelp?.classList.add('hidden');
         this.walkCrosshair?.classList.remove('hidden');
         this.world.renderer.three.domElement.classList.remove('ifc-place-cursor');
@@ -492,7 +506,19 @@ export class FragmentsPilot {
     const camera = this.world.camera.three;
     camera.position.copy(this.walk.feet).addScaledVector(this.walkVectors.up, this.walk.height);
     camera.updateMatrixWorld(true);
+    this.updateFragmentsForWalk();
     this.world.renderer.needsUpdate = true;
+  }
+
+  updateFragmentsForWalk() {
+    if (!this.fragments || this.walk.mode !== 'walk') return;
+    const now = performance.now();
+    // Avoid starting overlapping async refreshes from the 60 Hz physics loop.
+    // The manager itself enforces the same 40 ms cap, but this guard avoids
+    // allocating promises that cannot produce a new view request.
+    if (now - this.walk.lastFragmentsUpdate < 40) return;
+    this.walk.lastFragmentsUpdate = now;
+    this.fragments.core.update().catch((error) => console.warn('Atualização de visibilidade da caminhada falhou:', error));
   }
 
   recoverWalk(reason) {
