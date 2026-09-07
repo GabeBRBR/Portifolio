@@ -250,7 +250,9 @@ export class FragmentsPilot {
 
   async onWalkCanvasClick(event) {
     if (this.walk.mode === 'placement') {
-      const hit = await this.pickWalkSurface(event) || await this.pickHighlightedSurface();
+      // Both pickers are read-only and do not touch the Highlighter. The
+      // placement click must never select an item or populate its properties.
+      const hit = this.pickCollision(event) || await this.pickWalkSurface(event);
       if (!hit) return this.showStatus('Não foi possível usar esse ponto. Clique novamente em um elemento visível.');
       // Any element can start a walk. Prefer a horizontal surface below the
       // click, but keep the clicked elevation when the point is over void so
@@ -343,31 +345,15 @@ export class FragmentsPilot {
   }
 
   async pickWalkSurface(event) {
-    const rect = this.world.renderer.three.domElement.getBoundingClientRect();
-    const mouse = new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+    // Fragments' RaycastManager converts client pixels to normalized device
+    // coordinates internally. Supplying NDC values here made every placement
+    // ray miss the model.
+    const mouse = new THREE.Vector2(event.clientX, event.clientY);
     const dom = this.world.renderer.three.domElement;
     const hits = await Promise.all([...this.fragments.list.entries()]
       .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
       .map(([, model]) => model.raycast({ camera: this.world.camera.three, mouse, dom })));
     return hits.filter(Boolean).sort((a, b) => a.distance - b.distance)[0] || null;
-  }
-
-  async pickHighlightedSurface() {
-    if (!this.highlighter) return null;
-    // The Highlighter uses That Open's GPU picker, which keeps working when a
-    // virtual Fragment tile has no CPU raycast representation yet.
-    this.highlighter.enabled = true;
-    await this.highlighter.highlight('select', true, false);
-    const selection = this.highlighter.selection.select;
-    const entry = Object.entries(selection || {}).find(([, localIds]) => localIds?.size);
-    if (!entry) {
-      this.highlighter.enabled = false;
-      return null;
-    }
-    const [modelId, localIds] = entry;
-    const model = this.fragments.list.get(modelId);
-    const [point] = model ? await model.getPositions([[...localIds][0]]) : [];
-    return point ? { point } : null;
   }
 
   collisionRay(origin, direction, far) {
