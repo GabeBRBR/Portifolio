@@ -33,7 +33,7 @@ export class FragmentsPilot {
     // old orbit position in the first frame after a teleport.
     this.walk = {
       mode: 'orbit', keys: new Set(), jumpRequested: false, velocityY: 0,
-      grounded: false, height: 1.7, radius: 0.36, stepHeight: 0.2,
+      grounded: false, height: 1.7, bodyHeight: 1.9, radius: 0.36, stepHeight: 0.2,
       gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1,
       lastFrame: performance.now(), accumulator: 0, fixedStep: 1 / 60,
       mouseReleased: false, ignoreEscapeUntil: 0, airborneSince: 0,
@@ -540,7 +540,11 @@ export class FragmentsPilot {
     } = this.walkVectors;
 
     capsuleSegment.start.copy(feet).addScaledVector(this.walkVectors.up, radius);
-    capsuleSegment.end.copy(feet).addScaledVector(this.walkVectors.up, this.walk.height - radius);
+    // The physical body extends above the 1.70 m eye position. If the capsule
+    // ended at eye height its rounded cap would have zero horizontal radius
+    // exactly where the camera sits, allowing the view to enter a wall while
+    // the lower body remained outside.
+    capsuleSegment.end.copy(feet).addScaledVector(this.walkVectors.up, this.walk.bodyHeight - radius);
     capsuleStart.copy(capsuleSegment.start);
     capsuleBox.makeEmpty();
     capsuleBox.expandByPoint(capsuleSegment.start);
