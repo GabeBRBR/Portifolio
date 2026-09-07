@@ -81,6 +81,7 @@ class IFCViewer {
     this.safeProfile = this.deviceMemory !== null && this.deviceMemory <= 8;
     this.maxSafeInputBytes = 110 * 1024 ** 2;
     this.lastCameraMotionAt = 0;
+    this.fragmentsWalkDebug = '';
     this.walkVectors = { origin: new THREE.Vector3(), wallOrigin: new THREE.Vector3(), move: new THREE.Vector3(), forward: new THREE.Vector3(), right: new THREE.Vector3(), next: new THREE.Vector3(), direction: new THREE.Vector3(), down: new THREE.Vector3(0, -1, 0) };
     this.initDom();
     this.performanceMonitor = new PerformanceMonitor({
@@ -376,7 +377,8 @@ class IFCViewer {
           walkHelp: this.walkHelp,
           walkCrosshair: this.walkCrosshair,
           setLoading: (...args) => this.setLoading(...args),
-          showStatus: (message) => this.showStatus(message)
+          showStatus: (message) => this.showStatus(message),
+          onWalkDebug: (message) => { this.fragmentsWalkDebug = message; }
         });
         return this.fragmentsPilot;
       });
@@ -627,7 +629,8 @@ class IFCViewer {
     const operationText = Object.entries(metrics.operations).map(([name, value]) => `${name}: ${value.toFixed(0)} ms`).join('\n');
     const cycle = metrics.resourceCycle;
     const resourceText = cycle ? `\nLiberação ${cycle.name}: ${cycle.disposed.meshes} meshes / ${cycle.disposed.geometries} geometrias / ${cycle.disposed.materials} materiais\nReferências: ${cycle.before.meshes} → ${cycle.after.meshes} meshes · ${cycle.before.models} → ${cycle.after.models} modelos` : '';
-    this.diagnostics.textContent = `DIAGNÓSTICO\n${metrics.fps} FPS · ${metrics.frameMs.toFixed(1)} ms · p95 ${metrics.frameP95.toFixed(1)} ms\nDraw calls ${metrics.calls} · Triângulos ${metrics.triangles}\nMeshes ${metrics.meshes} · Materiais ${metrics.materials}\nGeometrias ${metrics.geometries} · Texturas ${metrics.textures}\nCaminhada/raycast ${metrics.walkMs.toFixed(2)} ms · Primeiro frame ${metrics.firstUsableMs?.toFixed(0) ?? '—'} ms\nReferências: ${BENCHMARK_MODELS.small} / ${BENCHMARK_MODELS.medium} / ${BENCHMARK_MODELS.heavy}${resourceText}\n${operationText}`;
+    const fragmentsWalkText = this.fragmentsWalkDebug ? `\n${this.fragmentsWalkDebug}` : '';
+    this.diagnostics.textContent = `DIAGNÓSTICO\n${metrics.fps} FPS · ${metrics.frameMs.toFixed(1)} ms · p95 ${metrics.frameP95.toFixed(1)} ms\nDraw calls ${metrics.calls} · Triângulos ${metrics.triangles}\nMeshes ${metrics.meshes} · Materiais ${metrics.materials}\nGeometrias ${metrics.geometries} · Texturas ${metrics.textures}\nCaminhada/raycast ${metrics.walkMs.toFixed(2)} ms · Primeiro frame ${metrics.firstUsableMs?.toFixed(0) ?? '—'} ms\nReferências: ${BENCHMARK_MODELS.small} / ${BENCHMARK_MODELS.medium} / ${BENCHMARK_MODELS.heavy}${resourceText}${fragmentsWalkText}\n${operationText}`;
   }
   animate() {
     requestAnimationFrame(() => this.animate());
