@@ -45,7 +45,10 @@ export class FragmentsPilot {
       down: new THREE.Vector3(0, -1, 0), up: new THREE.Vector3(0, 1, 0),
       forward: new THREE.Vector3(), right: new THREE.Vector3(), move: new THREE.Vector3(),
       next: new THREE.Vector3(), origin: new THREE.Vector3(), normal: new THREE.Vector3(),
-      cameraPosition: new THREE.Vector3()
+      cameraPosition: new THREE.Vector3(), capsuleStart: new THREE.Vector3(),
+      capsuleCorrection: new THREE.Vector3(), trianglePoint: new THREE.Vector3(),
+      capsulePoint: new THREE.Vector3(), capsuleDirection: new THREE.Vector3(),
+      capsuleSegment: new THREE.Line3(), capsuleBox: new THREE.Box3()
     };
   }
 
@@ -371,8 +374,9 @@ export class FragmentsPilot {
         camera.updateProjectionMatrix();
         this.walk.zoom = 1;
         this.walk.feet.copy(spawnFeet);
+        this.resolvePlayerCapsule(this.walk.feet);
         this.walk.spawnFeet.copy(spawnFeet);
-        this.walk.lastSafeFeet.copy(spawnFeet);
+        this.walk.lastSafeFeet.copy(this.walk.feet);
         this.walk.hasSafeFeet = !!floor;
         this.walk.lastFloorY = floor?.point.y ?? null;
         this.walk.velocityY = 0;
@@ -526,6 +530,49 @@ export class FragmentsPilot {
     });
   }
 
+  resolvePlayerCapsule(feet) {
+    const boundsTree = this.obstacleCollider?.geometry?.boundsTree;
+    if (!boundsTree) return null;
+    const radius = this.walk.radius;
+    const {
+      capsuleSegment, capsuleBox, capsuleStart, capsuleCorrection,
+      trianglePoint, capsulePoint, capsuleDirection
+    } = this.walkVectors;
+
+    capsuleSegment.start.copy(feet).addScaledVector(this.walkVectors.up, radius);
+    capsuleSegment.end.copy(feet).addScaledVector(this.walkVectors.up, this.walk.height - radius);
+    capsuleStart.copy(capsuleSegment.start);
+    capsuleBox.makeEmpty();
+    capsuleBox.expandByPoint(capsuleSegment.start);
+    capsuleBox.expandByPoint(capsuleSegment.end);
+    capsuleBox.min.addScalar(-radius);
+    capsuleBox.max.addScalar(radius);
+
+    boundsTree.shapecast({
+      intersectsBounds: (box) => box.intersectsBox(capsuleBox),
+      intersectsTriangle: (triangle) => {
+        const distance = triangle.closestPointToSegment(capsuleSegment, trianglePoint, capsulePoint);
+        if (distance >= radius) return false;
+        const depth = radius - distance;
+        capsuleDirection.subVectors(capsulePoint, trianglePoint);
+        if (capsuleDirection.lengthSq() < 1e-10) {
+          triangle.getNormal(capsuleDirection);
+          capsuleSegment.getCenter(capsulePoint).sub(trianglePoint);
+          if (capsuleDirection.dot(capsulePoint) < 0) capsuleDirection.negate();
+        } else {
+          capsuleDirection.normalize();
+        }
+        capsuleSegment.start.addScaledVector(capsuleDirection, depth);
+        capsuleSegment.end.addScaledVector(capsuleDirection, depth);
+        return false;
+      }
+    });
+
+    capsuleCorrection.subVectors(capsuleSegment.start, capsuleStart);
+    feet.add(capsuleCorrection);
+    return capsuleCorrection;
+  }
+
   syncCameraToPlayer() {
     const camera = this.world.camera.three;
     camera.position.copy(this.walk.feet).addScaledVector(this.walkVectors.up, this.walk.height);
@@ -621,6 +668,20 @@ export class FragmentsPilot {
       this.walk.feet.y = nextY;
       this.walk.grounded = false;
       if (!this.walk.airborneSince) this.walk.airborneSince = performance.now();
+    }
+    // Rays remain useful for floor snapping and automatic 20 cm steps, but
+    // the capsule is authoritative for solid collision. It resolves corners,
+    // oblique movement and any residual intersection across the full body.
+    const capsuleCorrection = this.resolvePlayerCapsule(this.walk.feet);
+    if (capsuleCorrection?.y > 0.001 && this.walk.velocityY <= 0) {
+      this.walk.velocityY = 0;
+      this.walk.grounded = true;
+      this.walk.airborneSince = 0;
+      this.walk.lastFloorY = this.walk.feet.y;
+    }
+    if (this.walk.grounded) {
+      this.walk.lastSafeFeet.copy(this.walk.feet);
+      this.walk.hasSafeFeet = true;
     }
     this.syncCameraToPlayer();
     if (this.walk.feet.y < this.walk.worldMinY) this.recoverWalk('queda fora do modelo');
