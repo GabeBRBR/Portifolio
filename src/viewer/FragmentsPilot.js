@@ -3,6 +3,7 @@ import * as OBCF from '@thatopen/components-front';
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
+import { LodMode } from '@thatopen/fragments';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
@@ -65,7 +66,14 @@ export class FragmentsPilot {
     this.world.scene = new OBC.SimpleScene(this.components);
     this.world.scene.setup();
     this.world.scene.three.background = null;
-    this.world.renderer = new OBC.SimpleRenderer(this.components, this.container, { antialias: true, powerPreference: 'default' });
+    this.world.renderer = new OBC.SimpleRenderer(this.components, this.container, {
+      antialias: true,
+      powerPreference: 'default',
+      // The first-person camera needs a very close near plane and a long BIM
+      // view distance. Logarithmic depth avoids slicing/z-fighting geometry at
+      // the screen edges under that large depth range.
+      logarithmicDepthBuffer: true
+    });
     this.world.renderer.showLogo = false;
     this.world.renderer.mode = OBC.RendererMode.MANUAL;
     this.world.renderer.three.shadowMap.enabled = false;
@@ -76,6 +84,7 @@ export class FragmentsPilot {
     // views. A first-person camera needs enough depth to see the next room or
     // bay before entering it; this only changes clipping, not the LOD policy.
     const renderCamera = this.world.camera.three;
+    renderCamera.near = Math.min(renderCamera.near || 0.1, 0.025);
     renderCamera.far = Math.max(renderCamera.far || 0, 2500);
     renderCamera.updateProjectionMatrix();
     // Uses Fragments' GPU picker directly. Unlike a per-model worker raycast,
@@ -329,6 +338,10 @@ export class FragmentsPilot {
     this.world?.renderer?.three.domElement.classList.remove('ifc-place-cursor');
     this.walkHelp?.classList.add('hidden');
     this.walkCrosshair?.classList.add('hidden');
+    // In orbit Fragments can return to its normal, efficient camera culling.
+    // The no-cull policy is only needed while the user's eye is inside a
+    // model, where an incomplete LOD tile at the frame edge is very visible.
+    if (wasWalking) await this.setWalkLodPolicy(false);
     if (wasWalking && fit) await this.fit();
     if (wasWalking) this.showStatus('Caminhada encerrada. Órbita e zoom restaurados.');
   }
@@ -393,6 +406,11 @@ export class FragmentsPilot {
         this.walk.accumulator = 0;
         this.walk.mode = 'walk';
         this.walk.lastFragmentsUpdate = 0;
+        // First-person view must never replace a wall/beam at the edge of the
+        // canvas with a coarser or missing fragment. Keep all *visible model*
+        // geometry resident during walking; visibility toggles still apply and
+        // the regular LOD/culling policy returns as soon as walking ends.
+        void this.setWalkLodPolicy(true);
         this.updateFragmentsForWalk();
         this.walkHelp?.classList.add('hidden');
         this.walkCrosshair?.classList.remove('hidden');
@@ -594,6 +612,20 @@ export class FragmentsPilot {
     if (now - this.walk.lastFragmentsUpdate < 40) return;
     this.walk.lastFragmentsUpdate = now;
     this.fragments.core.update().catch((error) => console.warn('Atualização de visibilidade da caminhada falhou:', error));
+  }
+
+  async setWalkLodPolicy(walking) {
+    if (!this.fragments) return;
+    const mode = walking ? LodMode.ALL_VISIBLE : LodMode.DEFAULT;
+    const updates = [];
+    this.modelRecords.forEach((record, id) => {
+      if (!record.visible) return;
+      const model = this.fragments.list.get(id);
+      if (model) updates.push(model.setLodMode(mode));
+    });
+    await Promise.allSettled(updates);
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
   }
 
   recoverWalk(reason) {
