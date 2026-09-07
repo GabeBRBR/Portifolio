@@ -5,12 +5,17 @@ import { fileURLToPath } from 'node:url';
 import { IfcImporter } from '@thatopen/fragments';
 import {
   IfcAPI,
+  IFCBEAM,
   IFCBUILDINGELEMENTPROXY,
+  IFCBUILDINGELEMENTPART,
   IFCCOLUMN,
   IFCCURTAINWALL,
   IFCFOOTING,
   IFCGEOGRAPHICELEMENT,
+  IFCMEMBER,
   IFCPAVEMENT,
+  IFCPILE,
+  IFCPLATE,
   IFCRAMP,
   IFCROOF,
   IFCSLAB,
@@ -39,7 +44,15 @@ const floorTypes = new Set([
   IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING,
   IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY
 ]);
-const obstacleTypes = new Set([IFCWALL, IFCWALLSTANDARDCASE, IFCCOLUMN, IFCCURTAINWALL, IFCROOF]);
+// These categories make up the navigable architectural/structural shell.
+// Proxies are intentionally both floor and obstacle: Revit often exports
+// walls, beams and generic floor volumes all under this one IFC category.
+const obstacleTypes = new Set([
+  IFCWALL, IFCWALLSTANDARDCASE, IFCCOLUMN, IFCCURTAINWALL, IFCROOF,
+  IFCBEAM, IFCMEMBER, IFCPLATE, IFCBUILDINGELEMENTPART, IFCPILE,
+  IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING,
+  IFCBUILDINGELEMENTPROXY
+]);
 
 function encodeCollider(floors, obstacles) {
   const headerBytes = 24;
@@ -92,10 +105,13 @@ function createCollider(api, source, coordinateToOrigin) {
   try {
     api.StreamAllMeshes(modelID, (flatMesh) => {
       const type = api.GetLineType(modelID, flatMesh.expressID);
-      const target = floorTypes.has(type) ? floors : obstacleTypes.has(type) ? obstacles : null;
-      if (!target) return;
+      const targets = [
+        ...(floorTypes.has(type) ? [floors] : []),
+        ...(obstacleTypes.has(type) ? [obstacles] : [])
+      ];
+      if (!targets.length) return;
       for (let index = 0; index < flatMesh.geometries.size(); index += 1) {
-        appendPlacedGeometry(target, api, modelID, flatMesh.geometries.get(index));
+        for (const target of targets) appendPlacedGeometry(target, api, modelID, flatMesh.geometries.get(index));
       }
     });
   } finally {

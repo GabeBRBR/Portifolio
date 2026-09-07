@@ -536,7 +536,12 @@ export class FragmentsPilot {
       next.copy(this.walk.feet).add(move);
       const step = this.floorBelow(next, this.walk.stepHeight + 0.08, this.walk.stepHeight + 0.14);
       const stepY = step?.point.y;
-      const canStep = this.walk.grounded && stepY !== undefined && stepY >= this.walk.feet.y - 0.08 && stepY <= this.walk.feet.y + this.walk.stepHeight;
+      // A floor detected at the same height is normal while facing a wall;
+      // it must not turn that wall into an allowed "step". Only a real rise
+      // up to 20 cm qualifies for automatic stair/threshold climbing.
+      const canStep = this.walk.grounded && stepY !== undefined
+        && stepY > this.walk.feet.y + 0.04
+        && stepY <= this.walk.feet.y + this.walk.stepHeight;
       if (!this.hitsWall(this.walk.feet, move.clone().normalize(), move.length()) || canStep) {
         this.walk.feet.x = next.x;
         this.walk.feet.z = next.z;

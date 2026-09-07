@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-09-07T18:56:06.746Z",
+  "generatedAt": "2026-09-07T19:11:07.451Z",
   "models": [
     {
       "id": "casa-terrea-arquitetura",
@@ -9,16 +9,16 @@
       "source": "assets/IFC/Casa Térrea/CASA-AQR.ifc",
       "sourceHash": "cbd61eff3ea613072755dad05136f3c2eae64284892bf14609b5a0bfcd333e24",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-arquitetura.frag",
-      "fragmentHash": "b9d8c3b99fe9db63f5359346c56a7f6c4c721eb30b522e80c46d38091d6c4463",
+      "fragmentHash": "2016165ff39fef8ccf962fdeca6fa557dfd582e3108217f18ded607b0a7a33bc",
       "collider": "assets/fragments/casa-terrea/casa-terrea-arquitetura.collider",
-      "colliderHash": "80d3e3c863d263245c23c932266312204be82f770eff6ead204818bd4c6249ec",
-      "colliderBytes": 1247988,
+      "colliderHash": "41d29d213a6f91c812ad9e4941814702ca66490dc30539524a00586e2d599718",
+      "colliderBytes": 2107500,
       "colliderStats": {
         "floorTriangles": 27475,
-        "obstacleTriangles": 4351
+        "obstacleTriangles": 26138
       },
       "sourceBytes": 16096012,
-      "fragmentBytes": 945572
+      "fragmentBytes": 945571
     },
     {
       "id": "casa-terrea-estrutural",
@@ -27,16 +27,16 @@
       "source": "assets/IFC/Casa Térrea/CASA-EST.ifc",
       "sourceHash": "55ac31c25e75ca5a895c8ea1d39b2608c86ece71965111783543af6b9a4402e9",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-estrutural.frag",
-      "fragmentHash": "63b19110c2088cdae938102d9a22264c0a9c3eb9210a659b4657657c2f8c550b",
+      "fragmentHash": "95b614cab8ceb8b7bf218f3023f1718571d855d9321e4d11e0d51f5bd0a55e55",
       "collider": "assets/fragments/casa-terrea/casa-terrea-estrutural.collider",
-      "colliderHash": "f323b754826da88e1f05e910ceeda3976fc2103c59e30b7cc895c0c6db8acc9e",
-      "colliderBytes": 33696,
+      "colliderHash": "76809535d4ae8398885ac59de7f9f7697300393a5e2bf7c81a83efbc9054124a",
+      "colliderBytes": 138120,
       "colliderStats": {
         "floorTriangles": 0,
-        "obstacleTriangles": 732
+        "obstacleTriangles": 3176
       },
       "sourceBytes": 336766,
-      "fragmentBytes": 76350
+      "fragmentBytes": 76349
     },
     {
       "id": "casa-terrea-eletrica",
@@ -45,13 +45,13 @@
       "source": "assets/IFC/Casa Térrea/CASA-ELE.ifc",
       "sourceHash": "75f9d1f10eb0babe6b5456c225d64c07a862a50549647dc2dc9093201418d4f0",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-eletrica.frag",
-      "fragmentHash": "247c8bb5dfd21cab3ef16293388a2e3b5219abab802d66f2a8a7430978f26a78",
+      "fragmentHash": "29e69b981eb861bb0210ee26f4ea593638cc72f50d31b362188286576d77aa66",
       "collider": null,
       "colliderHash": null,
       "colliderBytes": 0,
       "colliderStats": null,
       "sourceBytes": 12623391,
-      "fragmentBytes": 832745
+      "fragmentBytes": 832743
     },
     {
       "id": "casa-terrea-hidraulica",
@@ -60,13 +60,13 @@
       "source": "assets/IFC/Casa Térrea/CASA-HID.ifc",
       "sourceHash": "c70a3bdf0b4a782457e2c0bb628ded40cbdb78279eb36a8d72fc474e5c9f8c94",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-hidraulica.frag",
-      "fragmentHash": "0b12f53078007a60435344ed3fccbb8fc58225ad6b9d6a046b87c67df2e3993f",
+      "fragmentHash": "37acb6eaa6ef5439660039999766c5013658b8d983a3510c33cc76765301b6b5",
       "collider": null,
       "colliderHash": null,
       "colliderBytes": 0,
       "colliderStats": null,
       "sourceBytes": 10488564,
-      "fragmentBytes": 760701
+      "fragmentBytes": 760700
     },
     {
       "id": "casa-terrea-sanitaria",
@@ -75,13 +75,13 @@
       "source": "assets/IFC/Casa Térrea/CASA-ESG.ifc",
       "sourceHash": "b9a8dca9d32f3795feaecf8ffa568f5ae90cd758471cded827c39b1231f8e057",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-sanitaria.frag",
-      "fragmentHash": "2f5a8c7cb8419d39682736fef69bac7299b2e40a8f5ff9659914677312b562ff",
+      "fragmentHash": "47a5c1857d472016393b007392983b8a638e5b27a172724314598a78b7416a94",
       "collider": null,
       "colliderHash": null,
       "colliderBytes": 0,
       "colliderStats": null,
       "sourceBytes": 13557352,
-      "fragmentBytes": 742910
+      "fragmentBytes": 742916
     },
     {
       "id": "galpao-arquitetura",
@@ -90,13 +90,13 @@
       "source": "assets/IFC/Galpão/ARQ.ifc",
       "sourceHash": "a4aec301f9bf2e62d85cbf4aa277b69ddb325134f7561599f573bdcfce076521",
       "fragment": "assets/fragments/galpao/galpao-arquitetura.frag",
-      "fragmentHash": "2d47621636a7be299d9752165339c8791a9340f18d1bf4f807989350a8941e84",
+      "fragmentHash": "641192cf11639b635c88d309b646509c367987cf3aa841af42569c1845bcc8a0",
       "collider": "assets/fragments/galpao/galpao-arquitetura.collider",
-      "colliderHash": "1c5041ae4c0c50fe0913331e45656b32a78f6bd0e122b523c0fc1200ead9b6f3",
-      "colliderBytes": 93576,
+      "colliderHash": "64505b28414ecd72f2c5813b23b44cb9302ba5f60f7e198a7d80de00d70a1941",
+      "colliderBytes": 139776,
       "colliderStats": {
         "floorTriangles": 1038,
-        "obstacleTriangles": 1022
+        "obstacleTriangles": 2060
       },
       "sourceBytes": 6966824,
       "fragmentBytes": 556206
@@ -108,16 +108,16 @@
       "source": "assets/IFC/Galpão/EST.ifc",
       "sourceHash": "10a3721bd4887950e686b973f801c04b4864b69f1fd1dde96cb6321612f811e5",
       "fragment": "assets/fragments/galpao/galpao-estrutural.frag",
-      "fragmentHash": "2b4f3a38764a2c8a15666fe21b21813907fdb20635a0f004797eaeca18cfd82f",
+      "fragmentHash": "4402c16ea5d572b4bfe5d437b8a1f1963b3fe1a445261841d2c09603798cb7a4",
       "collider": "assets/fragments/galpao/galpao-estrutural.collider",
-      "colliderHash": "54d07f43d47af2f907f6d519e6d01ac1cc4233e85d965d50b6fd3cd37a09cc54",
-      "colliderBytes": 248712,
+      "colliderHash": "a9b625fa45f651a3ad088ba96d015344b02e6297c60fd7803f75d84d597928c0",
+      "colliderBytes": 2718888,
       "colliderStats": {
         "floorTriangles": 2440,
-        "obstacleTriangles": 3438
+        "obstacleTriangles": 65758
       },
       "sourceBytes": 3943748,
-      "fragmentBytes": 203580
+      "fragmentBytes": 203578
     }
   ]
 }
