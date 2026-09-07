@@ -2,7 +2,7 @@ import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { ObjectBVH } from 'three-mesh-bvh';
+import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
@@ -138,7 +138,8 @@ export class FragmentsPilot {
           loadedModel.object.visible = true;
           await this.hideSpaces(loadedModel);
         }
-        this.modelRecords.set(model.id, { ...model, visible: true });
+        const colliderData = model.collider ? await this.loadCollider(model.collider) : null;
+        this.modelRecords.set(model.id, { ...model, visible: true, colliderData });
       } catch (error) {
         this.showStatus(`Piloto Fragments: não foi possível carregar ${model.discipline}: ${error.message}`);
       }
@@ -148,9 +149,6 @@ export class FragmentsPilot {
     this.renderModels(workName);
     this.renderTree(workName);
     await this.fit();
-    // Fragments materializes its visible LOD after the first camera update.
-    // Build the collision tree after fitting so it contains the geometry the
-    // user can actually see and click.
     this.fragments.core.update(true);
     await new Promise((resolve) => requestAnimationFrame(resolve));
     this.buildCollisionProxy();
@@ -206,19 +204,81 @@ export class FragmentsPilot {
   }
 
   buildCollisionProxy() {
-    const roots = [...this.fragments.list.entries()]
-      .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
-      .map(([, model]) => model.object);
+    this.disposeColliderMesh(this.floorCollider);
+    this.disposeColliderMesh(this.obstacleCollider);
+    this.floorCollider = null;
+    this.obstacleCollider = null;
+    const records = [...this.modelRecords.values()].filter((record) => record.visible && record.colliderData);
+    this.floorCollider = this.createColliderMesh(records, 'floors');
+    this.obstacleCollider = this.createColliderMesh(records, 'obstacles');
     const bounds = new THREE.Box3();
-    roots.forEach((root) => {
-      root.updateWorldMatrix(true, true);
-      bounds.expandByObject(root);
+    [this.floorCollider, this.obstacleCollider].forEach((mesh) => {
+      if (mesh?.geometry.boundingBox) bounds.union(mesh.geometry.boundingBox);
     });
-    // The proxy is deliberately rebuilt only after a model visibility/load
-    // transition. Rebuilding it during placement or a fall causes frame stalls.
-    this.collisionProxy = roots.length ? new ObjectBVH(roots, { precise: false, includeInstances: true }) : null;
+    this.collisionProxy = !!(this.floorCollider || this.obstacleCollider);
     this.collisionBounds.copy(bounds);
     this.walk.worldMinY = bounds.isEmpty() ? -Infinity : bounds.min.y - 8;
+  }
+
+  async loadCollider(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`colisor de caminhada não encontrado (${response.status})`);
+    const buffer = await response.arrayBuffer();
+    const view = new DataView(buffer);
+    if (view.getUint32(0, true) !== 0x49464343 || view.getUint32(4, true) !== 1) {
+      throw new Error('formato de colisor incompatível');
+    }
+    const floorPositions = view.getUint32(8, true);
+    const floorIndices = view.getUint32(12, true);
+    const obstaclePositions = view.getUint32(16, true);
+    const obstacleIndices = view.getUint32(20, true);
+    let offset = 24;
+    const floors = {
+      positions: new Float32Array(buffer, offset, floorPositions),
+      indices: new Uint32Array(buffer, offset += floorPositions * 4, floorIndices)
+    };
+    offset += floorIndices * 4;
+    const obstacles = {
+      positions: new Float32Array(buffer, offset, obstaclePositions),
+      indices: new Uint32Array(buffer, offset += obstaclePositions * 4, obstacleIndices)
+    };
+    return { floors, obstacles };
+  }
+
+  createColliderMesh(records, role) {
+    const sources = records.map((record) => record.colliderData[role]).filter((source) => source.positions.length && source.indices.length);
+    if (!sources.length) return null;
+    const positionCount = sources.reduce((sum, source) => sum + source.positions.length, 0);
+    const indexCount = sources.reduce((sum, source) => sum + source.indices.length, 0);
+    const positions = new Float32Array(positionCount);
+    const indices = new Uint32Array(indexCount);
+    let positionOffset = 0;
+    let indexOffset = 0;
+    let vertexOffset = 0;
+    for (const source of sources) {
+      positions.set(source.positions, positionOffset);
+      for (let index = 0; index < source.indices.length; index += 1) indices[indexOffset + index] = source.indices[index] + vertexOffset;
+      positionOffset += source.positions.length;
+      indexOffset += source.indices.length;
+      vertexOffset += source.positions.length / 3;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+    geometry.computeBoundingBox();
+    geometry.boundsTree = new MeshBVH(geometry, { maxLeafTris: 24, setBoundingBox: false });
+    const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.raycast = acceleratedRaycast;
+    mesh.updateMatrixWorld(true);
+    return mesh;
+  }
+
+  disposeColliderMesh(mesh) {
+    if (!mesh) return;
+    mesh.geometry?.disposeBoundsTree?.();
+    mesh.geometry?.dispose();
+    mesh.material?.dispose();
   }
 
   async hideSpaces(model) {
@@ -265,7 +325,6 @@ export class FragmentsPilot {
         // placement click must never select an item or populate its properties.
         const hit = await this.pickWalkSurface(event)
           || this.pickCollision(event)
-          || this.pickRenderedGeometry(event)
           || this.pickModelBounds(event);
         if (!hit?.point) return this.showStatus('Não foi possível localizar este ponto no modelo. Clique diretamente em uma geometria visível.');
 
@@ -356,7 +415,7 @@ export class FragmentsPilot {
   pickCollision(event) {
     if (!this.collisionProxy) return null;
     const raycaster = this.createPointerRaycaster(event);
-    return this.collisionProxy.raycast(raycaster, [])[0] || null;
+    return raycaster.intersectObjects([this.floorCollider, this.obstacleCollider].filter(Boolean), false)[0] || null;
   }
 
   createPointerRaycaster(event) {
@@ -369,13 +428,6 @@ export class FragmentsPilot {
     raycaster.firstHitOnly = true;
     raycaster.setFromCamera(mouse, this.world.camera.three);
     return raycaster;
-  }
-
-  pickRenderedGeometry(event) {
-    const roots = [...this.fragments.list.entries()]
-      .filter(([modelId]) => this.modelRecords.get(modelId)?.visible)
-      .map(([, model]) => model.object);
-    return this.createPointerRaycaster(event).intersectObjects(roots, true)[0] || null;
   }
 
   pickModelBounds(event) {
@@ -400,16 +452,22 @@ export class FragmentsPilot {
     ]);
   }
 
-  collisionRay(origin, direction, far) {
-    if (!this.collisionProxy) return null;
+  collisionRay(origin, direction, far, role = 'all') {
+    const targets = role === 'floor'
+      ? [this.floorCollider]
+      : role === 'obstacle'
+        ? [this.obstacleCollider]
+        : [this.floorCollider, this.obstacleCollider];
+    const colliders = targets.filter(Boolean);
+    if (!colliders.length) return null;
     const raycaster = new THREE.Raycaster(origin, direction, 0, far);
     raycaster.firstHitOnly = true;
-    return this.collisionProxy.raycast(raycaster, [])[0] || null;
+    return raycaster.intersectObjects(colliders, false)[0] || null;
   }
 
   findFloorAt(x, z, startY, maxDrop = 6) {
     const origin = this.walkVectors.origin.set(x, startY, z);
-    const hit = this.collisionRay(origin, this.walkVectors.down, maxDrop);
+    const hit = this.collisionRay(origin, this.walkVectors.down, maxDrop, 'floor');
     if (!hit?.face) return null;
     const normal = this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
     return normal.y > 0.55 ? hit : null;
@@ -424,7 +482,7 @@ export class FragmentsPilot {
     return [0.2, this.walk.height * 0.55, this.walk.height - 0.12].some((height) => {
       const origin = this.walkVectors.origin.copy(feet).addScaledVector(direction, 0.01);
       origin.y += height;
-      const hit = this.collisionRay(origin, direction, distance + this.walk.radius);
+      const hit = this.collisionRay(origin, direction, distance + this.walk.radius, 'obstacle');
       if (!hit?.face || hit.distance >= distance + this.walk.radius) return false;
       return Math.abs(this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).y) < 0.55;
     });
