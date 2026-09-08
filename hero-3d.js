@@ -1,4 +1,10 @@
 ﻿(function() {
+  window.addEventListener('error', function(e) {
+    if(loadingEl) {
+      loadingEl.style.opacity = '1';
+      loadingEl.innerHTML = '<div style="color:red; max-width: 80%; word-break: break-all;">' + e.message + '<br>' + e.filename + ':' + e.lineno + '</div>';
+    }
+  });
   const canvas = document.getElementById('hero-3d-canvas');
   if (!canvas || typeof THREE === 'undefined') return;
 
@@ -83,8 +89,41 @@
   matTranslucentConcrete.onBeforeCompile = injectSolidShader;
 
   // Permanent Concrete Edges (Light Gray)
-  const matPermEdges = new THREE.LineBasicMaterial({ color: '#CBD5E1', transparent: true, opacity: 0.6 });
-  matPermEdges.onBeforeCompile = injectSolidShader;
+    const matPermEdges = new THREE.ShaderMaterial({
+    uniforms: {
+      uScanOrigin: uniforms.uScanOrigin,
+      uScanRadius: uniforms.uScanRadius,
+      uScanEnabled: uniforms.uScanEnabled,
+      uColor: { value: new THREE.Color('#CBD5E1') }
+    },
+    vertexShader: `
+      varying vec3 vMyWorldPos;
+      void main() {
+        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+        vMyWorldPos = worldPos.xyz;
+        gl_Position = projectionMatrix * viewMatrix * worldPos;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uScanOrigin;
+      uniform float uScanRadius;
+      uniform float uScanEnabled;
+      uniform vec3 uColor;
+      varying vec3 vMyWorldPos;
+
+      void main() {
+        if (uScanEnabled > 0.5) {
+          float wobble = sin(vMyWorldPos.y * 1.5 + vMyWorldPos.x * 0.8) * 0.5 + sin(vMyWorldPos.z * 2.5 + vMyWorldPos.y * 1.2) * 0.3;
+          if (distance(vMyWorldPos, uScanOrigin) > uScanRadius - 2.0 + wobble) {
+            discard;
+          }
+        }
+        gl_FragColor = vec4(uColor, 0.4);
+      }
+    `,
+    transparent: true,
+    depthWrite: false
+  });
 
   const matHVAC = new THREE.MeshStandardMaterial({ color: '#94A3B8', roughness: 0.35, metalness: 0.85 });
   matHVAC.onBeforeCompile = injectSolidShader;
