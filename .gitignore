@@ -21,3 +21,7 @@ Desktop.ini
 node_modules/
 .pnpm-store/
 dist/
+
+# Configurações e recursos locais do Codex
+.agents/
+.codex/

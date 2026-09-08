@@ -6,3 +6,4 @@ await cp('assets', 'dist/assets', { recursive: true });
 // Copy the WASM paired with the installed JS package under a stable Pages path.
 await cp('node_modules/web-ifc/web-ifc.wasm', 'dist/assets/wasm/web-ifc.wasm');
 await cp('script.js', 'dist/script.js');
+await cp('hero-3d.js', 'dist/hero-3d.js');
