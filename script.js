@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Gabriel Biagini Almeida Reis - Portfólio de Engenharia Civil & Tech
  * Script: Interatividade, Filtros de Projetos, Modal de Pranchas e Automações
  */
@@ -422,26 +422,40 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================================
-  // 7. Scroll Reveal Animation via IntersectionObserver
+  // 7. Scroll Reveal & Hero Animation via GSAP
   // =========================================================================
-  const revealElements = document.querySelectorAll('.reveal');
+  if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
+    gsap.registerPlugin(ScrollTrigger);
+    
+    // Hero Timeline
+    const heroTl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.8 } });
+    heroTl.fromTo("#hero h1", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8 })
+          .fromTo("#hero p", { y: 20, opacity: 0 }, { y: 0, opacity: 1 }, "-=0.8")
+          .fromTo("#hero .btn-primary-dark, #hero .btn-outline-editorial, #hero .btn-whatsapp-direct", 
+                  { y: 15, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.05 }, "-=0.8")
+          .fromTo("#hero-3d-canvas", { scale: 1.05, opacity: 0, filter: "blur(10px)" }, 
+                  { scale: 1, opacity: 1, filter: "blur(0px)", duration: 1.0 }, "-=1");
 
-  if ('IntersectionObserver' in window) {
-    const revealObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-          observer.unobserve(entry.target);
+    // Standard Reveals
+    gsap.utils.toArray(".reveal").forEach(elem => {
+      gsap.fromTo(elem, 
+        { y: 40, opacity: 0 },
+        {
+          y: 0, 
+          opacity: 1, 
+          duration: 1, 
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: elem,
+            start: "top 85%",
+            toggleActions: "play none none none"
+          }
         }
-      });
-    }, {
-      rootMargin: '0px 0px -40px 0px',
-      threshold: 0.08
+      );
     });
-
-    revealElements.forEach(el => revealObserver.observe(el));
   } else {
-    revealElements.forEach(el => el.classList.add('active'));
+    // Fallback if GSAP fails to load
+    document.querySelectorAll(".reveal").forEach(el => el.style.opacity = 1);
   }
 
   // =========================================================================
@@ -453,3 +467,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
+
+  // =========================================================================
+  // 9. Tagline Word Reveal (Landing Page Design)
+  // =========================================================================
+  const tagline = document.querySelector('.tagline-reveal');
+  if (tagline && typeof IntersectionObserver !== 'undefined') {
+    const text = tagline.innerText.trim();
+    tagline.innerHTML = '';
+    
+    // Split into words and wrap in spans
+    const words = text.split(/\s+/);
+    words.forEach(word => {
+      const span = document.createElement('span');
+      span.textContent = word + ' ';
+      span.style.opacity = '0.25';
+      span.style.transition = 'opacity 0.8s cubic-bezier(0.32,0.72,0,1)';
+      span.style.display = 'inline-block';
+      tagline.appendChild(span);
+    });
+    
+    const wordObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          wordObserver.unobserve(entry.target);
+        }
+      });
+    }, {
+      rootMargin: '0px 0px -25% 0px',
+      threshold: 0
+    });
+    
+    // Observe each word with a slight programmatic delay based on position
+    // to ensure they activate in reading order if scrolling fast
+    const spans = tagline.querySelectorAll('span');
+    spans.forEach((span, index) => {
+      span.style.transitionDelay = (index * 30) + "ms";
+      wordObserver.observe(span);
+    });
+  }

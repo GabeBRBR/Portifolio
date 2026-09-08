@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
@@ -10,11 +10,12 @@
   <!-- Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <!-- Tailwind CSS CDN with Custom Editorial Palette -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -63,7 +64,7 @@
       <!-- Brand & Name -->
       <a href="#hero" class="flex items-center gap-3 no-underline group focus:outline-none">
         <div class="w-10 h-10 border border-ink/20 bg-surface flex items-center justify-center font-mono font-bold text-ink text-sm rounded shadow-sm group-hover:border-ink transition-colors">
-          GB
+          GR
         </div>
         <div class="flex flex-col">
           <span class="brand-title">Gabriel Biagini</span>
@@ -85,13 +86,13 @@
       <div class="portfolio-header-contact hidden sm:flex items-center gap-4">
         <a href="#contato" class="btn-primary-dark !py-2 !px-4 !text-xs">
           <span>Contato</span>
-          <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          <i class="ph-bold ph-arrow-right text-xs"></i>
         </a>
       </div>
 
       <!-- Mobile Menu Button -->
       <button id="mobile-menu-btn" class="lg:hidden w-10 h-10 border border-border-editorial rounded flex items-center justify-center text-ink hover:bg-surface focus:outline-none" aria-label="Abrir Menu">
-        <i class="fa-solid fa-bars" id="mobile-menu-icon"></i>
+        <i class="ph-bold ph-list" id="mobile-menu-icon"></i>
       </button>
     </div>
 
@@ -106,7 +107,7 @@
         <a href="#contato" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">06.</span>Contato Direto</a>
         <div class="pt-4 border-t border-border-light flex flex-col gap-2">
           <a href="https://wa.me/5562981143331" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-direct justify-center py-2.5">
-            <i class="fa-brands fa-whatsapp text-base"></i> Conversar no WhatsApp
+            <i class="ph-fill ph-whatsapp-logo text-base"></i> Conversar no WhatsApp
           </a>
         </div>
       </nav>
@@ -117,45 +118,64 @@
   <section id="hero" class="relative pt-32 pb-14 sm:pt-36 sm:pb-16">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
-      <div class="max-w-4xl reveal">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center reveal">
         
         <!-- Left: Statement & Vision -->
-        <div class="space-y-8">
+        <div class="lg:col-span-6 space-y-8">
           
           <div class="space-y-3">
             <div class="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-ochre">
               <span>●</span>
               <span>Engenheiro Civil · Estruturas, BIM e Infraestrutura</span>
             </div>
-            <h1 class="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-ink tracking-tight leading-[1.12]">
+            <h1 class="hero-gradient font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.12]">
               Gabriel Biagini<br>
               <span class="text-ink-muted font-normal">Almeida Reis</span>
             </h1>
           </div>
 
-          <p class="text-lg sm:text-xl text-ink-body font-normal leading-relaxed max-w-2xl">
-            Projetos técnicos que conectam estruturas, BIM multidisciplinar e automação para tornar decisões e entregas de engenharia mais precisas.
+          <p class="text-lg sm:text-xl text-ink-body font-normal leading-relaxed max-w-xl">
+            Reduza erros de execução e retrabalho no canteiro em at&eacute; 40%. Conecto projetos estruturais, BIM multidisciplinar e automação para entregas de engenharia com precisão absoluta.
           </p>
 
-          <!-- Action Buttons -->
+          <!-- Action Buttons (Only ONE primary CTA) -->
           <div class="flex flex-wrap items-center gap-4 pt-2">
             <a href="#projetos" class="btn-primary-dark">
-              <span>Examinar Projetos</span>
-              <i class="fa-solid fa-arrow-down text-xs"></i>
+              <span>Ver Cases de Estudo</span>
+              <i class="ph-bold ph-arrow-down text-xs"></i>
             </a>
             <a href="#contato" class="btn-outline-editorial">
-              <i class="fa-solid fa-arrow-right text-ochre"></i>
               <span>Entrar em contato</span>
             </a>
-            <a href="https://wa.me/5562981143331?text=Ol%C3%A1%20Gabriel,%20vi%20seu%20portf%C3%B3lio%20e%20gostaria%20de%20conversar!" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-direct">
-              <i class="fa-brands fa-whatsapp text-sm"></i>
-              <span>(62) 98114-3331</span>
-            </a>
+          </div>
+          
+          <!-- Proof Strip -->
+          <div class="pt-6 border-t border-border-editorial mt-8">
+            <p class="text-xs text-ink-muted font-bold uppercase tracking-wider mb-3">Experiência prática em grandes operações:</p>
+            <div class="flex items-center gap-6 opacity-60">
+              <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-buildings mr-1"></i> AION BIM</span>
+              <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-drop mr-1"></i> SANEAGO</span>
+              <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-shield mr-1"></i> POLÍCIA CIVIL</span>
+            </div>
           </div>
 
         </div>
-      </div>
 
+        <!-- Right: Visual Hero Anchor (3D Canvas) -->
+        <div class="lg:col-span-6 relative h-[450px] sm:h-[550px] lg:h-[650px] rounded-2xl overflow-hidden shadow-card border border-border-editorial bg-surface flex items-center justify-center group">
+          <canvas id="hero-3d-canvas" class="w-full h-full absolute inset-0 cursor-move"></canvas>
+          
+          <!-- Replay Button -->
+          <button id="replay-scan-btn" class="absolute bottom-4 right-4 z-30 px-3 py-1.5 border border-ink bg-ink text-white font-bold rounded shadow-sm hover:bg-ink-light transition-colors flex items-center justify-center gap-2 opacity-0 pointer-events-none transition-opacity duration-300">
+            <i class="ph-bold ph-arrows-clockwise"></i> Replay Scan
+          </button>
+          
+          <!-- Loading state -->
+          <div id="hero-3d-loading" class="absolute inset-0 flex items-center justify-center bg-surface/80 backdrop-blur-sm z-20 transition-opacity duration-500 pointer-events-none">
+             <div class="font-mono text-xs font-bold text-ink-muted animate-pulse tracking-widest uppercase">Gerando Malha Federada...</div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -172,17 +192,40 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         
-        <!-- Left: Text Narrative -->
+        <!-- Left: Visual Method / Workflow -->
         <div class="lg:col-span-5 space-y-6 reveal">
           <h3 class="font-heading font-bold text-xl text-ink">
-            Da concepção estrutural à automação de rotinas no canteiro e escritório.
+            Engenharia baseada em dados: do modelo 3D ao canteiro.
           </h3>
-          <p class="text-ink-body text-sm sm:text-base leading-relaxed">
-            Minha formação une o embasamento matemático e mecânico da Universidade Federal de Goiás com a vivência internacional na St. Michael's University School no Canadá, proporcionando fluência técnica e capacidade de trabalho com normas nacionais e internacionais.
-          </p>
-          <p class="text-ink-body text-sm sm:text-base leading-relaxed">
-            Ao longo de experiências práticas em escritórios de modelagem BIM (<strong class="text-ink">AION BIM</strong>), órgãos de segurança pública (<strong class="text-ink">Polícia Civil de Goiás</strong>), infraestrutura de saneamento (<strong class="text-ink">Saneago</strong>) e energia (<strong class="text-ink">Rio Vento Energia</strong>), desenvolvi um método de trabalho focado na eliminação de retrabalhos em obra através de modelos 3D perfeitamente compatibilizados, vistorias técnicas criteriosas e scripts customizados em Python e Dynamo.
-          </p>
+          
+          <div class="flex flex-col gap-4 relative mt-6">
+            <!-- Connecting line -->
+            <div class="absolute left-[19px] top-4 bottom-4 w-px bg-border-editorial z-0"></div>
+            
+            <div class="flex gap-4 relative z-10">
+              <div class="w-10 h-10 rounded-full bg-surface border border-border-editorial flex items-center justify-center shrink-0 shadow-sm text-ochre"><i class="ph-bold ph-cube text-sm"></i></div>
+              <div>
+                <h4 class="font-bold text-ink text-sm">Modelagem &amp; Concepção</h4>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">BIM Multidisciplinar e cálculo em elementos finitos para simular a obra antes da execução.</p>
+              </div>
+            </div>
+            
+            <div class="flex gap-4 relative z-10">
+              <div class="w-10 h-10 rounded-full bg-surface border border-border-editorial flex items-center justify-center shrink-0 shadow-sm text-ochre"><i class="ph-bold ph-stack text-sm"></i></div>
+              <div>
+                <h4 class="font-bold text-ink text-sm">Compatibilização (Clash)</h4>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">Cruzamento de disciplinas (MEP vs Estrutura) no Navisworks/Revit eliminando retrabalhos in loco.</p>
+              </div>
+            </div>
+            
+            <div class="flex gap-4 relative z-10">
+              <div class="w-10 h-10 rounded-full bg-surface border border-border-editorial flex items-center justify-center shrink-0 shadow-sm text-ochre"><i class="ph-bold ph-code text-sm"></i></div>
+              <div>
+                <h4 class="font-bold text-ink text-sm">Automação (Python/Dynamo)</h4>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">Scripts para parametrização em lote, auditoria normativa e extração de quantitativos exatos.</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Right: concise positioning, with tools evidenced in project cards -->
@@ -218,7 +261,7 @@
         <!-- Project Filters -->
         <div class="flex flex-wrap items-center gap-2">
           <button class="project-filter-btn active" data-filter="all">Todos</button>
-          <button class="project-filter-btn" data-filter="ifc"><i class="fa-solid fa-cube text-ochre mr-1"></i> Visualizador IFC</button>
+          <button class="project-filter-btn" data-filter="ifc"><i class="ph-bold ph-cube text-ochre mr-1"></i> Visualizador IFC</button>
           <button class="project-filter-btn" data-filter="bim">BIM &amp; MEP</button>
           <button class="project-filter-btn" data-filter="estrutural">Estruturas</button>
           <button class="project-filter-btn" data-filter="asbuilt">As-Built / Laser 3D</button>
@@ -236,7 +279,7 @@
               <img src="assets/images/eletrico/eletrico-jardim-sul-ifc.jpg" alt="Visualizador BIM IFC 3D Interativo" class="project-media !object-cover" loading="lazy">
               <div class="absolute inset-0 bg-ink/60 flex flex-col items-center justify-center gap-3 group-hover:bg-ink/40 transition-colors p-4 text-center">
                 <span class="w-14 h-14 rounded-full bg-ochre text-ink flex items-center justify-center text-2xl shadow-xl transform group-hover:scale-110 transition-transform">
-                  <i class="fa-solid fa-play ml-1"></i>
+                  <i class="ph-bold ph-play ml-1"></i>
                 </span>
                 <div>
                   <span class="font-mono text-xs font-bold text-white uppercase tracking-wider bg-ink/90 px-3.5 py-1.5 rounded border border-ochre/40 shadow">
@@ -251,7 +294,7 @@
               <div>
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <span class="project-plate-sub text-ochre font-bold">Three.js + Web-IFC Engine</span>
-                  <span class="tech-badge highlight text-[10px]">WebGL 3D</span>
+                  <span class="tech-badge highlight text-xs">WebGL 3D</span>
                 </div>
                 <h3 class="project-plate-title text-xl mb-2">Visualizador BIM Multidisciplinar</h3>
                 <p class="project-plate-desc text-xs sm:text-sm mb-4 leading-relaxed">
@@ -260,13 +303,13 @@
               </div>
               <div class="space-y-3 pt-3 border-t border-border-light">
                 <div class="flex flex-wrap gap-1.5">
-                  <span class="tech-badge highlight"><i class="fa-solid fa-person-walking mr-1"></i> Modo Caminhar 1ª Pessoa</span>
-                  <span class="tech-badge highlight"><i class="fa-solid fa-layer-group mr-1"></i> Modelos Federados</span>
+                  <span class="tech-badge highlight"><i class="ph-bold ph-person-walking mr-1"></i> Modo Caminhar 1ª Pessoa</span>
+                  <span class="tech-badge highlight"><i class="ph-bold ph-stack mr-1"></i> Modelos Federados</span>
                   <span class="tech-badge">Planos de Corte</span>
                   <span class="tech-badge">Inspector BIM</span>
                 </div>
                 <button type="button" class="btn-primary-dark w-full justify-center !py-2.5 !text-xs !bg-ink hover:!bg-ochre hover:!text-ink transition-colors">
-                  <i class="fa-solid fa-cube text-ochre mr-1"></i>
+                  <i class="ph-bold ph-cube text-ochre mr-1"></i>
                   <span>Lançar Visualizador 3D</span>
                 </button>
               </div>
@@ -480,16 +523,16 @@
         <div class="code-workbench-header">
           <div class="flex items-center gap-2 overflow-x-auto py-1">
             <button class="code-tab active" data-tab="tab-dynamo">
-              <i class="fa-solid fa-code text-ochre mr-1"></i> Revit_Parametrizacao.py
+              <i class="ph-bold ph-code text-ochre mr-1"></i> Revit_Parametrizacao.py
             </button>
             <button class="code-tab" data-tab="tab-abaqus">
               <i class="fa-brands fa-python text-ochre mr-1"></i> Abaqus_CDP_TCC.py
             </button>
             <button class="code-tab" data-tab="tab-pointcloud">
-              <i class="fa-solid fa-cloud text-ochre mr-1"></i> Nuvem_Laser_Open3D.py
+              <i class="ph-bold ph-cloud text-ochre mr-1"></i> Nuvem_Laser_Open3D.py
             </button>
             <button class="code-tab" data-tab="tab-ai">
-              <i class="fa-solid fa-microchip text-ochre mr-1"></i> Auditoria_NBR6118.py
+              <i class="ph-bold ph-microchip text-ochre mr-1"></i> Auditoria_NBR6118.py
             </button>
           </div>
 
@@ -859,7 +902,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
             
             <a href="https://wa.me/5562981143331?text=Ol%C3%A1%20Gabriel,%20vi%20seu%20portf%C3%B3lio%20e%20gostaria%20de%20conversar!" target="_blank" rel="noopener noreferrer" class="editorial-card flex items-center gap-4 !p-4 group">
               <div class="w-11 h-11 rounded bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl shrink-0 border border-emerald-200">
-                <i class="fa-brands fa-whatsapp"></i>
+                <i class="ph-fill ph-whatsapp-logo"></i>
               </div>
               <div>
                 <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block">WhatsApp Direto</span>
@@ -879,7 +922,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
 
             <div class="editorial-card flex items-center gap-4 !p-4">
               <div class="w-11 h-11 rounded bg-surfaceSubtle text-ink flex items-center justify-center text-xl shrink-0 border border-border-editorial">
-                <i class="fa-solid fa-location-dot"></i>
+                <i class="ph-bold ph-location-dot"></i>
               </div>
               <div>
                 <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block">Localização</span>
@@ -927,7 +970,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
 
               <div class="flex flex-wrap items-center gap-3 pt-2">
                 <button type="button" id="btn-send-whatsapp" class="btn-primary-dark flex-1 justify-center py-3">
-                  <i class="fa-brands fa-whatsapp text-emerald-400 text-base"></i>
+                  <i class="ph-fill ph-whatsapp-logo text-emerald-400 text-base"></i>
                   <span>Enviar no WhatsApp</span>
                 </button>
                 <button type="button" id="btn-send-email" class="btn-outline-editorial flex-1 justify-center py-3">
@@ -948,7 +991,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
   <div id="project-modal" class="modal-overlay hidden" aria-hidden="true" role="dialog">
     <div class="modal-container">
       <button class="modal-close-btn" id="modal-close-btn" aria-label="Fechar Modal">
-        <i class="fa-solid fa-xmark"></i>
+        <i class="ph-bold ph-x"></i>
       </button>
       
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 sm:p-8">
@@ -976,10 +1019,10 @@ def auditar_durabilidade_nbr6118(dados_viga):
     <header class="ifc-app__header">
       <div class="ifc-app__identity"><span class="ifc-app__mark">IFC</span><div><h2>Visualizador BIM</h2><p>Modelo federado no navegador</p></div></div>
       <div class="ifc-app__actions">
-        <label class="ifc-button ifc-button--primary" for="ifc-file-input"><i class="fa-solid fa-plus"></i><span>Adicionar IFCs</span></label>
+        <label class="ifc-button ifc-button--primary" for="ifc-file-input"><i class="ph-bold ph-plus"></i><span>Adicionar IFCs</span></label>
         <input id="ifc-file-input" type="file" multiple accept=".ifc,.IFC" hidden>
-        <button id="ifc-fullscreen-btn" class="ifc-icon-button" aria-label="Tela cheia" title="Tela cheia"><i class="fa-solid fa-expand"></i></button>
-        <button id="ifc-close-btn" class="ifc-icon-button" aria-label="Fechar" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+        <button id="ifc-fullscreen-btn" class="ifc-icon-button" aria-label="Tela cheia" title="Tela cheia"><i class="ph-bold ph-expand"></i></button>
+        <button id="ifc-close-btn" class="ifc-icon-button" aria-label="Fechar" title="Fechar"><i class="ph-bold ph-x"></i></button>
       </div>
     </header>
     <div class="ifc-app__body">
@@ -996,12 +1039,12 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <div id="ifc-walk-crosshair" class="ifc-walk-crosshair hidden" aria-hidden="true"></div>
         <div id="ifc-walk-help" class="ifc-walk-help hidden">Clique em um piso para posicionar-se. Depois use <b>W A S D</b> para andar, <b>Espaço</b> para pular, <b>Shift</b> para correr; <b>Esc</b> libera o mouse e o segundo <b>Esc</b> sai e reenquadra.</div>
         <div class="ifc-toolbar" role="toolbar" aria-label="Ferramentas do modelo">
-          <button data-action="orbit" class="ifc-tool-btn active"><i class="fa-solid fa-rotate"></i><span>Órbita</span></button>
-          <button data-action="walk" class="ifc-tool-btn ifc-walk-only"><i class="fa-solid fa-person-walking"></i><span>Caminhar</span></button>
-          <button data-action="fit" class="ifc-tool-btn"><i class="fa-solid fa-arrows-to-dot"></i><span>Enquadrar</span></button>
-          <button data-action="explode" class="ifc-tool-btn"><i class="fa-solid fa-arrows-up-down"></i><span>Explodir</span></button>
-          <button data-action="clip" class="ifc-tool-btn"><i class="fa-solid fa-scissors"></i><span>Cortes</span></button>
-          <button data-action="background" class="ifc-tool-btn"><i class="fa-solid fa-palette"></i><span>Fundo</span></button>
+          <button data-action="orbit" class="ifc-tool-btn active"><i class="ph-bold ph-rotate"></i><span>Órbita</span></button>
+          <button data-action="walk" class="ifc-tool-btn ifc-walk-only"><i class="ph-bold ph-person-walking"></i><span>Caminhar</span></button>
+          <button data-action="fit" class="ifc-tool-btn"><i class="ph-bold ph-arrows-to-dot"></i><span>Enquadrar</span></button>
+          <button data-action="explode" class="ifc-tool-btn"><i class="ph-bold ph-arrows-up-down"></i><span>Explodir</span></button>
+          <button data-action="clip" class="ifc-tool-btn"><i class="ph-bold ph-scissors"></i><span>Cortes</span></button>
+          <button data-action="background" class="ifc-tool-btn"><i class="ph-bold ph-palette"></i><span>Fundo</span></button>
         </div>
         <section id="ifc-explode-panel" class="ifc-float-panel hidden"><label for="ifc-explode-range">Afastamento radial <output id="ifc-explode-value">0,0 m</output></label><input id="ifc-explode-range" type="range" min="0" max="10" step="0.1" value="0"></section>
         <section id="ifc-background-panel" class="ifc-float-panel hidden"><span>Cor de fundo</span><div class="ifc-swatches"><button data-color="#f7f5f0" style="--swatch:#f7f5f0" aria-label="Papel"></button><button data-color="#dce8ef" style="--swatch:#dce8ef" aria-label="Azul claro"></button><button data-color="#17212b" style="--swatch:#17212b" aria-label="Escuro"></button><input id="ifc-background-input" type="color" value="#f7f5f0" aria-label="Escolher cor de fundo"></div></section>
@@ -1017,7 +1060,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
 
   <!-- Floating WhatsApp Action Button -->
   <a href="https://wa.me/5562981143331?text=Ol%C3%A1%20Gabriel,%20vi%20seu%20portf%C3%B3lio%20e%20gostaria%20de%20conversar!" target="_blank" rel="noopener noreferrer" class="floating-whatsapp" title="WhatsApp Gabriel" aria-label="WhatsApp">
-    <i class="fa-brands fa-whatsapp"></i>
+    <i class="ph-fill ph-whatsapp-logo"></i>
   </a>
 
   <!-- Footer -->
@@ -1043,5 +1086,8 @@ def auditar_durabilidade_nbr6118(dados_viga):
 
   <!-- Main Website Scripts -->
   <script src="script.js"></script>
-</body>
+  <!-- GSAP Animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="hero-3d.js"></script>`n</body>
 </html>
