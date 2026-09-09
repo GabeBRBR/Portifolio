@@ -12,7 +12,6 @@ const MAX_LOCAL_MODELS = 3;
 const MAX_TOTAL_MODELS = 8;
 const MAX_LOCAL_FILE_BYTES = 200 * 1024 ** 2;
 const MAX_LOCAL_COLLISION_TRIANGLES = 150000;
-const LOCAL_FRAGMENT_CACHE_VERSION = 2;
 // `IfcImporter` appends `web-ifc.wasm` to this directory. copy-assets.mjs
 // deliberately publishes that filename under a stable Vite-base-aware path.
 const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
@@ -298,16 +297,7 @@ export class FragmentsPilot {
 
   async tryGetCachedFragment(hash) {
     try {
-      const entry = await this.fragmentCache.get(hash);
-      if (!entry) return null;
-      // A cached Fragment is only reusable with the collision/data pipeline
-      // that produced it. Older, unversioned entries could stall while their
-      // worker metadata was restored; drop them and rebuild from the IFC.
-      if (entry.version !== LOCAL_FRAGMENT_CACHE_VERSION || !(entry.buffer instanceof ArrayBuffer) || !entry.buffer.byteLength) {
-        void this.fragmentCache.delete(hash).catch(() => {});
-        return null;
-      }
-      return entry;
+      return await this.fragmentCache.get(hash);
     } catch (error) {
       console.warn('Cache local indisponível:', error);
       return null;
@@ -317,7 +307,7 @@ export class FragmentsPilot {
   async cacheFragment(hash, file, model) {
     try {
       const buffer = await model.getBuffer(false);
-      await this.fragmentCache.put({ hash, version: LOCAL_FRAGMENT_CACHE_VERSION, buffer, name: file.name, sourceBytes: file.size, fragmentBytes: buffer.byteLength, createdAt: Date.now() });
+      await this.fragmentCache.put({ hash, buffer, name: file.name, sourceBytes: file.size, fragmentBytes: buffer.byteLength, createdAt: Date.now() });
     } catch (error) {
       console.warn('Não foi possível salvar o Fragment no cache local:', error);
     }
