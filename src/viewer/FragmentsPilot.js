@@ -193,18 +193,25 @@ export class FragmentsPilot {
     if (localCount + files.length > MAX_LOCAL_MODELS) return this.showStatus(`Você pode manter até ${MAX_LOCAL_MODELS} IFCs locais nesta sessão.`);
     if (this.modelRecords.size + files.length > MAX_TOTAL_MODELS) return this.showStatus(`Limite de ${MAX_TOTAL_MODELS} modelos atingido. Remova um IFC local antes de adicionar outro.`);
 
+    const failures = [];
+    let imported = 0;
     for (let index = 0; index < files.length; index += 1) {
       try {
         await this.addLocalIfc(files[index], index, files.length);
+        imported += 1;
       } catch (error) {
         console.error('Falha ao importar IFC local:', error);
-        this.showStatus(`Não foi possível abrir ${files[index].name}: ${error.message || 'arquivo IFC inválido'}. Os outros modelos foram preservados.`);
+        failures.push(`${files[index].name}: ${error.message || 'arquivo IFC inválido'}`);
       }
     }
     this.setLoading(false);
     this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
     this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
-    await this.fit();
+    if (imported) await this.fit();
+    if (failures.length) {
+      const prefix = imported ? `${imported} IFC(s) aberto(s). ` : 'Nenhum IFC foi aberto. ';
+      this.showStatus(`${prefix}${failures.join(' · ')}.`);
+    }
   }
 
   async addLocalIfc(file, index, total) {
@@ -224,7 +231,10 @@ export class FragmentsPilot {
     } else {
       const loader = await this.ensureIfcLoader();
       this.setLoading(true, `Convertendo ${file.name} no navegador…`, Math.round(((index + 0.1) / total) * 100));
-      model = await loader.load(new Uint8Array(sourceBuffer), false, modelId, {
+      // Keep the same global-coordinate policy used by the hosted Fragments.
+      // Passing false here made some Revit exports remain at their survey
+      // coordinates, outside the practical camera/culling range.
+      model = await loader.load(new Uint8Array(sourceBuffer), true, modelId, {
         processData: {
           progressCallback: (progress) => {
             const current = Math.max(0, Math.min(1, Number(progress) || 0));
@@ -237,7 +247,7 @@ export class FragmentsPilot {
       if (hash) void this.cacheFragment(hash, file, model);
     }
 
-    if (!model) throw new Error('o conversor não retornou um modelo visualizável');
+    if (!model || !this.fragments.list.has(modelId)) throw new Error('o conversor não registrou um modelo visualizável');
     model.useCamera(this.world.camera.three);
     this.world.scene.three.add(model.object);
     model.object.visible = true;
