@@ -35,6 +35,17 @@ export class FragmentCache {
     });
   }
 
+  async delete(key) {
+    const database = await this.open();
+    const transaction = database.transaction(STORE_NAME, 'readwrite');
+    await requestResult(transaction.objectStore(STORE_NAME).delete(key));
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error('Falha ao remover o cache local.'));
+      transaction.onabort = () => reject(transaction.error || new Error('Remoção do cache local cancelada.'));
+    });
+  }
+
   async open() {
     if (this.databasePromise) return this.databasePromise;
     if (!('indexedDB' in window)) throw new Error('IndexedDB indisponível neste navegador.');
