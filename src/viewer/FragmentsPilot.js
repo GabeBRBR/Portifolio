@@ -322,7 +322,9 @@ export class FragmentsPilot {
     const sources = [];
     let triangleCount = 0;
     model.object.traverse((object) => {
-      const geometry = object.visible && object.geometry;
+      // Fragments may hide individual batched meshes as part of its LOD
+      // policy. Their geometry remains valid for the static collision proxy.
+      const geometry = object.geometry;
       const position = geometry?.getAttribute?.('position');
       if (!position?.count) return;
       const count = geometry.index ? geometry.index.count : position.count;
@@ -330,7 +332,7 @@ export class FragmentsPilot {
       sources.push({ object, geometry, position, count });
       triangleCount += Math.floor(count / 3);
     });
-    if (!triangleCount) return null;
+    if (!triangleCount) return this.createLocalBoundsFloor(model);
 
     const stride = Math.max(1, Math.ceil(triangleCount / MAX_LOCAL_COLLISION_TRIANGLES));
     const maxVertices = Math.min(triangleCount, MAX_LOCAL_COLLISION_TRIANGLES) * 3;
@@ -373,10 +375,25 @@ export class FragmentsPilot {
       for (let index = 0; index < indices.length; index += 1) indices[index] = index;
       return { positions: compact, indices };
     };
+    const fallback = floorValues ? null : this.createLocalBoundsFloor(model);
     return {
-      floors: makeSource(floors, floorValues),
+      floors: floorValues ? makeSource(floors, floorValues) : fallback.floors,
       obstacles: makeSource(obstacles, obstacleValues)
     };
+  }
+
+  createLocalBoundsFloor(model) {
+    const bounds = new THREE.Box3().setFromObject(model.object);
+    if (bounds.isEmpty()) {
+      return { floors: { positions: new Float32Array(), indices: new Uint32Array() } };
+    }
+    const { min, max } = bounds;
+    const y = min.y - 0.01;
+    const positions = new Float32Array([
+      min.x, y, min.z, max.x, y, min.z, max.x, y, max.z,
+      min.x, y, min.z, max.x, y, max.z, min.x, y, max.z
+    ]);
+    return { floors: { positions, indices: new Uint32Array([0, 1, 2, 3, 4, 5]) } };
   }
 
   renderModels(workName) {
