@@ -21,7 +21,7 @@ const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
  * until selection, properties and walking are migrated in later phases.
  */
 export class FragmentsPilot {
-  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, setLoading, showStatus, onWalkDebug }) {
+  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, background, setLoading, showStatus, onWalkDebug }) {
     this.container = container;
     this.list = list;
     this.empty = empty;
@@ -30,6 +30,7 @@ export class FragmentsPilot {
     this.tree = tree;
     this.walkHelp = walkHelp;
     this.walkCrosshair = walkCrosshair;
+    this.background = background;
     this.setLoading = setLoading;
     this.showStatus = showStatus;
     this.onWalkDebug = onWalkDebug;
@@ -75,7 +76,7 @@ export class FragmentsPilot {
     this.world = worlds.create();
     this.world.scene = new OBC.SimpleScene(this.components);
     this.world.scene.setup();
-    this.world.scene.three.background = null;
+    this.world.scene.three.background = new THREE.Color(this.background);
     this.world.renderer = new OBC.SimpleRenderer(this.components, this.container, {
       antialias: true,
       powerPreference: 'default',
@@ -270,7 +271,7 @@ export class FragmentsPilot {
       size: file.size,
       fragmentBytes: cached?.buffer?.byteLength || 0,
       visible: true,
-      colliderData: this.createLocalCollisionData(model),
+      colliderData: await this.createLocalCollisionData(model),
       cacheHash: hash
     });
     this.buildCollisionProxy();
@@ -320,63 +321,91 @@ export class FragmentsPilot {
     return /EST|STR/.test(upper) ? 'Estrutural' : /ELE|HID|MEP|HVAC/.test(upper) ? 'MEP' : 'IFC local';
   }
 
-  createLocalCollisionData(model) {
+  async createLocalCollisionData(model) {
     // Hosted models have a compact collider generated during the build. For a
     // user-selected IFC we create an equivalent, decimated proxy once at load
     // time. It is never rebuilt by the walking loop.
+    const walkThroughIds = await this.getWalkThroughItemIds(model);
+    // The Fragments API can hide selected IFC items without removing their
+    // data. Temporarily hide pass-through categories while sampling the static
+    // collider, then restore their visual state. This keeps a real IFCDOOR
+    // visible while preventing it from becoming an invisible solid wall.
+    if (walkThroughIds.length) {
+      await model.setVisible(walkThroughIds, false);
+      await this.fragments.core.update(true);
+    }
     model.object.updateWorldMatrix(true, true);
-    let triangleCount = 0;
-    this.forEachLocalCollisionSource(model, ({ count }) => {
-      triangleCount += Math.floor(count / 3);
-    });
-    if (!triangleCount) return this.createLocalBoundsFloor(model);
+    try {
+      let triangleCount = 0;
+      this.forEachLocalCollisionSource(model, ({ count }) => {
+        triangleCount += Math.floor(count / 3);
+      });
+      if (!triangleCount) return this.createLocalBoundsFloor(model);
 
-    const stride = Math.max(1, Math.ceil(triangleCount / MAX_LOCAL_COLLISION_TRIANGLES));
-    const maxVertices = Math.min(triangleCount, MAX_LOCAL_COLLISION_TRIANGLES) * 3;
-    const floors = new Float32Array(maxVertices * 3);
-    const obstacles = new Float32Array(maxVertices * 3);
-    let floorValues = 0;
-    let obstacleValues = 0;
-    const a = new THREE.Vector3();
-    const b = new THREE.Vector3();
-    const c = new THREE.Vector3();
-    const normal = new THREE.Vector3();
+      const stride = Math.max(1, Math.ceil(triangleCount / MAX_LOCAL_COLLISION_TRIANGLES));
+      const maxVertices = Math.min(triangleCount, MAX_LOCAL_COLLISION_TRIANGLES) * 3;
+      const floors = new Float32Array(maxVertices * 3);
+      const obstacles = new Float32Array(maxVertices * 3);
+      let floorValues = 0;
+      let obstacleValues = 0;
+      const a = new THREE.Vector3();
+      const b = new THREE.Vector3();
+      const c = new THREE.Vector3();
+      const normal = new THREE.Vector3();
 
-    this.forEachLocalCollisionSource(model, ({ position, index, start, count, matrixWorld }) => {
-      for (let offset = 0; offset + 2 < count; offset += 3 * stride) {
-        const vertexOffset = start + offset;
-        const ia = index ? index.getX(vertexOffset) : vertexOffset;
-        const ib = index ? index.getX(vertexOffset + 1) : vertexOffset + 1;
-        const ic = index ? index.getX(vertexOffset + 2) : vertexOffset + 2;
-        a.fromBufferAttribute(position, ia).applyMatrix4(matrixWorld);
-        b.fromBufferAttribute(position, ib).applyMatrix4(matrixWorld);
-        c.fromBufferAttribute(position, ic).applyMatrix4(matrixWorld);
-        normal.subVectors(b, a).cross(this.walkVectors.next.subVectors(c, a));
-        if (normal.lengthSq() < 1e-10) continue;
-        normal.normalize();
-        // Horizontal faces support the player even when the authoring tool
-        // exported their winding downward. Reversing the two last vertices
-        // gives floor raycasts a consistent upward-facing normal.
-        const isFloor = Math.abs(normal.y) > 0.45;
-        const target = isFloor ? floors : obstacles;
-        let write = isFloor ? floorValues : obstacleValues;
-        if (write + 9 > target.length) continue;
-        if (isFloor && normal.y < 0) target.set([a.x, a.y, a.z, c.x, c.y, c.z, b.x, b.y, b.z], write);
-        else target.set([a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z], write);
-        if (isFloor) floorValues += 9; else obstacleValues += 9;
+      this.forEachLocalCollisionSource(model, ({ position, index, start, count, matrixWorld }) => {
+        for (let offset = 0; offset + 2 < count; offset += 3 * stride) {
+          const vertexOffset = start + offset;
+          const ia = index ? index.getX(vertexOffset) : vertexOffset;
+          const ib = index ? index.getX(vertexOffset + 1) : vertexOffset + 1;
+          const ic = index ? index.getX(vertexOffset + 2) : vertexOffset + 2;
+          a.fromBufferAttribute(position, ia).applyMatrix4(matrixWorld);
+          b.fromBufferAttribute(position, ib).applyMatrix4(matrixWorld);
+          c.fromBufferAttribute(position, ic).applyMatrix4(matrixWorld);
+          normal.subVectors(b, a).cross(this.walkVectors.next.subVectors(c, a));
+          if (normal.lengthSq() < 1e-10) continue;
+          normal.normalize();
+          // Horizontal faces support the player even when the authoring tool
+          // exported their winding downward. Reversing the two last vertices
+          // gives floor raycasts a consistent upward-facing normal.
+          const isFloor = Math.abs(normal.y) > 0.45;
+          const target = isFloor ? floors : obstacles;
+          let write = isFloor ? floorValues : obstacleValues;
+          if (write + 9 > target.length) continue;
+          if (isFloor && normal.y < 0) target.set([a.x, a.y, a.z, c.x, c.y, c.z, b.x, b.y, b.z], write);
+          else target.set([a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z], write);
+          if (isFloor) floorValues += 9; else obstacleValues += 9;
+        }
+      });
+      const makeSource = (positions, length) => {
+        const compact = positions.slice(0, length);
+        const indices = new Uint32Array(compact.length / 3);
+        for (let index = 0; index < indices.length; index += 1) indices[index] = index;
+        return { positions: compact, indices };
+      };
+      const fallback = floorValues ? null : this.createLocalBoundsFloor(model);
+      return {
+        floors: floorValues ? makeSource(floors, floorValues) : fallback.floors,
+        obstacles: makeSource(obstacles, obstacleValues)
+      };
+    } finally {
+      if (walkThroughIds.length) {
+        await model.setVisible(walkThroughIds, true);
+        await this.hideSpaces(model);
+        await this.fragments.core.update(true);
       }
-    });
-    const makeSource = (positions, length) => {
-      const compact = positions.slice(0, length);
-      const indices = new Uint32Array(compact.length / 3);
-      for (let index = 0; index < indices.length; index += 1) indices[index] = index;
-      return { positions: compact, indices };
-    };
-    const fallback = floorValues ? null : this.createLocalBoundsFloor(model);
-    return {
-      floors: floorValues ? makeSource(floors, floorValues) : fallback.floors,
-      obstacles: makeSource(obstacles, obstacleValues)
-    };
+    }
+  }
+
+  async getWalkThroughItemIds(model) {
+    // Navigation collision deliberately differs from visibility. Doors and
+    // openings are routes; windows, furniture and services should not trap a
+    // user either. Structural and architectural construction categories such
+    // as IFCWALL, IFCSLAB, IFCBEAM, IFCCOLUMN and IFCBUILDINGELEMENTPROXY stay
+    // solid by default, including authoring-tool "Modelo genérico" elements.
+    const passThrough = /^(?:IFCDOOR|IFCWINDOW|IFCOPENINGELEMENT|IFCSPACE|IFCFURNISHINGELEMENT|IFCFURNISHINGELEMENTTYPE|IFCFLOW.*|IFCDISTRIBUTION.*|IFCELECTRIC.*|IFCPIPE.*|IFCDUCT.*|IFCCABLE.*|IFCSANITARYTERMINAL|IFCFIRESUPPRESSIONTERMINAL|IFCLIGHTFIXTURE|IFCOUTLET|IFCSWITCHINGDEVICE|IFCAUDIOVISUALAPPLIANCE|IFCCOMMUNICATIONSAPPLIANCE|IFCMEDICALDEVICE|IFCTRANSPORTELEMENT|IFCVIRTUALELEMENT)$/i;
+    const byCategory = await model.getItemsOfCategories([passThrough]);
+    return [...new Set(Object.values(byCategory).flat())];
   }
 
   forEachLocalCollisionSource(model, callback) {
@@ -402,6 +431,7 @@ export class FragmentsPilot {
           // Removed batch slots are retained internally but must not become
           // invisible collision walls or floors.
           if (object._instanceInfo?.[instanceId]?.active === false) continue;
+          if (typeof object.getVisibleAt === 'function' && !object.getVisibleAt(instanceId)) continue;
           const geometryId = object.getGeometryIdAt(instanceId);
           object.getGeometryRangeAt(geometryId, range);
           const count = index ? range.indexCount : range.vertexCount;
@@ -1138,6 +1168,13 @@ export class FragmentsPilot {
   async clearSelection() {
     if (this.highlighter) await this.highlighter.clear('select');
     this.renderEmptyProperties();
+  }
+
+  setBackground(color) {
+    this.background = color;
+    if (!this.world?.scene?.three) return;
+    this.world.scene.three.background = new THREE.Color(color);
+    this.world.renderer.needsUpdate = true;
   }
 
   filterProperties() {
