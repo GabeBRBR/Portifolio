@@ -255,6 +255,13 @@ export class FragmentsPilot {
     this.world.scene.three.add(model.object);
     model.object.visible = true;
     await this.hideSpaces(model);
+    // A Fragment is made from BatchedMesh instances. Let the manager apply its
+    // final transforms before sampling it for the walking proxy; otherwise a
+    // locally imported floor can be rendered in one place and collided with in
+    // another (usually around the old orbit origin).
+    await this.fragments.core.update(true);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    model.object.updateWorldMatrix(true, true);
     this.modelRecords.set(modelId, {
       id: modelId,
       discipline: file.name,
@@ -267,7 +274,6 @@ export class FragmentsPilot {
       cacheHash: hash
     });
     this.buildCollisionProxy();
-    this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
     this.showStatus(`${file.name} foi convertido localmente${cached ? ' a partir do cache' : ''}. Nenhum arquivo foi enviado ao servidor.`);
   }
@@ -319,17 +325,8 @@ export class FragmentsPilot {
     // user-selected IFC we create an equivalent, decimated proxy once at load
     // time. It is never rebuilt by the walking loop.
     model.object.updateWorldMatrix(true, true);
-    const sources = [];
     let triangleCount = 0;
-    model.object.traverse((object) => {
-      // Fragments may hide individual batched meshes as part of its LOD
-      // policy. Their geometry remains valid for the static collision proxy.
-      const geometry = object.geometry;
-      const position = geometry?.getAttribute?.('position');
-      if (!position?.count) return;
-      const count = geometry.index ? geometry.index.count : position.count;
-      if (count < 3) return;
-      sources.push({ object, geometry, position, count });
+    this.forEachLocalCollisionSource(model, ({ count }) => {
       triangleCount += Math.floor(count / 3);
     });
     if (!triangleCount) return this.createLocalBoundsFloor(model);
@@ -345,15 +342,15 @@ export class FragmentsPilot {
     const c = new THREE.Vector3();
     const normal = new THREE.Vector3();
 
-    for (const { object, geometry, position, count } of sources) {
-      const index = geometry.index;
+    this.forEachLocalCollisionSource(model, ({ position, index, start, count, matrixWorld }) => {
       for (let offset = 0; offset + 2 < count; offset += 3 * stride) {
-        const ia = index ? index.getX(offset) : offset;
-        const ib = index ? index.getX(offset + 1) : offset + 1;
-        const ic = index ? index.getX(offset + 2) : offset + 2;
-        a.fromBufferAttribute(position, ia).applyMatrix4(object.matrixWorld);
-        b.fromBufferAttribute(position, ib).applyMatrix4(object.matrixWorld);
-        c.fromBufferAttribute(position, ic).applyMatrix4(object.matrixWorld);
+        const vertexOffset = start + offset;
+        const ia = index ? index.getX(vertexOffset) : vertexOffset;
+        const ib = index ? index.getX(vertexOffset + 1) : vertexOffset + 1;
+        const ic = index ? index.getX(vertexOffset + 2) : vertexOffset + 2;
+        a.fromBufferAttribute(position, ia).applyMatrix4(matrixWorld);
+        b.fromBufferAttribute(position, ib).applyMatrix4(matrixWorld);
+        c.fromBufferAttribute(position, ic).applyMatrix4(matrixWorld);
         normal.subVectors(b, a).cross(this.walkVectors.next.subVectors(c, a));
         if (normal.lengthSq() < 1e-10) continue;
         normal.normalize();
@@ -368,7 +365,7 @@ export class FragmentsPilot {
         else target.set([a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z], write);
         if (isFloor) floorValues += 9; else obstacleValues += 9;
       }
-    }
+    });
     const makeSource = (positions, length) => {
       const compact = positions.slice(0, length);
       const indices = new Uint32Array(compact.length / 3);
@@ -380,6 +377,55 @@ export class FragmentsPilot {
       floors: floorValues ? makeSource(floors, floorValues) : fallback.floors,
       obstacles: makeSource(obstacles, obstacleValues)
     };
+  }
+
+  forEachLocalCollisionSource(model, callback) {
+    // Fragments render most IFC elements through THREE.BatchedMesh. Its shared
+    // vertex buffer stores every shape at local coordinates while every element
+    // has its own instance matrix. Sampling only object.matrixWorld made local
+    // IFCSLAB floors generate a collider at the wrong place. Include those
+    // per-instance matrices (and InstancedMesh for compatibility) here.
+    model.object.traverse((object) => {
+      const geometry = object.geometry;
+      const position = geometry?.getAttribute?.('position');
+      if (!position?.count) return;
+      const index = geometry.index;
+      const fullCount = index ? index.count : position.count;
+      if (fullCount < 3) return;
+
+      if (object.isBatchedMesh && typeof object.getGeometryRangeAt === 'function') {
+        const instanceCount = Array.isArray(object._instanceInfo) ? object._instanceInfo.length : object.instanceCount;
+        const instanceMatrix = new THREE.Matrix4();
+        const worldMatrix = new THREE.Matrix4();
+        const range = {};
+        for (let instanceId = 0; instanceId < instanceCount; instanceId += 1) {
+          // Removed batch slots are retained internally but must not become
+          // invisible collision walls or floors.
+          if (object._instanceInfo?.[instanceId]?.active === false) continue;
+          const geometryId = object.getGeometryIdAt(instanceId);
+          object.getGeometryRangeAt(geometryId, range);
+          const count = index ? range.indexCount : range.vertexCount;
+          if (count < 3) continue;
+          object.getMatrixAt(instanceId, instanceMatrix);
+          worldMatrix.copy(object.matrixWorld).multiply(instanceMatrix);
+          callback({ position, index, start: index ? range.indexStart : range.vertexStart, count, matrixWorld: worldMatrix });
+        }
+        return;
+      }
+
+      if (object.isInstancedMesh && typeof object.getMatrixAt === 'function') {
+        const instanceMatrix = new THREE.Matrix4();
+        const worldMatrix = new THREE.Matrix4();
+        for (let instanceId = 0; instanceId < object.count; instanceId += 1) {
+          object.getMatrixAt(instanceId, instanceMatrix);
+          worldMatrix.copy(object.matrixWorld).multiply(instanceMatrix);
+          callback({ position, index, start: 0, count: fullCount, matrixWorld: worldMatrix });
+        }
+        return;
+      }
+
+      callback({ position, index, start: 0, count: fullCount, matrixWorld: object.matrixWorld });
+    });
   }
 
   createLocalBoundsFloor(model) {
