@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Gabriel Biagini Almeida Reis - Portfólio de Engenharia Civil & Tech
  * Script: Interatividade, Filtros de Projetos, Modal de Pranchas e Automações
  */
@@ -424,35 +424,53 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 7. Scroll Reveal & Hero Animation via GSAP
   // =========================================================================
+  // =========================================================================
+  // 7.1 Lenis Smooth Scroll Setup
+  // =========================================================================
+  if (typeof Lenis !== 'undefined') {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // expo.out
+      smooth: true
+    });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time)=>{ lenis.raf(time * 1000); });
+    gsap.ticker.lagSmoothing(0);
+  }
+
   if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
     gsap.registerPlugin(ScrollTrigger);
     
+    // Awwwards: Check for prefers-reduced-motion
+    let mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+    
     // Hero Timeline
-    const heroTl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.8 } });
-    heroTl.fromTo("#hero h1", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8 })
-          .fromTo("#hero p", { y: 20, opacity: 0 }, { y: 0, opacity: 1 }, "-=0.8")
-          .fromTo("#hero .btn-primary-dark, #hero .btn-outline-editorial, #hero .btn-whatsapp-direct", 
-                  { y: 15, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.05 }, "-=0.8")
-          .fromTo("#hero-3d-canvas", { scale: 1.05, opacity: 0, filter: "blur(10px)" }, 
-                  { scale: 1, opacity: 1, filter: "blur(0px)", duration: 1.0 }, "-=1");
+      const heroTl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.2 } });
+      heroTl.fromTo("#hero h1", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 1 })
+            .fromTo("#hero p", { y: 20, opacity: 0 }, { y: 0, opacity: 1 }, "-=0.8")
+            .fromTo("#hero .btn-primary-dark, #hero .btn-outline-editorial, #hero .btn-whatsapp-direct", 
+                    { y: 15, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1 }, "-=0.9");
 
-    // Standard Reveals
-    gsap.utils.toArray(".reveal").forEach(elem => {
-      gsap.fromTo(elem, 
-        { y: 40, opacity: 0 },
-        {
-          y: 0, 
-          opacity: 1, 
-          duration: 1, 
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: elem,
-            start: "top 85%",
-            toggleActions: "play none none none"
+    // Standard Reveals (Premium clip-path masking)
+      gsap.utils.toArray(".reveal").forEach(elem => {
+        gsap.fromTo(elem, 
+          { clipPath: "inset(0 0 100% 0)", opacity: 0, y: 15 },
+          {
+            clipPath: "inset(0 0 0% 0)", 
+            opacity: 1, 
+            y: 0,
+            duration: 1.2, 
+            ease: "expo.out",
+            scrollTrigger: {
+              trigger: elem,
+              start: "top 85%",
+              toggleActions: "play none none none"
+            }
           }
-        }
-      );
-    });
+        );
+      });
+    }); // End of matchMedia block
   } else {
     // Fallback if GSAP fails to load
     document.querySelectorAll(".reveal").forEach(el => el.style.opacity = 1);
@@ -477,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tagline.innerHTML = '';
     
     // Split into words and wrap in spans
+    tagline.setAttribute('aria-label', text);
     const words = text.split(/\s+/);
     words.forEach(word => {
       const span = document.createElement('span');
@@ -484,6 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
       span.style.opacity = '0.25';
       span.style.transition = 'opacity 0.8s cubic-bezier(0.32,0.72,0,1)';
       span.style.display = 'inline-block';
+      span.setAttribute('aria-hidden', 'true');
       tagline.appendChild(span);
     });
     
