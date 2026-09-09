@@ -328,13 +328,13 @@ export class FragmentsPilot {
     // Hosted models have a compact collider generated during the build. For a
     // user-selected IFC we create an equivalent, decimated proxy once at load
     // time. It is never rebuilt by the walking loop.
-    const walkThroughIds = await this.getWalkThroughItemIds(model);
-    // The Fragments API can hide selected IFC items without removing their
-    // data. Temporarily hide pass-through categories while sampling the static
-    // collider, then restore their visual state. This keeps a real IFCDOOR
-    // visible while preventing it from becoming an invisible solid wall.
-    if (walkThroughIds.length) {
-      await model.setVisible(walkThroughIds, false);
+    const excludedIds = await this.getLocalCollisionExcludedIds(model);
+    // A local IFC may export furniture, finishes and even rugs as generic
+    // building elements. Collision must be opt-in: temporarily retain only
+    // navigable construction categories while sampling the static proxy.
+    // Otherwise a thin object's vertical faces become an invisible wall.
+    if (excludedIds.length) {
+      await model.setVisible(excludedIds, false);
       await this.fragments.core.update(true);
     }
     model.object.updateWorldMatrix(true, true);
@@ -392,22 +392,23 @@ export class FragmentsPilot {
         obstacles: makeSource(obstacles, obstacleValues)
       };
     } finally {
-      if (walkThroughIds.length) {
-        await model.setVisible(walkThroughIds, true);
+      if (excludedIds.length) {
+        await model.setVisible(excludedIds, true);
         await this.hideSpaces(model);
         await this.fragments.core.update(true);
       }
     }
   }
 
-  async getWalkThroughItemIds(model) {
-    // Navigation collision deliberately differs from visibility. Doors and
-    // openings are routes; windows, furniture and services should not trap a
-    // user either. Structural and architectural construction categories such
-    // as IFCWALL, IFCSLAB, IFCBEAM, IFCCOLUMN and IFCBUILDINGELEMENTPROXY stay
-    // solid by default, including authoring-tool "Modelo genérico" elements.
-    const passThrough = /^(?:IFCDOOR|IFCWINDOW|IFCOPENINGELEMENT|IFCSPACE|IFCFURNISHINGELEMENT|IFCFURNISHINGELEMENTTYPE|IFCFLOW.*|IFCDISTRIBUTION.*|IFCELECTRIC.*|IFCPIPE.*|IFCDUCT.*|IFCCABLE.*|IFCSANITARYTERMINAL|IFCFIRESUPPRESSIONTERMINAL|IFCLIGHTFIXTURE|IFCOUTLET|IFCSWITCHINGDEVICE|IFCAUDIOVISUALAPPLIANCE|IFCCOMMUNICATIONSAPPLIANCE|IFCMEDICALDEVICE|IFCTRANSPORTELEMENT|IFCVIRTUALELEMENT)$/i;
-    const byCategory = await model.getItemsOfCategories([passThrough]);
+  async getLocalCollisionExcludedIds(model) {
+    // Local imports have no precomputed collider with per-item metadata. Use
+    // a conservative allow-list of construction classes instead of attempting
+    // to infer physicality from generic Revit families. In particular, do not
+    // include IFCBUILDINGELEMENTPROXY, IFCBEAM or IFCMEMBER: the CREA IFC uses
+    // those classes for a rug, appliances, TV, roof tiles and ceiling framing.
+    const solid = '(?:IFCWALL(?:STANDARDCASE)?|IFCCOLUMN|IFCCURTAINWALL|IFCSLAB|IFCSTAIR(?:FLIGHT)?|IFCRAMP|IFCFOOTING|IFCPAVEMENT)';
+    const nonSolidCategory = new RegExp(`^IFC(?!${solid}$).+`, 'i');
+    const byCategory = await model.getItemsOfCategories([nonSolidCategory]);
     return [...new Set(Object.values(byCategory).flat())];
   }
 
