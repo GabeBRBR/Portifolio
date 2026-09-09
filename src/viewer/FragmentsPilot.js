@@ -21,7 +21,7 @@ const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
  * until selection, properties and walking are migrated in later phases.
  */
 export class FragmentsPilot {
-  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, background, setLoading, showStatus, onWalkDebug }) {
+  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, setLoading, showStatus, onWalkDebug }) {
     this.container = container;
     this.list = list;
     this.empty = empty;
@@ -30,7 +30,6 @@ export class FragmentsPilot {
     this.tree = tree;
     this.walkHelp = walkHelp;
     this.walkCrosshair = walkCrosshair;
-    this.background = background;
     this.setLoading = setLoading;
     this.showStatus = showStatus;
     this.onWalkDebug = onWalkDebug;
@@ -76,7 +75,7 @@ export class FragmentsPilot {
     this.world = worlds.create();
     this.world.scene = new OBC.SimpleScene(this.components);
     this.world.scene.setup();
-    this.world.scene.three.background = new THREE.Color(this.background);
+    this.world.scene.three.background = null;
     this.world.renderer = new OBC.SimpleRenderer(this.components, this.container, {
       antialias: true,
       powerPreference: 'default',
@@ -461,7 +460,7 @@ export class FragmentsPilot {
   createLocalBoundsFloor(model) {
     const bounds = new THREE.Box3().setFromObject(model.object);
     if (bounds.isEmpty()) {
-      return { floors: { positions: new Float32Array(), indices: new Uint32Array() } };
+      return { floors: this.emptyCollisionSource(), obstacles: this.emptyCollisionSource() };
     }
     const { min, max } = bounds;
     const y = min.y - 0.01;
@@ -469,7 +468,11 @@ export class FragmentsPilot {
       min.x, y, min.z, max.x, y, min.z, max.x, y, max.z,
       min.x, y, min.z, max.x, y, max.z, min.x, y, max.z
     ]);
-    return { floors: { positions, indices: new Uint32Array([0, 1, 2, 3, 4, 5]) } };
+    return { floors: { positions, indices: new Uint32Array([0, 1, 2, 3, 4, 5]) }, obstacles: this.emptyCollisionSource() };
+  }
+
+  emptyCollisionSource() {
+    return { positions: new Float32Array(), indices: new Uint32Array() };
   }
 
   renderModels(workName) {
@@ -582,7 +585,12 @@ export class FragmentsPilot {
   }
 
   createColliderMesh(records, role) {
-    const sources = records.map((record) => record.colliderData[role]).filter((source) => source.positions.length && source.indices.length);
+    // Some IFCs contain only slabs/floors or only vertical elements. A missing
+    // optional source must mean "no collider of this role", never abort the
+    // import with `positions is undefined`.
+    const sources = records
+      .map((record) => record.colliderData?.[role])
+      .filter((source) => source?.positions?.length && source?.indices?.length);
     if (!sources.length) return null;
     const positionCount = sources.reduce((sum, source) => sum + source.positions.length, 0);
     const indexCount = sources.reduce((sum, source) => sum + source.indices.length, 0);
@@ -1168,13 +1176,6 @@ export class FragmentsPilot {
   async clearSelection() {
     if (this.highlighter) await this.highlighter.clear('select');
     this.renderEmptyProperties();
-  }
-
-  setBackground(color) {
-    this.background = color;
-    if (!this.world?.scene?.three) return;
-    this.world.scene.three.background = new THREE.Color(color);
-    this.world.renderer.needsUpdate = true;
   }
 
   filterProperties() {
