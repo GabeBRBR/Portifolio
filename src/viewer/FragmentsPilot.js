@@ -432,7 +432,13 @@ export class FragmentsPilot {
     // the removal localized to the actual doorway.
     return boxes
       .filter((bounds) => bounds?.isBox3 && !bounds.isEmpty())
-      .map((bounds) => bounds.clone().expand(new THREE.Vector3(0.16, 0.12, 0.16)));
+      // Bounds returned through the Fragments worker preserve `isBox3`, but
+      // are plain structured-clone objects in some browser/worker versions.
+      // Rebuild a native Box3 instead of calling its prototype's `clone`.
+      .map((bounds) => new THREE.Box3(
+        new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
+        new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.max.z)
+      ).expand(new THREE.Vector3(0.16, 0.12, 0.16)));
   }
 
   isInsideLocalDoorPortal(a, b, c, portals) {
