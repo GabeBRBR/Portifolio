@@ -11,6 +11,7 @@ const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 const MAX_LOCAL_MODELS = 3;
 const MAX_TOTAL_MODELS = 8;
 const MAX_LOCAL_FILE_BYTES = 200 * 1024 ** 2;
+const MAX_LOCAL_COLLISION_TRIANGLES = 150000;
 // `IfcImporter` appends `web-ifc.wasm` to this directory. copy-assets.mjs
 // deliberately publishes that filename under a stable Vite-base-aware path.
 const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
@@ -256,15 +257,16 @@ export class FragmentsPilot {
     await this.hideSpaces(model);
     this.modelRecords.set(modelId, {
       id: modelId,
-      discipline: this.guessDiscipline(file.name),
+      discipline: file.name,
       name: file.name,
       source: 'local',
       size: file.size,
       fragmentBytes: cached?.buffer?.byteLength || 0,
       visible: true,
-      colliderData: null,
+      colliderData: this.createLocalCollisionData(model),
       cacheHash: hash
     });
+    this.buildCollisionProxy();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
     this.showStatus(`${file.name} foi convertido localmente${cached ? ' a partir do cache' : ''}. Nenhum arquivo foi enviado ao servidor.`);
@@ -310,6 +312,71 @@ export class FragmentsPilot {
   guessDiscipline(name) {
     const upper = name.toUpperCase();
     return /EST|STR/.test(upper) ? 'Estrutural' : /ELE|HID|MEP|HVAC/.test(upper) ? 'MEP' : 'IFC local';
+  }
+
+  createLocalCollisionData(model) {
+    // Hosted models have a compact collider generated during the build. For a
+    // user-selected IFC we create an equivalent, decimated proxy once at load
+    // time. It is never rebuilt by the walking loop.
+    model.object.updateWorldMatrix(true, true);
+    const sources = [];
+    let triangleCount = 0;
+    model.object.traverse((object) => {
+      const geometry = object.visible && object.geometry;
+      const position = geometry?.getAttribute?.('position');
+      if (!position?.count) return;
+      const count = geometry.index ? geometry.index.count : position.count;
+      if (count < 3) return;
+      sources.push({ object, geometry, position, count });
+      triangleCount += Math.floor(count / 3);
+    });
+    if (!triangleCount) return null;
+
+    const stride = Math.max(1, Math.ceil(triangleCount / MAX_LOCAL_COLLISION_TRIANGLES));
+    const maxVertices = Math.min(triangleCount, MAX_LOCAL_COLLISION_TRIANGLES) * 3;
+    const floors = new Float32Array(maxVertices * 3);
+    const obstacles = new Float32Array(maxVertices * 3);
+    let floorValues = 0;
+    let obstacleValues = 0;
+    const a = new THREE.Vector3();
+    const b = new THREE.Vector3();
+    const c = new THREE.Vector3();
+    const normal = new THREE.Vector3();
+
+    for (const { object, geometry, position, count } of sources) {
+      const index = geometry.index;
+      for (let offset = 0; offset + 2 < count; offset += 3 * stride) {
+        const ia = index ? index.getX(offset) : offset;
+        const ib = index ? index.getX(offset + 1) : offset + 1;
+        const ic = index ? index.getX(offset + 2) : offset + 2;
+        a.fromBufferAttribute(position, ia).applyMatrix4(object.matrixWorld);
+        b.fromBufferAttribute(position, ib).applyMatrix4(object.matrixWorld);
+        c.fromBufferAttribute(position, ic).applyMatrix4(object.matrixWorld);
+        normal.subVectors(b, a).cross(this.walkVectors.next.subVectors(c, a));
+        if (normal.lengthSq() < 1e-10) continue;
+        normal.normalize();
+        // Horizontal faces support the player even when the authoring tool
+        // exported their winding downward. Reversing the two last vertices
+        // gives floor raycasts a consistent upward-facing normal.
+        const isFloor = Math.abs(normal.y) > 0.45;
+        const target = isFloor ? floors : obstacles;
+        let write = isFloor ? floorValues : obstacleValues;
+        if (write + 9 > target.length) continue;
+        if (isFloor && normal.y < 0) target.set([a.x, a.y, a.z, c.x, c.y, c.z, b.x, b.y, b.z], write);
+        else target.set([a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z], write);
+        if (isFloor) floorValues += 9; else obstacleValues += 9;
+      }
+    }
+    const makeSource = (positions, length) => {
+      const compact = positions.slice(0, length);
+      const indices = new Uint32Array(compact.length / 3);
+      for (let index = 0; index < indices.length; index += 1) indices[index] = index;
+      return { positions: compact, indices };
+    };
+    return {
+      floors: makeSource(floors, floorValues),
+      obstacles: makeSource(obstacles, obstacleValues)
+    };
   }
 
   renderModels(workName) {
