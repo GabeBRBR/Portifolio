@@ -219,7 +219,10 @@ class IFCViewer {
   }
 
   async addFiles(fileList) {
-    if (this.engine === 'fragments') return this.showStatus('O piloto Fragments desta fase usa somente a Casa Térrea hospedada. Upload IFC permanece disponível no motor padrão.');
+    if (this.engine === 'fragments') {
+      if (!this.fragmentsPilot) await this.openFragmentsPilot(this.demoKey);
+      return this.fragmentsPilot.addFiles(fileList);
+    }
     const files = [...(fileList || [])].filter((file) => /\.ifc$/i.test(file.name));
     if (!files.length) return this.showStatus('Selecione arquivos no formato IFC.');
     if (this.models.size + files.length > MAX_MODELS) return this.showStatus(`O visualizador aceita no máximo ${MAX_MODELS} modelos de cada vez. Remova um modelo antes de adicionar outro.`);

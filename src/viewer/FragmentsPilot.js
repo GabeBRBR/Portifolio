@@ -5,8 +5,13 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 import { LodMode } from '@thatopen/fragments';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
+import wasmUrl from 'web-ifc/web-ifc.wasm?url';
+import { FragmentCache } from './storage/FragmentCache.js';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
+const MAX_LOCAL_MODELS = 3;
+const MAX_TOTAL_MODELS = 8;
+const MAX_LOCAL_FILE_BYTES = 200 * 1024 ** 2;
 
 /**
  * Isolated Fragments proof of concept. The legacy viewer stays active by default
@@ -27,6 +32,8 @@ export class FragmentsPilot {
     this.onWalkDebug = onWalkDebug;
     this.loadedWork = null;
     this.modelRecords = new Map();
+    this.fragmentCache = new FragmentCache();
+    this.ifcLoader = null;
     this.collisionBounds = new THREE.Box3();
     // The player is intentionally independent from the camera. CameraControls
     // owns the orbit camera, while PointerLockControls owns only its rotation.
@@ -179,15 +186,134 @@ export class FragmentsPilot {
     this.showStatus(`${workName} otimizado ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.`);
   }
 
+  async addFiles(fileList) {
+    const files = [...(fileList || [])].filter((file) => /\.ifc$/i.test(file.name));
+    if (!files.length) return this.showStatus('Selecione um ou mais arquivos no formato IFC.');
+    const localCount = [...this.modelRecords.values()].filter((record) => record.source === 'local').length;
+    if (localCount + files.length > MAX_LOCAL_MODELS) return this.showStatus(`Você pode manter até ${MAX_LOCAL_MODELS} IFCs locais nesta sessão.`);
+    if (this.modelRecords.size + files.length > MAX_TOTAL_MODELS) return this.showStatus(`Limite de ${MAX_TOTAL_MODELS} modelos atingido. Remova um IFC local antes de adicionar outro.`);
+
+    for (let index = 0; index < files.length; index += 1) {
+      try {
+        await this.addLocalIfc(files[index], index, files.length);
+      } catch (error) {
+        console.error('Falha ao importar IFC local:', error);
+        this.showStatus(`Não foi possível abrir ${files[index].name}: ${error.message || 'arquivo IFC inválido'}. Os outros modelos foram preservados.`);
+      }
+    }
+    this.setLoading(false);
+    this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    await this.fit();
+  }
+
+  async addLocalIfc(file, index, total) {
+    if (file.size > MAX_LOCAL_FILE_BYTES) throw new Error('o arquivo excede 200 MB; escolha um IFC menor para evitar falta de memória');
+    this.setLoading(true, `Lendo ${file.name}…`, Math.round((index / total) * 100));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const sourceBuffer = await file.arrayBuffer();
+    const hash = await this.hashBuffer(sourceBuffer);
+    const modelId = `local-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${index}`}`;
+    const cached = hash ? await this.tryGetCachedFragment(hash) : null;
+    let model;
+
+    if (cached?.buffer) {
+      this.setLoading(true, `Abrindo ${file.name} do cache local…`, Math.round(((index + 0.65) / total) * 100));
+      await this.fragments.core.load(cached.buffer, { modelId });
+      model = this.fragments.list.get(modelId);
+    } else {
+      const loader = await this.ensureIfcLoader();
+      this.setLoading(true, `Convertendo ${file.name} no navegador…`, Math.round(((index + 0.1) / total) * 100));
+      model = await loader.load(new Uint8Array(sourceBuffer), false, modelId, {
+        processData: {
+          progressCallback: (progress) => {
+            const current = Math.max(0, Math.min(1, Number(progress) || 0));
+            this.setLoading(true, `Convertendo ${file.name} no navegador…`, Math.round(((index + 0.1 + current * 0.8) / total) * 100));
+          }
+        }
+      });
+      // Caching is intentionally best-effort: quota/private-mode failures must
+      // not turn a successfully converted local IFC into a failed import.
+      if (hash) void this.cacheFragment(hash, file, model);
+    }
+
+    if (!model) throw new Error('o conversor não retornou um modelo visualizável');
+    model.useCamera(this.world.camera.three);
+    this.world.scene.three.add(model.object);
+    model.object.visible = true;
+    await this.hideSpaces(model);
+    this.modelRecords.set(modelId, {
+      id: modelId,
+      discipline: this.guessDiscipline(file.name),
+      name: file.name,
+      source: 'local',
+      size: file.size,
+      fragmentBytes: cached?.buffer?.byteLength || 0,
+      visible: true,
+      colliderData: null,
+      cacheHash: hash
+    });
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
+    this.showStatus(`${file.name} foi convertido localmente${cached ? ' a partir do cache' : ''}. Nenhum arquivo foi enviado ao servidor.`);
+  }
+
+  async ensureIfcLoader() {
+    if (this.ifcLoader) return this.ifcLoader;
+    // That Open IfcLoader API: https://docs.thatopen.com/api/@thatopen/components/classes/IfcLoader
+    // `autoSetWasm: false` keeps the converter offline and points it at the
+    // versioned WASM asset emitted by this Vite build instead of a CDN.
+    this.ifcLoader = this.components.get(OBC.IfcLoader);
+    await this.ifcLoader.setup({
+      autoSetWasm: false,
+      wasm: { path: wasmUrl, absolute: true }
+    });
+    return this.ifcLoader;
+  }
+
+  async tryGetCachedFragment(hash) {
+    try {
+      return await this.fragmentCache.get(hash);
+    } catch (error) {
+      console.warn('Cache local indisponível:', error);
+      return null;
+    }
+  }
+
+  async cacheFragment(hash, file, model) {
+    try {
+      const buffer = await model.getBuffer(false);
+      await this.fragmentCache.put({ hash, buffer, name: file.name, sourceBytes: file.size, fragmentBytes: buffer.byteLength, createdAt: Date.now() });
+    } catch (error) {
+      console.warn('Não foi possível salvar o Fragment no cache local:', error);
+    }
+  }
+
+  async hashBuffer(buffer) {
+    if (!globalThis.crypto?.subtle) return null;
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', buffer);
+    return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
+  }
+
+  guessDiscipline(name) {
+    const upper = name.toUpperCase();
+    return /EST|STR/.test(upper) ? 'Estrutural' : /ELE|HID|MEP|HVAC/.test(upper) ? 'MEP' : 'IFC local';
+  }
+
   renderModels(workName) {
     this.list.innerHTML = '';
     this.empty.classList.toggle('hidden', this.modelRecords.size > 0);
     this.modelRecords.forEach((record) => {
       const row = document.createElement('div');
       row.className = 'ifc-model-row';
-      row.innerHTML = `<input type="checkbox" ${record.visible ? 'checked' : ''} aria-label="Mostrar ${record.discipline}"><div><strong>${record.discipline}</strong><small>Fragments · ${(record.fragmentBytes / 1024).toFixed(0)} KB</small><button class="ifc-model-isolate" type="button">Isolar disciplina</button></div>`;
+      const label = record.source === 'local'
+        ? `${this.escape(record.name)} · IFC local · ${(record.size / 1024 ** 2).toFixed(1)} MB`
+        : `Fragments · ${(record.fragmentBytes / 1024).toFixed(0)} KB`;
+      const remove = record.source === 'local' ? '<button class="ifc-model-remove" type="button" aria-label="Remover IFC local">🗑</button>' : '';
+      row.innerHTML = `<input type="checkbox" ${record.visible ? 'checked' : ''} aria-label="Mostrar ${this.escape(record.discipline)}"><div><strong>${this.escape(record.discipline)}</strong><small>${label}</small><button class="ifc-model-isolate" type="button">Isolar disciplina</button></div>${remove}`;
       row.querySelector('input').addEventListener('change', (event) => this.setModelVisibility(record.id, event.target.checked));
       row.querySelector('.ifc-model-isolate').addEventListener('click', () => this.isolateModel(record.id));
+      row.querySelector('.ifc-model-remove')?.addEventListener('click', () => this.removeModel(record.id));
       this.list.append(row);
     });
     this.showStatus(`${workName}: ${this.modelRecords.size} disciplina(s) em Fragments. Clique em um elemento para consultar dados BIM.`);
@@ -225,6 +351,20 @@ export class FragmentsPilot {
     this.buildCollisionProxy();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
+  }
+
+  async removeModel(modelId) {
+    const record = this.modelRecords.get(modelId);
+    if (!record || record.source !== 'local') return;
+    if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    await this.fragments.core.disposeModel(modelId);
+    this.modelRecords.delete(modelId);
+    this.buildCollisionProxy();
+    await this.clearSelection();
+    this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    await this.fit();
+    this.showStatus(`${record.name} foi removido desta sessão. O IFC original nunca foi salvo; o cache otimizado local permanece para reabertura rápida.`);
   }
 
   buildCollisionProxy() {
