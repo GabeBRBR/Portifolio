@@ -44,7 +44,11 @@ export class FragmentsPilot {
     // old orbit position in the first frame after a teleport.
     this.walk = {
       mode: 'orbit', keys: new Set(), jumpRequested: false, velocityY: 0,
-      grounded: false, height: 1.7, bodyHeight: 1.9, radius: 0.36, stepHeight: 0.2,
+      // 44 cm is deliberately narrower than the previous 72 cm collision
+      // diameter. IFC doors commonly have a clear opening of 60–70 cm after
+      // their frames are exported; the old capsule therefore blocked a real
+      // doorway even after IFCDOOR itself was excluded from collision.
+      grounded: false, height: 1.7, bodyHeight: 1.9, radius: 0.22, stepHeight: 0.2,
       gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1,
       lastFrame: performance.now(), accumulator: 0, fixedStep: 1 / 60,
       mouseReleased: false, ignoreEscapeUntil: 0, airborneSince: 0,
