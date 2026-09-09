@@ -328,6 +328,7 @@ export class FragmentsPilot {
     // Hosted models have a compact collider generated during the build. For a
     // user-selected IFC we create an equivalent, decimated proxy once at load
     // time. It is never rebuilt by the walking loop.
+    const doorPortals = await this.getLocalDoorPortals(model);
     const excludedIds = await this.getLocalCollisionExcludedIds(model);
     // A local IFC may export furniture, finishes and even rugs as generic
     // building elements. Collision must be opt-in: temporarily retain only
@@ -365,6 +366,10 @@ export class FragmentsPilot {
           a.fromBufferAttribute(position, ia).applyMatrix4(matrixWorld);
           b.fromBufferAttribute(position, ib).applyMatrix4(matrixWorld);
           c.fromBufferAttribute(position, ic).applyMatrix4(matrixWorld);
+          // Some IFC exporters leave a wall face across an IFCDOOR opening.
+          // Carve only the door's expanded bounding portal from the navigation
+          // mesh so that a visual door is always a route for the player.
+          if (this.isInsideLocalDoorPortal(a, b, c, doorPortals)) continue;
           normal.subVectors(b, a).cross(this.walkVectors.next.subVectors(c, a));
           if (normal.lengthSq() < 1e-10) continue;
           normal.normalize();
@@ -410,6 +415,56 @@ export class FragmentsPilot {
     const nonSolidCategory = new RegExp(`^IFC(?!${solid}$).+`, 'i');
     const byCategory = await model.getItemsOfCategories([nonSolidCategory]);
     return [...new Set(Object.values(byCategory).flat())];
+  }
+
+  async getLocalDoorPortals(model) {
+    const byCategory = await model.getItemsOfCategories([/^IFCDOOR$/i]);
+    const doorIds = [...new Set(Object.values(byCategory).flat())];
+    if (!doorIds.length) return [];
+
+    // A Fragments model stores elements in shared BatchedMesh buffers. Isolate
+    // its door instances briefly to obtain their actual world-space bounds.
+    const itemIds = await model.getItemsWithGeometry();
+    await model.setVisible(itemIds, false);
+    await model.setVisible(doorIds, true);
+    await this.fragments.core.update(true);
+    model.object.updateWorldMatrix(true, true);
+
+    try {
+      const portals = [];
+      this.forEachLocalCollisionSource(model, ({ position, index, start, count, matrixWorld }) => {
+        const bounds = new THREE.Box3();
+        const point = new THREE.Vector3();
+        for (let offset = 0; offset < count; offset += 1) {
+          const vertexOffset = start + offset;
+          const vertexIndex = index ? index.getX(vertexOffset) : vertexOffset;
+          point.fromBufferAttribute(position, vertexIndex).applyMatrix4(matrixWorld);
+          bounds.expandByPoint(point);
+        }
+        if (!bounds.isEmpty()) portals.push(bounds);
+      });
+      // Door leaves are often flush with a wall. Expand the horizontal opening
+      // enough to cut the leaf, frame and any residual wall face, while keeping
+      // the removal localized to the actual doorway.
+      return portals.map((bounds) => bounds.expand(new THREE.Vector3(0.16, 0.12, 0.16)));
+    } finally {
+      await model.setVisible(itemIds, true);
+      await this.hideSpaces(model);
+      await this.fragments.core.update(true);
+    }
+  }
+
+  isInsideLocalDoorPortal(a, b, c, portals) {
+    if (!portals.length) return false;
+    const minX = Math.min(a.x, b.x, c.x);
+    const minY = Math.min(a.y, b.y, c.y);
+    const minZ = Math.min(a.z, b.z, c.z);
+    const maxX = Math.max(a.x, b.x, c.x);
+    const maxY = Math.max(a.y, b.y, c.y);
+    const maxZ = Math.max(a.z, b.z, c.z);
+    return portals.some((portal) => maxX >= portal.min.x && minX <= portal.max.x
+      && maxY >= portal.min.y && minY <= portal.max.y
+      && maxZ >= portal.min.z && minZ <= portal.max.z);
   }
 
   forEachLocalCollisionSource(model, callback) {
