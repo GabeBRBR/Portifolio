@@ -5,13 +5,15 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 import { LodMode } from '@thatopen/fragments';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
-import wasmUrl from 'web-ifc/web-ifc.wasm?url';
 import { FragmentCache } from './storage/FragmentCache.js';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 const MAX_LOCAL_MODELS = 3;
 const MAX_TOTAL_MODELS = 8;
 const MAX_LOCAL_FILE_BYTES = 200 * 1024 ** 2;
+// `IfcImporter` appends `web-ifc.wasm` to this directory. copy-assets.mjs
+// deliberately publishes that filename under a stable Vite-base-aware path.
+const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
 
 /**
  * Isolated Fragments proof of concept. The legacy viewer stays active by default
@@ -272,11 +274,11 @@ export class FragmentsPilot {
     if (this.ifcLoader) return this.ifcLoader;
     // That Open IfcLoader API: https://docs.thatopen.com/api/@thatopen/components/classes/IfcLoader
     // `autoSetWasm: false` keeps the converter offline and points it at the
-    // versioned WASM asset emitted by this Vite build instead of a CDN.
+    // stable local directory expected by IfcImporter instead of a CDN.
     this.ifcLoader = this.components.get(OBC.IfcLoader);
     await this.ifcLoader.setup({
       autoSetWasm: false,
-      wasm: { path: wasmUrl, absolute: true }
+      wasm: { path: WEB_IFC_WASM_DIRECTORY, absolute: true }
     });
     return this.ifcLoader;
   }
