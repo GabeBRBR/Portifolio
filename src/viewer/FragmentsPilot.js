@@ -266,6 +266,7 @@ export class FragmentsPilot {
     await this.fragments.core.update(true);
     await new Promise((resolve) => requestAnimationFrame(resolve));
     model.object.updateWorldMatrix(true, true);
+    this.setLoading(true, `Preparando colisões de ${file.name}…`, Math.round(((index + 0.92) / total) * 100));
     this.modelRecords.set(modelId, {
       id: modelId,
       discipline: file.name,
@@ -422,36 +423,16 @@ export class FragmentsPilot {
     const doorIds = [...new Set(Object.values(byCategory).flat())];
     if (!doorIds.length) return [];
 
-    // A Fragments model stores elements in shared BatchedMesh buffers. Isolate
-    // its door instances briefly to obtain their actual world-space bounds.
-    const itemIds = await model.getItemsWithGeometry();
-    await model.setVisible(itemIds, false);
-    await model.setVisible(doorIds, true);
-    await this.fragments.core.update(true);
-    model.object.updateWorldMatrix(true, true);
-
-    try {
-      const portals = [];
-      this.forEachLocalCollisionSource(model, ({ position, index, start, count, matrixWorld }) => {
-        const bounds = new THREE.Box3();
-        const point = new THREE.Vector3();
-        for (let offset = 0; offset < count; offset += 1) {
-          const vertexOffset = start + offset;
-          const vertexIndex = index ? index.getX(vertexOffset) : vertexOffset;
-          point.fromBufferAttribute(position, vertexIndex).applyMatrix4(matrixWorld);
-          bounds.expandByPoint(point);
-        }
-        if (!bounds.isEmpty()) portals.push(bounds);
-      });
-      // Door leaves are often flush with a wall. Expand the horizontal opening
-      // enough to cut the leaf, frame and any residual wall face, while keeping
-      // the removal localized to the actual doorway.
-      return portals.map((bounds) => bounds.expand(new THREE.Vector3(0.16, 0.12, 0.16)));
-    } finally {
-      await model.setVisible(itemIds, true);
-      await this.hideSpaces(model);
-      await this.fragments.core.update(true);
-    }
+    // Ask the Fragments data worker for the bounds of each door. The previous
+    // approach hid and re-shown every batched instance to derive these bounds;
+    // on dense Revit exports that visibility transaction could never settle.
+    const boxes = await model.getBoxes(doorIds);
+    // Door leaves are often flush with a wall. Expand the horizontal opening
+    // enough to cut the leaf, frame and any residual wall face, while keeping
+    // the removal localized to the actual doorway.
+    return boxes
+      .filter((bounds) => bounds?.isBox3 && !bounds.isEmpty())
+      .map((bounds) => bounds.clone().expand(new THREE.Vector3(0.16, 0.12, 0.16)));
   }
 
   isInsideLocalDoorPortal(a, b, c, portals) {
