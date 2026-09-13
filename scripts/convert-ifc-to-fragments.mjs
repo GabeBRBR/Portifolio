@@ -170,6 +170,10 @@ for (const [work, discipline, sourcePath, id] of models) {
     fragment: relative(destination),
     fragmentHash: sha256(converted),
     collider,
+    // Keep the runtime collision contract alongside the artifact. Galpao
+    // vertices were normalized by COORDINATE_TO_ORIGIN at conversion, whereas
+    // the remaining IFCs preserve their local authoring coordinates.
+    colliderCoordinateSpace: work === 'galpao' ? 'world' : 'model-local',
     colliderHash,
     colliderBytes,
     colliderStats,
