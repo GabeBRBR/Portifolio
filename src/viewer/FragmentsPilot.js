@@ -173,6 +173,7 @@ export class FragmentsPilot {
       this.disposeColliderMesh(this.obstacleCollider);
       this.floorCollider = null;
       this.obstacleCollider = null;
+      this.collisionBounds.makeEmpty();
       this.walk.hasSafeFeet = false;
       this.walk.feet.set(0, 0, 0);
       this.walk.spawnFeet.set(0, 0, 0);
@@ -209,10 +210,10 @@ export class FragmentsPilot {
     this.setLoading(false);
     this.renderModels(workName);
     this.renderTree(workName);
-    await this.fit();
+    this.buildCollisionProxy();
+    await this.fit({ animate: false });
     this.fragments.core.update(true);
     await new Promise((resolve) => requestAnimationFrame(resolve));
-    this.buildCollisionProxy();
     this.showStatus(`${workName} otimizado ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.`);
   }
 
@@ -1236,32 +1237,62 @@ export class FragmentsPilot {
     this.updateWalk(delta);
   }
 
-  async fit() {
+  async fit({ animate = false } = {}) {
     if (!this.world) return;
-    const meshes = [];
+    const bounds = new THREE.Box3();
+
+    // 1. Usar a caixa delimitadora precisa do proxy de colisão (gerada diretamente da geometria IFC)
+    if (this.collisionBounds && !this.collisionBounds.isEmpty()) {
+      bounds.copy(this.collisionBounds);
+    }
+
+    // 2. Unir com model.box dos metadados dos fragments carregados
     this.fragments?.list.forEach((model, modelId) => {
       if (!this.modelRecords.get(modelId)?.visible) return;
-      model.object.traverse((object) => {
-        if ((object.isMesh || object.isInstancedMesh || object.isBatchedMesh) && object.visible) meshes.push(object);
-      });
+      if (model.box && !model.box.isEmpty()) {
+        bounds.union(model.box);
+      }
     });
-    if (!meshes.length) return;
 
-    // Do not use camera.fit() here: it also merges auxiliary component boxes
-    // and uses the largest dimension as a radius, which puts the galpao very
-    // far away. Build a bounding box from the visible Fragment meshes only.
-    const bounds = new THREE.Box3();
-    for (const mesh of meshes) {
-      const geometry = mesh.geometry;
-      if (!geometry.boundingBox) geometry.computeBoundingBox();
-      if (!geometry.boundingBox) continue;
-      bounds.union(geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
+    // 3. Fallback: caso bounds ainda esteja vazio, percorrer malhas visíveis
+    if (bounds.isEmpty()) {
+      this.fragments?.list.forEach((model, modelId) => {
+        if (!this.modelRecords.get(modelId)?.visible) return;
+        model.object?.traverse((object) => {
+          if ((object.isMesh || object.isInstancedMesh || object.isBatchedMesh) && object.visible && object.geometry) {
+            object.updateWorldMatrix(true, false);
+            if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+            if (object.geometry.boundingBox) {
+              bounds.union(object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld));
+            }
+          }
+        });
+      });
     }
+
     if (bounds.isEmpty()) return;
+
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
-    const radius = Math.max(size.x, size.y, size.z) * 0.65;
-    await this.world.camera.controls.fitToSphere(new THREE.Sphere(center, Math.max(radius, 1)), false);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const distance = Math.max(maxDim * 1.45, 14);
+
+    const controls = this.world.camera.controls;
+    if (controls) {
+      const eye = new THREE.Vector3(
+        center.x + distance * 0.72,
+        center.y + distance * 0.55,
+        center.z + distance * 0.72
+      );
+      await controls.setLookAt(
+        eye.x, eye.y, eye.z,
+        center.x, center.y, center.z,
+        animate
+      );
+      const radius = maxDim * 0.72;
+      await controls.fitToSphere(new THREE.Sphere(center, Math.max(radius, 1)), animate);
+    }
+
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
   }

@@ -361,7 +361,7 @@ class IFCViewer {
 
   handleAction(action) {
     if (this.engine === 'fragments') {
-      if (action === 'fit') return this.fragmentsPilot?.fit();
+      if (action === 'fit') return this.fragmentsPilot?.fit({ animate: true });
       if (action === 'orbit') return this.fragmentsPilot?.exitWalk();
       if (action === 'walk') return this.fragmentsPilot?.startWalkPlacement();
       return this.showStatus('Este recurso continua no motor padrão e será migrado nas próximas fases do plano.');
