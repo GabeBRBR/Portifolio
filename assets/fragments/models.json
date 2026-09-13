@@ -97,7 +97,7 @@
       "fragment": "assets/fragments/galpao/galpao-arquitetura.frag",
       "fragmentHash": "e7a87b7dd3f909d0233358d91287e9f9128d621c8c7101a407e8fc2aa3e527df",
       "collider": "assets/fragments/galpao/galpao-arquitetura.collider",
-      "colliderCoordinateSpace": "world",
+      "colliderCoordinateSpace": "model-local",
       "colliderHash": "1c5041ae4c0c50fe0913331e45656b32a78f6bd0e122b523c0fc1200ead9b6f3",
       "colliderBytes": 93576,
       "colliderStats": {
@@ -116,7 +116,7 @@
       "fragment": "assets/fragments/galpao/galpao-estrutural.frag",
       "fragmentHash": "e45f4837e3b945102e155ec43442cd7b2fe9dde475e10879082c8230413fb63b",
       "collider": "assets/fragments/galpao/galpao-estrutural.collider",
-      "colliderCoordinateSpace": "world",
+      "colliderCoordinateSpace": "model-local",
       "colliderHash": "54d07f43d47af2f907f6d519e6d01ac1cc4233e85d965d50b6fd3cd37a09cc54",
       "colliderBytes": 248712,
       "colliderStats": {

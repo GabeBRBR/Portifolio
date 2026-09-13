@@ -5,13 +5,19 @@ import { fileURLToPath } from 'node:url';
 import { IfcImporter } from '@thatopen/fragments';
 import {
   IfcAPI,
+  IFCBEAM,
   IFCBUILDINGELEMENTPROXY,
+  IFCBUILDINGELEMENTPART,
   IFCCOLUMN,
   IFCCURTAINWALL,
   IFCFOOTING,
   IFCGEOGRAPHICELEMENT,
+  IFCMEMBER,
   IFCPAVEMENT,
+  IFCPILE,
+  IFCPLATE,
   IFCRAMP,
+  IFCROOF,
   IFCSLAB,
   IFCSTAIR,
   IFCSTAIRFLIGHT,
@@ -38,12 +44,14 @@ const floorTypes = new Set([
   IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING,
   IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY
 ]);
-// Only vertical enclosure is solid to the walking capsule.  A structural IFC
-// often labels roof trusses, purlins and below-grade piles as beams/members;
-// adding them here creates collisions in apparently empty rooms whenever the
-// renderer culls those elements. Slabs remain in `floorTypes` only.
+// These categories make up the navigable architectural/structural shell.
+// Proxies are intentionally both floor and obstacle: Revit often exports
+// walls, beams and generic floor volumes all under this one IFC category.
 const obstacleTypes = new Set([
-  IFCWALL, IFCWALLSTANDARDCASE, IFCCOLUMN, IFCCURTAINWALL
+  IFCWALL, IFCWALLSTANDARDCASE, IFCCOLUMN, IFCCURTAINWALL, IFCROOF,
+  IFCBEAM, IFCMEMBER, IFCPLATE, IFCBUILDINGELEMENTPART, IFCPILE,
+  IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING,
+  IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY
 ]);
 
 function encodeCollider(floors, obstacles) {
@@ -162,10 +170,9 @@ for (const [work, discipline, sourcePath, id] of models) {
     fragment: relative(destination),
     fragmentHash: sha256(converted),
     collider,
-    // Keep the runtime collision contract alongside the artifact. Galpao
-    // vertices were normalized by COORDINATE_TO_ORIGIN at conversion, whereas
-    // the remaining IFCs preserve their local authoring coordinates.
-    colliderCoordinateSpace: work === 'galpao' ? 'world' : 'model-local',
+    // Generated collider assets share the model-local vertex coordinate
+    // system of the corresponding Fragment and transform with model.object.
+    colliderCoordinateSpace: 'model-local',
     colliderHash,
     colliderBytes,
     colliderStats,
