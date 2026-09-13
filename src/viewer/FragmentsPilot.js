@@ -179,7 +179,18 @@ export class FragmentsPilot {
           loadedModel.object.visible = true;
           await this.hideSpaces(loadedModel);
         }
-        const colliderData = model.collider ? await this.loadCollider(model.collider) : null;
+        // The Galpao assets were converted with web-ifc's
+        // COORDINATE_TO_ORIGIN. Their collider vertices are already in the
+        // same normalized render frame as the fragment, before Fragments
+        // applies its federation root. The other hosted assets retain their
+        // IFC-local positions and therefore do need that root at assembly.
+        // Keep this explicit rather than treating every generated collider as
+        // model-local: doing so applied the Galpao root a second time.
+        const colliderCoordinateSpace = model.colliderCoordinateSpace
+          || (model.work === 'galpao' ? 'world' : 'model-local');
+        const colliderData = model.collider
+          ? await this.loadCollider(model.collider, colliderCoordinateSpace)
+          : null;
         this.modelRecords.set(model.id, { ...model, visible: true, colliderData });
       } catch (error) {
         this.showStatus(`Piloto Fragments: não foi possível carregar ${model.discipline}: ${error.message}`);
@@ -618,7 +629,7 @@ export class FragmentsPilot {
     this.syncCollisionDebugVisuals();
   }
 
-  async loadCollider(url) {
+  async loadCollider(url, coordinateSpace = 'model-local') {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`colisor de caminhada não encontrado (${response.status})`);
     const buffer = await response.arrayBuffer();
@@ -640,9 +651,7 @@ export class FragmentsPilot {
       positions: new Float32Array(buffer, offset, obstaclePositions),
       indices: new Uint32Array(buffer, offset += obstaclePositions * 4, obstacleIndices)
     };
-    // Generated collider assets contain the original IFC coordinates. They
-    // become world-space only when their owning Fragments model is positioned.
-    return { coordinateSpace: 'model-local', floors, obstacles };
+    return { coordinateSpace, floors, obstacles };
   }
 
   createColliderMesh(records, role) {
