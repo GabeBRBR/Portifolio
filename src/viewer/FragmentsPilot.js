@@ -37,6 +37,8 @@ export class FragmentsPilot {
     this.modelRecords = new Map();
     this.fragmentCache = new FragmentCache();
     this.ifcLoader = null;
+    this.collisionDebugEnabled = new URLSearchParams(window.location.search).has('ifcDebug');
+    this.lastCollisionContact = null;
     this.collisionBounds = new THREE.Box3();
     // The player is intentionally independent from the camera. CameraControls
     // owns the orbit camera, while PointerLockControls owns only its rotation.
@@ -604,6 +606,7 @@ export class FragmentsPilot {
     this.collisionProxy = !!(this.floorCollider || this.obstacleCollider);
     this.collisionBounds.copy(bounds);
     this.walk.worldMinY = bounds.isEmpty() ? -Infinity : bounds.min.y - 8;
+    this.syncCollisionDebugVisuals();
   }
 
   async loadCollider(url) {
@@ -636,19 +639,24 @@ export class FragmentsPilot {
     // optional source must mean "no collider of this role", never abort the
     // import with `positions is undefined`.
     const sources = records
-      .map((record) => record.colliderData?.[role])
-      .filter((source) => source?.positions?.length && source?.indices?.length);
+      .map((record) => ({ record, source: record.colliderData?.[role] }))
+      .filter(({ source }) => source?.positions?.length && source?.indices?.length);
     if (!sources.length) return null;
-    const positionCount = sources.reduce((sum, source) => sum + source.positions.length, 0);
-    const indexCount = sources.reduce((sum, source) => sum + source.indices.length, 0);
+    const positionCount = sources.reduce((sum, { source }) => sum + source.positions.length, 0);
+    const indexCount = sources.reduce((sum, { source }) => sum + source.indices.length, 0);
     const positions = new Float32Array(positionCount);
     const indices = new Uint32Array(indexCount);
     let positionOffset = 0;
     let indexOffset = 0;
     let vertexOffset = 0;
-    for (const source of sources) {
+    const sourceRanges = [];
+    let triangleOffset = 0;
+    for (const { record, source } of sources) {
       positions.set(source.positions, positionOffset);
       for (let index = 0; index < source.indices.length; index += 1) indices[indexOffset + index] = source.indices[index] + vertexOffset;
+      const triangles = source.indices.length / 3;
+      sourceRanges.push({ start: triangleOffset, end: triangleOffset + triangles, record });
+      triangleOffset += triangles;
       positionOffset += source.positions.length;
       indexOffset += source.indices.length;
       vertexOffset += source.positions.length / 3;
@@ -658,18 +666,56 @@ export class FragmentsPilot {
     geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     geometry.computeBoundingBox();
     geometry.boundsTree = new MeshBVH(geometry, { maxLeafTris: 24, setBoundingBox: false });
-    const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+    const material = new THREE.MeshBasicMaterial({
+      color: role === 'obstacles' ? '#ef4444' : '#f59e0b', side: THREE.DoubleSide,
+      transparent: true, opacity: 0.24, depthWrite: false
+    });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.raycast = acceleratedRaycast;
+    mesh.name = `Diagnóstico de colisão: ${role}`;
+    mesh.userData.collisionRole = role;
+    mesh.userData.sourceRanges = sourceRanges;
     mesh.updateMatrixWorld(true);
     return mesh;
   }
 
   disposeColliderMesh(mesh) {
     if (!mesh) return;
+    mesh.removeFromParent();
     mesh.geometry?.disposeBoundsTree?.();
     mesh.geometry?.dispose();
     mesh.material?.dispose();
+  }
+
+  syncCollisionDebugVisuals() {
+    const colliders = [this.floorCollider, this.obstacleCollider].filter(Boolean);
+    for (const collider of colliders) {
+      if (this.collisionDebugEnabled) {
+        if (!collider.parent) this.world.scene.three.add(collider);
+        collider.visible = true;
+        collider.renderOrder = 100;
+      } else {
+        collider.removeFromParent();
+      }
+    }
+    this.world?.renderer && (this.world.renderer.needsUpdate = true);
+  }
+
+  reportCollisionContact(hit, mechanism) {
+    if (!this.collisionDebugEnabled || !hit) return;
+    const now = performance.now();
+    if (this.lastCollisionContact && now - this.lastCollisionContact.at < 160) return;
+    const ranges = hit.object?.userData?.sourceRanges || [];
+    const range = ranges.find((entry) => hit.faceIndex >= entry.start && hit.faceIndex < entry.end);
+    const record = range?.record;
+    const origin = record
+      ? `${record.discipline || 'IFC'} · ${record.name || record.id}`
+      : 'origem não identificada';
+    const classes = record?.source === 'local'
+      ? 'IFCWALL, IFCSLAB, IFCCOLUMN, IFCCURTAINWALL, IFCSTAIR, IFCRAMP, IFCFOOTING ou IFCPAVEMENT'
+      : 'colisor otimizado pré-gerado';
+    this.lastCollisionContact = { at: now, mechanism, origin, classes, faceIndex: hit.faceIndex, point: hit.point.clone() };
+    this.onWalkDebug?.(`COLISÃO ${mechanism}: ${origin} · categoria candidata: ${classes} · triângulo ${hit.faceIndex} · ponto ${hit.point.x.toFixed(2)}, ${hit.point.y.toFixed(2)}, ${hit.point.z.toFixed(2)}`);
   }
 
   async hideSpaces(model) {
@@ -911,7 +957,9 @@ export class FragmentsPilot {
       origin.y += height;
       const hit = this.collisionRay(origin, direction, distance + this.walk.radius, 'obstacle');
       if (!hit?.face || hit.distance >= distance + this.walk.radius) return false;
-      return Math.abs(this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).y) < 0.55;
+      const blocks = Math.abs(this.walkVectors.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).y) < 0.55;
+      if (blocks) this.reportCollisionContact(hit, 'ray lateral');
+      return blocks;
     });
   }
 
@@ -937,11 +985,13 @@ export class FragmentsPilot {
     capsuleBox.min.addScalar(-radius);
     capsuleBox.max.addScalar(radius);
 
+    let capsuleContact = null;
     boundsTree.shapecast({
       intersectsBounds: (box) => box.intersectsBox(capsuleBox),
       intersectsTriangle: (triangle) => {
         const distance = triangle.closestPointToSegment(capsuleSegment, trianglePoint, capsulePoint);
         if (distance >= radius) return false;
+        if (!capsuleContact) capsuleContact = trianglePoint.clone();
         const depth = radius - distance;
         capsuleDirection.subVectors(capsulePoint, trianglePoint);
         if (capsuleDirection.lengthSq() < 1e-10) {
@@ -958,6 +1008,9 @@ export class FragmentsPilot {
     });
 
     capsuleCorrection.subVectors(capsuleSegment.start, capsuleStart);
+    if (capsuleContact) {
+      this.reportCollisionContact({ object: this.obstacleCollider, faceIndex: -1, point: capsuleContact }, 'cápsula');
+    }
     feet.add(capsuleCorrection);
     return capsuleCorrection;
   }
@@ -1012,7 +1065,10 @@ export class FragmentsPilot {
     if (now - this.walk.lastDebugAt < 350) return;
     this.walk.lastDebugAt = now;
     const { feet, grounded, velocityY, lastFloorY } = this.walk;
-    this.onWalkDebug(`Caminhada: pés ${feet.x.toFixed(2)}, ${feet.y.toFixed(2)}, ${feet.z.toFixed(2)} · ${grounded ? 'no chão' : 'no ar'} · vY ${velocityY.toFixed(2)} · piso ${lastFloorY?.toFixed(2) ?? '—'} · raycast ${(performance.now() - rayStartedAt).toFixed(2)} ms`);
+    const contact = this.lastCollisionContact && now - this.lastCollisionContact.at < 1500
+      ? `\nÚltimo contato: ${this.lastCollisionContact.mechanism} · ${this.lastCollisionContact.origin} · categoria candidata: ${this.lastCollisionContact.classes} · triângulo ${this.lastCollisionContact.faceIndex} · ponto ${this.lastCollisionContact.point.x.toFixed(2)}, ${this.lastCollisionContact.point.y.toFixed(2)}, ${this.lastCollisionContact.point.z.toFixed(2)}`
+      : '';
+    this.onWalkDebug(`Caminhada: pés ${feet.x.toFixed(2)}, ${feet.y.toFixed(2)}, ${feet.z.toFixed(2)} · ${grounded ? 'no chão' : 'no ar'} · vY ${velocityY.toFixed(2)} · piso ${lastFloorY?.toFixed(2) ?? '—'} · raycast ${(performance.now() - rayStartedAt).toFixed(2)} ms${contact}`);
   }
 
   stepWalk(delta) {
