@@ -118,10 +118,9 @@ export class FragmentsPilot {
     this.fragments = this.components.get(OBC.FragmentsManager);
     // Vite emits this dependency as a local worker asset, keeping Pages/CDN-independent.
     this.fragments.init(fragmentsWorkerUrl);
-    // Normalize the work close to the render origin. Some Revit exports (the
-    // galpao in particular) retain large survey coordinates that push the
-    // WebGL camera/culling precision beyond a practical range.
-    this.fragments.core.settings.autoCoordinate = true;
+    // Keep autoCoordinate false so federated disciplines maintain their exact
+    // shared BIM coordinate system without arbitrary offset shifts.
+    this.fragments.core.settings.autoCoordinate = false;
     // Fragments refreshes camera-driven visibility at most every 100 ms by
     // default. That is acceptable for orbit, but creates noticeable pop-in
     // when a player turns quickly. 40 ms stays below 25 updates/s while
@@ -743,7 +742,7 @@ export class FragmentsPilot {
       const visualCenter = visualBounds.getCenter(new THREE.Vector3());
       const centerDelta = collisionCenter.distanceTo(visualCenter);
       const applied = modelRanges[0].collisionToWorld.elements;
-      const state = centerDelta > 0.02 ? 'referência geométrica diferente' : 'alinhado';
+      const state = centerDelta > 1.2 ? 'deslocado' : 'alinhado';
       messages.push(`${record.discipline || record.name}: Δcentro ${centerDelta.toFixed(2)} m (${state}) · translação ${applied[12].toFixed(2)}, ${applied[13].toFixed(2)}, ${applied[14].toFixed(2)}`);
     }
     this.collisionAlignmentDebug = messages.join('\n');

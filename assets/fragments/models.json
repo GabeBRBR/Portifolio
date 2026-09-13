@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-09-13T21:27:18.677Z",
+  "generatedAt": "2026-09-13T22:17:00.312Z",
   "models": [
     {
       "id": "casa-terrea-arquitetura",
@@ -9,17 +9,17 @@
       "source": "assets/IFC/Casa Térrea/CASA-AQR.ifc",
       "sourceHash": "cbd61eff3ea613072755dad05136f3c2eae64284892bf14609b5a0bfcd333e24",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-arquitetura.frag",
-      "fragmentHash": "bf775f854ca350bc0ed4d5685e0c2930237da447fe3a93d6a91e3bb1c5c30036",
+      "fragmentHash": "3580406f9ba0111abcb4787f323f6cb9b90bb660ce5ba340f4f55d3dffbcd297",
       "collider": "assets/fragments/casa-terrea/casa-terrea-arquitetura.collider",
       "colliderCoordinateSpace": "model-local",
-      "colliderHash": "9f88b6a9bac895a32ab026d17d0d1013153819c931579f466bb0f4a6b6b3709b",
-      "colliderBytes": 1243524,
+      "colliderHash": "cf036b33a42acee9041729b70d7a153012123285fe7cf138c40acb439471c82c",
+      "colliderBytes": 2331228,
       "colliderStats": {
         "floorTriangles": 27475,
-        "obstacleTriangles": 4219
+        "obstacleTriangles": 32318
       },
       "sourceBytes": 16096012,
-      "fragmentBytes": 945565
+      "fragmentBytes": 945570
     },
     {
       "id": "casa-terrea-estrutural",
@@ -28,14 +28,14 @@
       "source": "assets/IFC/Casa Térrea/CASA-EST.ifc",
       "sourceHash": "55ac31c25e75ca5a895c8ea1d39b2608c86ece71965111783543af6b9a4402e9",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-estrutural.frag",
-      "fragmentHash": "2de0f11a9e4930f4f23b1b5f752e89870a30899dbd72296c7db6afbf6eb92b8f",
+      "fragmentHash": "f2121074c0ced405aa717cb9b0f6d4f656f798f0c1700a875024aee5bc352a6c",
       "collider": "assets/fragments/casa-terrea/casa-terrea-estrutural.collider",
       "colliderCoordinateSpace": "model-local",
-      "colliderHash": "f323b754826da88e1f05e910ceeda3976fc2103c59e30b7cc895c0c6db8acc9e",
-      "colliderBytes": 33696,
+      "colliderHash": "76809535d4ae8398885ac59de7f9f7697300393a5e2bf7c81a83efbc9054124a",
+      "colliderBytes": 138120,
       "colliderStats": {
         "floorTriangles": 0,
-        "obstacleTriangles": 732
+        "obstacleTriangles": 3176
       },
       "sourceBytes": 336766,
       "fragmentBytes": 76349
@@ -47,14 +47,14 @@
       "source": "assets/IFC/Casa Térrea/CASA-ELE.ifc",
       "sourceHash": "75f9d1f10eb0babe6b5456c225d64c07a862a50549647dc2dc9093201418d4f0",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-eletrica.frag",
-      "fragmentHash": "e1d08d99a5281838833ef98e7b75071658615ea869d9a1d8d6fdddadcc2f0bf6",
+      "fragmentHash": "29504b7f6451aaae93842b7186c90f7094155635d179c9badd2adab711bb83a8",
       "collider": null,
       "colliderCoordinateSpace": "model-local",
       "colliderHash": null,
       "colliderBytes": 0,
       "colliderStats": null,
       "sourceBytes": 12623391,
-      "fragmentBytes": 832744
+      "fragmentBytes": 832745
     },
     {
       "id": "casa-terrea-hidraulica",
@@ -63,7 +63,7 @@
       "source": "assets/IFC/Casa Térrea/CASA-HID.ifc",
       "sourceHash": "c70a3bdf0b4a782457e2c0bb628ded40cbdb78279eb36a8d72fc474e5c9f8c94",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-hidraulica.frag",
-      "fragmentHash": "81f7163a2332dbd16a47379c066ae3eafb1cebece3bca57dc7e6d5bae7a88032",
+      "fragmentHash": "e3802bb8dd8deedc60859b5b89889f2009666a65dfb3f99a57bd3b00e15d1303",
       "collider": null,
       "colliderCoordinateSpace": "model-local",
       "colliderHash": null,
@@ -79,7 +79,7 @@
       "source": "assets/IFC/Casa Térrea/CASA-ESG.ifc",
       "sourceHash": "b9a8dca9d32f3795feaecf8ffa568f5ae90cd758471cded827c39b1231f8e057",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-sanitaria.frag",
-      "fragmentHash": "59786ce8ebc9e7671ead0aae95aea5407bb2dbfa25d70a65f989bd50d2480bb3",
+      "fragmentHash": "6a9195acef580933baa032bc0fb36d285bb6388cae869c2344689f6009535a2f",
       "collider": null,
       "colliderCoordinateSpace": "model-local",
       "colliderHash": null,
@@ -95,17 +95,17 @@
       "source": "assets/IFC/Galpão/ARQ.ifc",
       "sourceHash": "a4aec301f9bf2e62d85cbf4aa277b69ddb325134f7561599f573bdcfce076521",
       "fragment": "assets/fragments/galpao/galpao-arquitetura.frag",
-      "fragmentHash": "e7a87b7dd3f909d0233358d91287e9f9128d621c8c7101a407e8fc2aa3e527df",
+      "fragmentHash": "abdacd00bdef29b9fd7c2f886608957249ff9bcfad1332495ca6453b78a20dd4",
       "collider": "assets/fragments/galpao/galpao-arquitetura.collider",
       "colliderCoordinateSpace": "model-local",
-      "colliderHash": "1c5041ae4c0c50fe0913331e45656b32a78f6bd0e122b523c0fc1200ead9b6f3",
-      "colliderBytes": 93576,
+      "colliderHash": "3bb39b3ee9db65486d896de059c01231bf4e3c0aa05a955bcdb82d4cee159a6d",
+      "colliderBytes": 139776,
       "colliderStats": {
         "floorTriangles": 1038,
-        "obstacleTriangles": 1022
+        "obstacleTriangles": 2060
       },
       "sourceBytes": 6966824,
-      "fragmentBytes": 556206
+      "fragmentBytes": 556174
     },
     {
       "id": "galpao-estrutural",
@@ -114,17 +114,17 @@
       "source": "assets/IFC/Galpão/EST.ifc",
       "sourceHash": "10a3721bd4887950e686b973f801c04b4864b69f1fd1dde96cb6321612f811e5",
       "fragment": "assets/fragments/galpao/galpao-estrutural.frag",
-      "fragmentHash": "e45f4837e3b945102e155ec43442cd7b2fe9dde475e10879082c8230413fb63b",
+      "fragmentHash": "4cac93355396ae3e249c5aa92bf1b77e0ecc4cdef1a96051b93e40a3e0aad9ef",
       "collider": "assets/fragments/galpao/galpao-estrutural.collider",
       "colliderCoordinateSpace": "model-local",
-      "colliderHash": "54d07f43d47af2f907f6d519e6d01ac1cc4233e85d965d50b6fd3cd37a09cc54",
-      "colliderBytes": 248712,
+      "colliderHash": "d0aab2cf8e7f951f68ce537c73ada62c634cd68435ccc79331a522bdf53aaef9",
+      "colliderBytes": 2718888,
       "colliderStats": {
         "floorTriangles": 2440,
-        "obstacleTriangles": 3438
+        "obstacleTriangles": 65758
       },
       "sourceBytes": 3943748,
-      "fragmentBytes": 203579
+      "fragmentBytes": 203131
     }
   ]
 }
