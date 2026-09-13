@@ -42,7 +42,8 @@ const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 const relative = (target) => path.relative(root, target).replaceAll(path.sep, '/');
 const floorTypes = new Set([
   IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING,
-  IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY
+  IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY,
+  IFCBEAM
 ]);
 // These categories make up the navigable architectural/structural shell.
 // Proxies are intentionally both floor and obstacle: Revit often exports

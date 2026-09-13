@@ -440,9 +440,9 @@ export class FragmentsPilot {
     // Local imports have no precomputed collider with per-item metadata. Use
     // a conservative allow-list of construction classes instead of attempting
     // to infer physicality from generic Revit families. In particular, do not
-    // include IFCBUILDINGELEMENTPROXY, IFCBEAM or IFCMEMBER: the CREA IFC uses
+    // include IFCBUILDINGELEMENTPROXY or IFCMEMBER: the CREA IFC uses
     // those classes for a rug, appliances, TV, roof tiles and ceiling framing.
-    const solid = '(?:IFCWALL(?:STANDARDCASE)?|IFCCOLUMN|IFCCURTAINWALL|IFCSLAB|IFCSTAIR(?:FLIGHT)?|IFCRAMP|IFCFOOTING|IFCPAVEMENT)';
+    const solid = '(?:IFCWALL(?:STANDARDCASE)?|IFCCOLUMN|IFCBEAM|IFCCURTAINWALL|IFCSLAB|IFCSTAIR(?:FLIGHT)?|IFCRAMP|IFCFOOTING|IFCPAVEMENT)';
     const nonSolidCategory = new RegExp(`^IFC(?!${solid}$).+`, 'i');
     const byCategory = await model.getItemsOfCategories([nonSolidCategory]);
     return [...new Set(Object.values(byCategory).flat())];
@@ -782,7 +782,7 @@ export class FragmentsPilot {
       ? `${record.discipline || 'IFC'} · ${record.name || record.id}`
       : 'origem não identificada';
     const classes = record?.source === 'local'
-      ? 'IFCWALL, IFCSLAB, IFCCOLUMN, IFCCURTAINWALL, IFCSTAIR, IFCRAMP, IFCFOOTING ou IFCPAVEMENT'
+      ? 'IFCWALL, IFCSLAB, IFCCOLUMN, IFCBEAM, IFCCURTAINWALL, IFCSTAIR, IFCRAMP, IFCFOOTING ou IFCPAVEMENT'
       : 'colisor otimizado pré-gerado';
     this.lastCollisionContact = { at: now, mechanism, origin, classes, faceIndex: hit.faceIndex, point: hit.point.clone() };
     this.onWalkDebug?.(`COLISÃO ${mechanism}: ${origin} · categoria candidata: ${classes} · triângulo ${hit.faceIndex} · ponto ${hit.point.x.toFixed(2)}, ${hit.point.y.toFixed(2)}, ${hit.point.z.toFixed(2)}`);
