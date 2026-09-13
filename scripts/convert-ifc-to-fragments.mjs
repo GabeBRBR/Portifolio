@@ -131,10 +131,10 @@ for (const [work, discipline, sourcePath, id] of models) {
   const source = await readFile(absoluteSource);
   const importer = new IfcImporter();
   importer.wasm = { path: `${wasmDirectory}${path.sep}`, absolute: true };
-  // The Galpao IFCs retain large survey coordinates. Normalize that set at
-  // conversion time to avoid precision/culling loss in WebGL; its disciplines
-  // share the same source origin and remain federated with each other.
-  importer.webIfcSettings = { COORDINATE_TO_ORIGIN: work === 'galpao' };
+  // Preserve IFC survey coordinates without normalizing each model independently.
+  // When COORDINATE_TO_ORIGIN is false, all federated disciplines share the same
+  // coordinate space as designed in BIM authoring tools.
+  importer.webIfcSettings = { COORDINATE_TO_ORIGIN: false };
   // Match the existing viewer, which renders IFC materials double-sided.
   importer.doubleSidedMaterials = true;
   const converted = await importer.process({ bytes: new Uint8Array(source), raw: false });
@@ -149,7 +149,7 @@ for (const [work, discipline, sourcePath, id] of models) {
   // physics. This keeps MEP fittings, furniture and other small elements out
   // of the collider while preserving generic-model floors from Revit.
   if (discipline === 'Arquitetura' || discipline === 'Estrutural') {
-    const generated = createCollider(webIfc, source, work === 'galpao');
+    const generated = createCollider(webIfc, source, false);
     const colliderDestination = path.join(outputRoot, work, `${id}.collider`);
     await writeFile(colliderDestination, generated.bytes);
     collider = relative(colliderDestination);
