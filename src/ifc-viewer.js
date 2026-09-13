@@ -174,6 +174,7 @@ class IFCViewer {
   }
 
   async openViewer(workKey = 'casa-terrea') {
+    this.demoKey = workKey;
     this.modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     try {
@@ -198,8 +199,8 @@ class IFCViewer {
   }
 
   async loadDemo(key) {
-    if (this.engine === 'fragments') return this.openFragmentsPilot(key);
     this.demoKey = key;
+    if (this.engine === 'fragments') return this.openFragmentsPilot(key);
     this.performanceMonitor.beginFirstUsableFrame();
     const definitions = DEMOS[key] || DEMOS['casa-terrea'];
     await this.removeAllModels();

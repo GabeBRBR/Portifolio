@@ -160,8 +160,26 @@ export class FragmentsPilot {
     const models = manifest.models.filter((model) => model.work === workKey);
     if (!models.length) throw new Error(`nenhum modelo otimizado encontrado para ${workName}`);
     if (this.loadedWork) {
-      for (const modelId of [...this.fragments.list.keys()]) await this.fragments.core.disposeModel(modelId);
+      if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+      await this.clearSelection();
+      for (const modelId of [...this.fragments.list.keys()]) {
+        await this.fragments.core.disposeModel(modelId);
+        this.fragments.core.models.list.delete(modelId);
+      }
+      this.fragments.core.baseCoordinates = null;
+      this.fragments.baseCoordinationModel = "";
+      this.fragments.baseCoordinationMatrix = new THREE.Matrix4();
       this.modelRecords.clear();
+      this.disposeColliderMesh(this.floorCollider);
+      this.disposeColliderMesh(this.obstacleCollider);
+      this.floorCollider = null;
+      this.obstacleCollider = null;
+      this.walk.hasSafeFeet = false;
+      this.walk.feet.set(0, 0, 0);
+      this.walk.spawnFeet.set(0, 0, 0);
+      this.walk.lastFloorY = null;
+      this.lastCollisionContact = null;
+      this.collisionAlignmentDebug = '';
     }
     for (let index = 0; index < models.length; index += 1) {
       const model = models[index];
@@ -179,15 +197,7 @@ export class FragmentsPilot {
           loadedModel.object.visible = true;
           await this.hideSpaces(loadedModel);
         }
-        // The Galpao assets were converted with web-ifc's
-        // COORDINATE_TO_ORIGIN. Their collider vertices are already in the
-        // same normalized render frame as the fragment, before Fragments
-        // applies its federation root. The other hosted assets retain their
-        // IFC-local positions and therefore do need that root at assembly.
-        // Keep this explicit rather than treating every generated collider as
-        // model-local: doing so applied the Galpao root a second time.
-        const colliderCoordinateSpace = model.colliderCoordinateSpace
-          || (model.work === 'galpao' ? 'world' : 'model-local');
+        const colliderCoordinateSpace = model.colliderCoordinateSpace || 'model-local';
         const colliderData = model.collider
           ? await this.loadCollider(model.collider, colliderCoordinateSpace)
           : null;
