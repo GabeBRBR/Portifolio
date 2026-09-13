@@ -5,19 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { IfcImporter } from '@thatopen/fragments';
 import {
   IfcAPI,
-  IFCBEAM,
   IFCBUILDINGELEMENTPROXY,
-  IFCBUILDINGELEMENTPART,
   IFCCOLUMN,
   IFCCURTAINWALL,
   IFCFOOTING,
   IFCGEOGRAPHICELEMENT,
-  IFCMEMBER,
   IFCPAVEMENT,
-  IFCPILE,
-  IFCPLATE,
   IFCRAMP,
-  IFCROOF,
   IFCSLAB,
   IFCSTAIR,
   IFCSTAIRFLIGHT,
@@ -44,14 +38,12 @@ const floorTypes = new Set([
   IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING,
   IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY
 ]);
-// These categories make up the navigable architectural/structural shell.
-// Proxies are intentionally both floor and obstacle: Revit often exports
-// walls, beams and generic floor volumes all under this one IFC category.
+// Only vertical enclosure is solid to the walking capsule.  A structural IFC
+// often labels roof trusses, purlins and below-grade piles as beams/members;
+// adding them here creates collisions in apparently empty rooms whenever the
+// renderer culls those elements. Slabs remain in `floorTypes` only.
 const obstacleTypes = new Set([
-  IFCWALL, IFCWALLSTANDARDCASE, IFCCOLUMN, IFCCURTAINWALL, IFCROOF,
-  IFCBEAM, IFCMEMBER, IFCPLATE, IFCBUILDINGELEMENTPART, IFCPILE,
-  IFCSLAB, IFCSTAIR, IFCSTAIRFLIGHT, IFCRAMP, IFCFOOTING,
-  IFCPAVEMENT, IFCGEOGRAPHICELEMENT, IFCBUILDINGELEMENTPROXY
+  IFCWALL, IFCWALLSTANDARDCASE, IFCCOLUMN, IFCCURTAINWALL
 ]);
 
 function encodeCollider(floors, obstacles) {
