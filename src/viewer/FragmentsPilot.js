@@ -39,6 +39,7 @@ export class FragmentsPilot {
     this.ifcLoader = null;
     this.collisionDebugEnabled = new URLSearchParams(window.location.search).has('ifcDebug');
     this.lastCollisionContact = null;
+    this.collisionAlignmentDebug = '';
     this.collisionBounds = new THREE.Box3();
     // The player is intentionally independent from the camera. CameraControls
     // owns the orbit camera, while PointerLockControls owns only its rotation.
@@ -331,7 +332,13 @@ export class FragmentsPilot {
     // Hosted models have a compact collider generated during the build. For a
     // user-selected IFC we create an equivalent, decimated proxy once at load
     // time. It is never rebuilt by the walking loop.
-    const doorPortals = await this.getLocalDoorPortals(model);
+    model.object.updateWorldMatrix(true, true);
+    // Collision data is always stored in the model's own coordinate space.
+    // Fragments may later translate model.object to federate IFCs, so baking
+    // that root transform here would make a local collider differ from an
+    // optimized collider loaded from disk.
+    const modelWorldInverse = new THREE.Matrix4().copy(model.object.matrixWorld).invert();
+    const doorPortals = await this.getLocalDoorPortals(model, modelWorldInverse);
     const excludedIds = await this.getLocalCollisionExcludedIds(model);
     // A local IFC may export furniture, finishes and even rugs as generic
     // building elements. Collision must be opt-in: temporarily retain only
@@ -341,7 +348,6 @@ export class FragmentsPilot {
       await model.setVisible(excludedIds, false);
       await this.fragments.core.update(true);
     }
-    model.object.updateWorldMatrix(true, true);
     try {
       let triangleCount = 0;
       this.forEachLocalCollisionSource(model, ({ count }) => {
@@ -366,9 +372,9 @@ export class FragmentsPilot {
           const ia = index ? index.getX(vertexOffset) : vertexOffset;
           const ib = index ? index.getX(vertexOffset + 1) : vertexOffset + 1;
           const ic = index ? index.getX(vertexOffset + 2) : vertexOffset + 2;
-          a.fromBufferAttribute(position, ia).applyMatrix4(matrixWorld);
-          b.fromBufferAttribute(position, ib).applyMatrix4(matrixWorld);
-          c.fromBufferAttribute(position, ic).applyMatrix4(matrixWorld);
+          a.fromBufferAttribute(position, ia).applyMatrix4(matrixWorld).applyMatrix4(modelWorldInverse);
+          b.fromBufferAttribute(position, ib).applyMatrix4(matrixWorld).applyMatrix4(modelWorldInverse);
+          c.fromBufferAttribute(position, ic).applyMatrix4(matrixWorld).applyMatrix4(modelWorldInverse);
           // Some IFC exporters leave a wall face across an IFCDOOR opening.
           // Carve only the door's expanded bounding portal from the navigation
           // mesh so that a visual door is always a route for the player.
@@ -394,8 +400,9 @@ export class FragmentsPilot {
         for (let index = 0; index < indices.length; index += 1) indices[index] = index;
         return { positions: compact, indices };
       };
-      const fallback = floorValues ? null : this.createLocalBoundsFloor(model);
+      const fallback = floorValues ? null : this.createLocalBoundsFloor(model, modelWorldInverse);
       return {
+        coordinateSpace: 'model-local',
         floors: floorValues ? makeSource(floors, floorValues) : fallback.floors,
         obstacles: makeSource(obstacles, obstacleValues)
       };
@@ -420,7 +427,7 @@ export class FragmentsPilot {
     return [...new Set(Object.values(byCategory).flat())];
   }
 
-  async getLocalDoorPortals(model) {
+  async getLocalDoorPortals(model, modelWorldInverse) {
     const byCategory = await model.getItemsOfCategories([/^IFCDOOR$/i]);
     const doorIds = [...new Set(Object.values(byCategory).flat())];
     if (!doorIds.length) return [];
@@ -440,7 +447,7 @@ export class FragmentsPilot {
       .map((bounds) => new THREE.Box3(
         new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
         new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.max.z)
-      ).expand(new THREE.Vector3(0.16, 0.12, 0.16)));
+      ).applyMatrix4(modelWorldInverse).expand(new THREE.Vector3(0.16, 0.12, 0.16)));
   }
 
   isInsideLocalDoorPortal(a, b, c, portals) {
@@ -506,11 +513,12 @@ export class FragmentsPilot {
     });
   }
 
-  createLocalBoundsFloor(model) {
+  createLocalBoundsFloor(model, modelWorldInverse = new THREE.Matrix4().copy(model.object.matrixWorld).invert()) {
     const bounds = new THREE.Box3().setFromObject(model.object);
     if (bounds.isEmpty()) {
       return { floors: this.emptyCollisionSource(), obstacles: this.emptyCollisionSource() };
     }
+    bounds.applyMatrix4(modelWorldInverse);
     const { min, max } = bounds;
     const y = min.y - 0.01;
     const positions = new Float32Array([
@@ -606,6 +614,7 @@ export class FragmentsPilot {
     this.collisionProxy = !!(this.floorCollider || this.obstacleCollider);
     this.collisionBounds.copy(bounds);
     this.walk.worldMinY = bounds.isEmpty() ? -Infinity : bounds.min.y - 8;
+    this.updateCollisionAlignmentDiagnostics(records);
     this.syncCollisionDebugVisuals();
   }
 
@@ -631,7 +640,9 @@ export class FragmentsPilot {
       positions: new Float32Array(buffer, offset, obstaclePositions),
       indices: new Uint32Array(buffer, offset += obstaclePositions * 4, obstacleIndices)
     };
-    return { floors, obstacles };
+    // Generated collider assets contain the original IFC coordinates. They
+    // become world-space only when their owning Fragments model is positioned.
+    return { coordinateSpace: 'model-local', floors, obstacles };
   }
 
   createColliderMesh(records, role) {
@@ -639,8 +650,8 @@ export class FragmentsPilot {
     // optional source must mean "no collider of this role", never abort the
     // import with `positions is undefined`.
     const sources = records
-      .map((record) => ({ record, source: record.colliderData?.[role] }))
-      .filter(({ source }) => source?.positions?.length && source?.indices?.length);
+      .map((record) => ({ record, source: record.colliderData?.[role], model: this.fragments.list.get(record.id) }))
+      .filter(({ source, model }) => source?.positions?.length && source?.indices?.length && model);
     if (!sources.length) return null;
     const positionCount = sources.reduce((sum, { source }) => sum + source.positions.length, 0);
     const indexCount = sources.reduce((sum, { source }) => sum + source.indices.length, 0);
@@ -651,11 +662,27 @@ export class FragmentsPilot {
     let vertexOffset = 0;
     const sourceRanges = [];
     let triangleOffset = 0;
-    for (const { record, source } of sources) {
-      positions.set(source.positions, positionOffset);
+    const point = new THREE.Vector3();
+    for (const { record, source, model } of sources) {
+      model.object.updateWorldMatrix(true, true);
+      const coordinateSpace = record.colliderData?.coordinateSpace || 'model-local';
+      const collisionToWorld = coordinateSpace === 'world'
+        ? new THREE.Matrix4()
+        : model.object.matrixWorld.clone();
+      const sourceBounds = new THREE.Box3();
+      for (let offset = 0; offset < source.positions.length; offset += 3) {
+        point.set(source.positions[offset], source.positions[offset + 1], source.positions[offset + 2]).applyMatrix4(collisionToWorld);
+        positions[positionOffset + offset] = point.x;
+        positions[positionOffset + offset + 1] = point.y;
+        positions[positionOffset + offset + 2] = point.z;
+        sourceBounds.expandByPoint(point);
+      }
       for (let index = 0; index < source.indices.length; index += 1) indices[indexOffset + index] = source.indices[index] + vertexOffset;
       const triangles = source.indices.length / 3;
-      sourceRanges.push({ start: triangleOffset, end: triangleOffset + triangles, record });
+      sourceRanges.push({
+        start: triangleOffset, end: triangleOffset + triangles, record,
+        coordinateSpace, collisionToWorld, worldBounds: sourceBounds
+      });
       triangleOffset += triangles;
       positionOffset += source.positions.length;
       indexOffset += source.indices.length;
@@ -677,6 +704,30 @@ export class FragmentsPilot {
     mesh.userData.sourceRanges = sourceRanges;
     mesh.updateMatrixWorld(true);
     return mesh;
+  }
+
+  updateCollisionAlignmentDiagnostics(records) {
+    if (!this.collisionDebugEnabled) return;
+    const ranges = [this.floorCollider, this.obstacleCollider]
+      .flatMap((collider) => collider?.userData?.sourceRanges || []);
+    const messages = [];
+    for (const record of records) {
+      const model = this.fragments.list.get(record.id);
+      const modelRanges = ranges.filter((range) => range.record.id === record.id);
+      if (!model || !modelRanges.length) continue;
+      model.object.updateWorldMatrix(true, true);
+      const collisionBounds = new THREE.Box3();
+      modelRanges.forEach((range) => collisionBounds.union(range.worldBounds));
+      const visualBounds = new THREE.Box3().setFromObject(model.object);
+      if (collisionBounds.isEmpty() || visualBounds.isEmpty()) continue;
+      const collisionCenter = collisionBounds.getCenter(new THREE.Vector3());
+      const visualCenter = visualBounds.getCenter(new THREE.Vector3());
+      const centerDelta = collisionCenter.distanceTo(visualCenter);
+      const applied = modelRanges[0].collisionToWorld.elements;
+      const state = centerDelta > 0.02 ? 'referência geométrica diferente' : 'alinhado';
+      messages.push(`${record.discipline || record.name}: Δcentro ${centerDelta.toFixed(2)} m (${state}) · translação ${applied[12].toFixed(2)}, ${applied[13].toFixed(2)}, ${applied[14].toFixed(2)}`);
+    }
+    this.collisionAlignmentDebug = messages.join('\n');
   }
 
   disposeColliderMesh(mesh) {
@@ -1068,7 +1119,8 @@ export class FragmentsPilot {
     const contact = this.lastCollisionContact && now - this.lastCollisionContact.at < 1500
       ? `\nÚltimo contato: ${this.lastCollisionContact.mechanism} · ${this.lastCollisionContact.origin} · categoria candidata: ${this.lastCollisionContact.classes} · triângulo ${this.lastCollisionContact.faceIndex} · ponto ${this.lastCollisionContact.point.x.toFixed(2)}, ${this.lastCollisionContact.point.y.toFixed(2)}, ${this.lastCollisionContact.point.z.toFixed(2)}`
       : '';
-    this.onWalkDebug(`Caminhada: pés ${feet.x.toFixed(2)}, ${feet.y.toFixed(2)}, ${feet.z.toFixed(2)} · ${grounded ? 'no chão' : 'no ar'} · vY ${velocityY.toFixed(2)} · piso ${lastFloorY?.toFixed(2) ?? '—'} · raycast ${(performance.now() - rayStartedAt).toFixed(2)} ms${contact}`);
+    const alignment = this.collisionAlignmentDebug ? `\nAlinhamento do colisor:\n${this.collisionAlignmentDebug}` : '';
+    this.onWalkDebug(`Caminhada: pés ${feet.x.toFixed(2)}, ${feet.y.toFixed(2)}, ${feet.z.toFixed(2)} · ${grounded ? 'no chão' : 'no ar'} · vY ${velocityY.toFixed(2)} · piso ${lastFloorY?.toFixed(2) ?? '—'} · raycast ${(performance.now() - rayStartedAt).toFixed(2)} ms${contact}${alignment}`);
   }
 
   stepWalk(delta) {
