@@ -153,7 +153,7 @@ export class FragmentsPilot {
     this.setLoading(true, `Carregando ${workName} otimizado…`, 0);
     this.list.innerHTML = '';
     this.empty.classList.add('hidden');
-    const response = await fetch(FRAGMENTS_MANIFEST);
+    const response = await fetch(`${FRAGMENTS_MANIFEST}?t=${Date.now()}`);
     if (!response.ok) throw new Error(`manifesto Fragments não encontrado (${response.status})`);
     const manifest = await response.json();
     const models = manifest.models.filter((model) => model.work === workKey);
@@ -185,7 +185,8 @@ export class FragmentsPilot {
       const model = models[index];
       try {
         this.setLoading(true, `Carregando ${model.discipline} otimizado…`, Math.round((index / models.length) * 100));
-        const fragmentResponse = await fetch(model.fragment);
+        const fragmentUrl = model.fragmentHash ? `${model.fragment}?v=${model.fragmentHash}` : model.fragment;
+        const fragmentResponse = await fetch(fragmentUrl);
         if (!fragmentResponse.ok) throw new Error(`arquivo otimizado não encontrado (${fragmentResponse.status})`);
         await this.fragments.core.load(await fragmentResponse.arrayBuffer(), { modelId: model.id });
         // Explicitly attach the root as some generated fragments use batched
@@ -198,8 +199,11 @@ export class FragmentsPilot {
           await this.hideSpaces(loadedModel);
         }
         const colliderCoordinateSpace = model.colliderCoordinateSpace || 'model-local';
-        const colliderData = model.collider
-          ? await this.loadCollider(model.collider, colliderCoordinateSpace)
+        const colliderUrl = model.collider
+          ? (model.colliderHash ? `${model.collider}?v=${model.colliderHash}` : model.collider)
+          : null;
+        const colliderData = colliderUrl
+          ? await this.loadCollider(colliderUrl, colliderCoordinateSpace)
           : null;
         this.modelRecords.set(model.id, { ...model, visible: true, colliderData });
       } catch (error) {
