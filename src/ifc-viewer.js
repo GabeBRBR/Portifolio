@@ -32,8 +32,9 @@ const UI_IDS = Object.freeze({
   loading: 'ifc-loading-overlay', loadingText: 'ifc-loading-text', progress: 'ifc-progress-bar', status: 'ifc-status',
   properties: 'ifc-properties-content', propertySearch: 'ifc-property-search', clearSelection: 'ifc-clear-selection',
   close: 'ifc-close-btn', fullscreen: 'ifc-fullscreen-btn', files: 'ifc-file-input', loadDemo: 'ifc-load-demo-btn',
+  importDialog: 'ifc-import-scope-dialog', importFileNames: 'ifc-import-file-names', importSameProject: 'ifc-import-same-project', importNewProject: 'ifc-import-new-project', importCancel: 'ifc-import-cancel',
   explodeRange: 'ifc-explode-range', explodeValue: 'ifc-explode-value', background: 'ifc-background-input', resetClip: 'ifc-reset-clip', clipRanges: 'ifc-clip-ranges',
-  walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair', bimTree: 'ifc-bim-tree'
+  walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair', bimTree: 'ifc-bim-tree', modelNote: 'ifc-model-note'
 });
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
 // Alguns exportadores classificam terreno e pisos como elementos genéricos, e não IfcSlab.
@@ -91,7 +92,9 @@ class IFCViewer {
     this.modelDisposer = new ModelDisposer();
     this.fragmentsPilot = null;
     this.fragmentsPilotPromise = null;
+    this.pendingImportFiles = [];
     this.bindUi();
+    this.renderModelLimitNote();
   }
 
   initDom() {
@@ -104,7 +107,10 @@ class IFCViewer {
   bindUi() {
     this.ui.close.addEventListener('click', () => this.closeViewer());
     this.ui.fullscreen.addEventListener('click', () => this.toggleFullscreen());
-    this.ui.files.addEventListener('change', (event) => this.addFiles(event.target.files));
+    this.ui.files.addEventListener('change', (event) => this.promptImportScope(event.target.files));
+    this.ui.importSameProject.addEventListener('click', () => this.importPendingFiles('same-project'));
+    this.ui.importNewProject.addEventListener('click', () => this.importPendingFiles('new-project'));
+    this.ui.importDialog.addEventListener('close', () => { this.pendingImportFiles = []; });
     this.ui.loadDemo.addEventListener('click', () => this.loadDemo(this.demoKey === 'galpao' ? 'casa-terrea' : 'galpao'));
     this.modal.querySelectorAll('[data-action]').forEach((button) => button.addEventListener('click', () => this.handleAction(button.dataset.action)));
     this.ui.explodeRange.addEventListener('input', (event) => this.setExplodeDistance(Number(event.target.value)));
@@ -162,6 +168,12 @@ class IFCViewer {
     this.wallRaycaster = new THREE.Raycaster(); this.wallRaycaster.firstHitOnly = true;
     new ResizeObserver(() => this.resize()).observe(this.container);
     this.resize(); this.animate();
+  }
+
+  renderModelLimitNote() {
+    this.ui.modelNote.textContent = this.engine === 'fragments'
+      ? 'Os arquivos permanecem somente neste navegador. Até 3 IFCs locais e 8 modelos na sessão.'
+      : 'Os arquivos permanecem somente neste navegador. Máximo: 5 modelos.';
   }
 
   async ensureIfc() {
@@ -334,6 +346,39 @@ class IFCViewer {
       rendererGeometries: this.renderer?.info.memory.geometries ?? 0,
       rendererTextures: this.renderer?.info.memory.textures ?? 0
     };
+  }
+
+  promptImportScope(fileList) {
+    const files = [...(fileList || [])];
+    this.ui.files.value = '';
+    if (!files.length) return;
+    this.pendingImportFiles = files;
+    const displayedNames = files.slice(0, 2).map((file) => file.name).join(' · ');
+    const remaining = files.length > 2 ? ` +${files.length - 2}` : '';
+    this.ui.importFileNames.textContent = `${displayedNames}${remaining}`;
+    if (this.ui.importDialog.open) this.ui.importDialog.close();
+    this.ui.importDialog.showModal();
+  }
+
+  async importPendingFiles(scope) {
+    const files = this.pendingImportFiles;
+    if (!files.length) return;
+    this.ui.importDialog.close();
+    try {
+      if (scope === 'new-project') await this.startNewProject();
+      await this.addFiles(files);
+    } catch (error) {
+      this.showStatus(`Não foi possível preparar o novo projeto: ${error.message}`);
+    }
+  }
+
+  async startNewProject() {
+    if (this.engine === 'fragments') {
+      if (!this.fragmentsPilot) await this.openFragmentsPilot(this.demoKey);
+      await this.fragmentsPilot.startNewProject();
+      return;
+    }
+    await this.removeAllModels();
   }
   async removeModel(id) {
     const model = this.models.get(id);

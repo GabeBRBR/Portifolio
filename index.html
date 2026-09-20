@@ -1021,7 +1021,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <p id="ifc-model-empty" class="ifc-empty-copy">Nenhum modelo carregado.</p>
         <div id="ifc-model-list" class="ifc-model-list"></div>
         <section id="ifc-bim-tree" class="ifc-bim-tree hidden" aria-label="Estrutura BIM"></section>
-        <p class="ifc-panel-note">Os arquivos permanecem somente neste navegador. Máximo: 5 modelos.</p>
+        <p id="ifc-model-note" class="ifc-panel-note">Os arquivos permanecem somente neste navegador.</p>
       </aside>
       <main id="ifc-canvas-container" class="ifc-viewport" aria-label="Área de visualização 3D">
         <div id="ifc-loading-overlay" class="ifc-loading-overlay hidden" aria-live="polite"><div class="ifc-spinner"></div><strong id="ifc-loading-text">Preparando visualizador…</strong><div class="ifc-progress-track"><div id="ifc-progress-bar" class="ifc-progress-bar"></div></div></div>
@@ -1046,6 +1046,25 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <div id="ifc-properties-content" class="ifc-properties-content"><p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p></div>
       </aside>
     </div>
+    <dialog id="ifc-import-scope-dialog" class="ifc-import-dialog" aria-labelledby="ifc-import-scope-title" aria-describedby="ifc-import-scope-copy">
+      <form method="dialog" class="ifc-import-dialog__surface">
+        <p class="ifc-import-dialog__eyebrow">Entrada de IFC</p>
+        <h3 id="ifc-import-scope-title">Como este arquivo se relaciona ao modelo aberto?</h3>
+        <p id="ifc-import-scope-copy">Escolha antes de processar o arquivo. Nada foi carregado ainda.</p>
+        <p id="ifc-import-file-names" class="ifc-import-dialog__files"></p>
+        <div class="ifc-import-dialog__choices">
+          <button id="ifc-import-same-project" class="ifc-import-choice" type="button">
+            <strong>Faz parte do projeto atual</strong>
+            <span>Mantém os modelos abertos e adiciona este IFC à federação.</span>
+          </button>
+          <button id="ifc-import-new-project" class="ifc-import-choice ifc-import-choice--primary" type="button">
+            <strong>É outro projeto</strong>
+            <span>Descarrega os modelos desta sessão, mantém o cache local e enquadra o novo IFC.</span>
+          </button>
+        </div>
+        <button id="ifc-import-cancel" class="ifc-import-cancel" type="submit">Cancelar</button>
+      </form>
+    </dialog>
   </div>
 
   <!-- Floating WhatsApp Action Button -->
