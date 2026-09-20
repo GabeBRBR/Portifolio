@@ -476,10 +476,19 @@ export class FragmentsPilot {
           const supportsWalking = normal.y > 0.45;
           const blocksWalking = Math.abs(normal.y) <= 0.55;
           if (role === 'floor' ? !supportsWalking : !blocksWalking) continue;
-          if (role === 'obstacle' && this.isInsideLocalDoorPortal(a, b, c, doorPortals)) continue;
-          const base = positions.length / 3;
-          positions.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
-          indices.push(base, base + 1, base + 2);
+          const pieces = role === 'obstacle'
+            ? this.subtractDoorPortals([a.clone(), b.clone(), c.clone()], doorPortals)
+            : [[a, b, c]];
+          for (const polygon of pieces) {
+            for (let vertex = 1; vertex + 1 < polygon.length; vertex += 1) {
+              const base = positions.length / 3;
+              const first = polygon[0];
+              const second = polygon[vertex];
+              const third = polygon[vertex + 1];
+              positions.push(first.x, first.y, first.z, second.x, second.y, second.z, third.x, third.y, third.z);
+              indices.push(base, base + 1, base + 2);
+            }
+          }
         }
       }
     }
@@ -487,17 +496,24 @@ export class FragmentsPilot {
   }
 
   async getLocalDoorPortals(model, modelWorldInverse) {
-    const byCategory = await model.getItemsOfCategories([/^IFC(?:DOOR|OPENINGELEMENT)$/i]);
-    const doorIds = [...new Set(Object.values(byCategory).flat())];
+    const [openingsByCategory, doorsByCategory] = await Promise.all([
+      model.getItemsOfCategories([/^IFCOPENINGELEMENT$/i]),
+      model.getItemsOfCategories([/^IFCDOOR$/i])
+    ]);
+    // Prefer IFC openings: they encode the actual void in the wall, while a
+    // door's representation can include its leaf or swing. Older exports that
+    // omit openings still use the door's own dimensions as a narrow fallback.
+    const openingIds = [...new Set(Object.values(openingsByCategory).flat())];
+    const doorIds = openingIds.length ? openingIds : [...new Set(Object.values(doorsByCategory).flat())];
     if (!doorIds.length) return [];
 
     // Ask the Fragments data worker for the bounds of each door. The previous
     // approach hid and re-shown every batched instance to derive these bounds;
     // on dense Revit exports that visibility transaction could never settle.
     const boxes = await model.getBoxes(doorIds);
-    // Door leaves are often flush with a wall. Expand the horizontal opening
-    // enough to cut the leaf, frame and any residual wall face, while keeping
-    // the removal localized to the actual doorway.
+    // Only a 2 cm tolerance is needed to avoid an invisible frame catching
+    // the player. Larger padding made visible door openings much wider than
+    // their IFC representation.
     return boxes
       .filter((bounds) => bounds?.min && bounds?.max)
       // Bounds returned through the Fragments worker preserve `isBox3`, but
@@ -506,20 +522,56 @@ export class FragmentsPilot {
       .map((bounds) => new THREE.Box3(
         new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
         new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.max.z)
-      ).applyMatrix4(modelWorldInverse).expandByVector(new THREE.Vector3(0.16, 0.12, 0.16)));
+      ).applyMatrix4(modelWorldInverse).expandByScalar(0.02));
   }
 
-  isInsideLocalDoorPortal(a, b, c, portals) {
-    if (!portals.length) return false;
-    const minX = Math.min(a.x, b.x, c.x);
-    const minY = Math.min(a.y, b.y, c.y);
-    const minZ = Math.min(a.z, b.z, c.z);
-    const maxX = Math.max(a.x, b.x, c.x);
-    const maxY = Math.max(a.y, b.y, c.y);
-    const maxZ = Math.max(a.z, b.z, c.z);
-    return portals.some((portal) => maxX >= portal.min.x && minX <= portal.max.x
-      && maxY >= portal.min.y && minY <= portal.max.y
-      && maxZ >= portal.min.z && minZ <= portal.max.z);
+  subtractDoorPortals(triangle, portals) {
+    let polygons = [triangle];
+    for (const portal of portals) {
+      polygons = polygons.flatMap((polygon) => this.subtractBoxFromPolygon(polygon, portal));
+      if (!polygons.length) break;
+    }
+    return polygons;
+  }
+
+  subtractBoxFromPolygon(polygon, box) {
+    let remainder = polygon;
+    const outside = [];
+    const planes = [
+      ['x', box.min.x, true], ['x', box.max.x, false],
+      ['y', box.min.y, true], ['y', box.max.y, false],
+      ['z', box.min.z, true], ['z', box.max.z, false]
+    ];
+    for (const [axis, value, keepGreater] of planes) {
+      if (remainder.length < 3) break;
+      const inside = this.clipPolygonToHalfSpace(remainder, axis, value, keepGreater);
+      const rejected = this.clipPolygonToHalfSpace(remainder, axis, value, !keepGreater);
+      if (rejected.length >= 3) outside.push(rejected);
+      remainder = inside;
+    }
+    // `remainder` is inside every plane, therefore inside the portal and is
+    // intentionally discarded. Everything in `outside` keeps the source
+    // face's exact curvature and only loses the aperture itself.
+    return outside;
+  }
+
+  clipPolygonToHalfSpace(polygon, axis, value, keepGreater) {
+    const result = [];
+    const epsilon = 1e-7;
+    for (let index = 0; index < polygon.length; index += 1) {
+      const current = polygon[index];
+      const next = polygon[(index + 1) % polygon.length];
+      const currentDistance = current[axis] - value;
+      const nextDistance = next[axis] - value;
+      const currentInside = keepGreater ? currentDistance >= -epsilon : currentDistance <= epsilon;
+      const nextInside = keepGreater ? nextDistance >= -epsilon : nextDistance <= epsilon;
+      if (currentInside) result.push(current);
+      if (currentInside !== nextInside) {
+        const fraction = currentDistance / (currentDistance - nextDistance);
+        result.push(current.clone().lerp(next, fraction));
+      }
+    }
+    return result;
   }
 
   createLocalBoundsFloor(model, modelWorldInverse = new THREE.Matrix4().copy(model.object.matrixWorld).invert()) {
