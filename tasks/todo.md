@@ -1,8 +1,8 @@
-# Fase 10 Qualidade Grafica Adaptativa
+# Fase 11 Validacao Final e Legado
 
-- [x] Fase 9 concluida: upload local, cache IndexedDB, progresso e colisor geometrico do Fragments publicados.
-- [x] Perfis Alto, Equilibrado e Desempenho no motor Fragments.
-- [x] Reducao automatica durante movimento ou frame time alto.
-- [x] Restauracao gradual quando a camera permanecer parada.
-- [x] Escolha manual persistente no viewer.
-- [x] Build concluido; validacao visual em modo de depuracao pendente.
+- [x] Inventario de paridade concluido.
+- [ ] Fundo no Fragments.
+- [ ] Explosao no Fragments.
+- [ ] Cortes no Fragments.
+- [ ] Matriz de regressao aprovada pelo usuario.
+- [ ] Remocao segura do legado e documentacao final.
