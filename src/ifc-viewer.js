@@ -102,6 +102,7 @@ class IFCViewer {
     this.modal = this.ui.modal; this.container = this.ui.canvas; this.list = this.ui.modelList; this.empty = this.ui.modelEmpty;
     this.loading = this.ui.loading; this.loadingText = this.ui.loadingText; this.progress = this.ui.progress; this.status = this.ui.status;
     this.properties = this.ui.properties; this.search = this.ui.propertySearch; this.walkHelp = this.ui.walkHelp; this.walkCrosshair = this.ui.walkCrosshair;
+    this.ui.background.value = this.background;
   }
 
   bindUi() {
@@ -412,6 +413,7 @@ class IFCViewer {
       if (action === 'orbit') return this.fragmentsPilot?.exitWalk();
       if (action === 'walk') return this.fragmentsPilot?.startWalkPlacement();
       if (action === 'quality') return this.togglePanel('ifc-quality-panel');
+      if (action === 'background') return this.togglePanel('ifc-background-panel');
       return this.showStatus('Este recurso continua no motor padrão e será migrado nas próximas fases do plano.');
     }
     if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel');
@@ -433,6 +435,7 @@ class IFCViewer {
           onWalkDebug: (message) => { this.fragmentsWalkDebug = message; }
         });
         this.ui.qualitySelect.value = this.fragmentsPilot.getQualityProfile();
+        this.fragmentsPilot.setBackground(this.background);
         return this.fragmentsPilot;
       });
     }
@@ -588,7 +591,7 @@ class IFCViewer {
   }
   renderClipControls() { const root = this.ui.clipRanges; root.innerHTML = ''; if (!this.clipBox) return; const min = Math.min(this.clipBox.minX, this.clipBox.minY, this.clipBox.minZ); const max = Math.max(this.clipBox.maxX, this.clipBox.maxY, this.clipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${this.clipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${this.clipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { this.clipBox[key] = Number(event.target.value); row.querySelector('output').textContent = `${this.clipBox[key].toFixed(2)} m`; this.applyClipBox(); }); root.append(row); }); }
   setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
-  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); this.scene?.background.set(color); this.ui.background.value = color; this.requestRender(); }
+  setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); if (this.engine === 'fragments') this.fragmentsPilot?.setBackground(color); else this.scene?.background.set(color); this.ui.background.value = color; this.requestRender(); }
 
   onKey(event, down) {
     if (this.mode !== 'walk') return;

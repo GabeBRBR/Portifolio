@@ -42,6 +42,7 @@ export class FragmentsPilot {
     this.modelRecords = new Map();
     this.fragmentCache = new FragmentCache();
     this.ifcLoader = null;
+    this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
     this.collisionDebugEnabled = new URLSearchParams(window.location.search).has('ifcDebug');
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
@@ -93,7 +94,7 @@ export class FragmentsPilot {
     this.world = worlds.create();
     this.world.scene = new OBC.SimpleScene(this.components);
     this.world.scene.setup();
-    this.world.scene.three.background = null;
+    this.world.scene.three.background = new THREE.Color(this.background);
     this.world.renderer = new OBC.SimpleRenderer(this.components, this.container, {
       antialias: true,
       powerPreference: 'default',
@@ -265,6 +266,14 @@ export class FragmentsPilot {
 
   getQualityProfile() {
     return this.quality.profile;
+  }
+
+  setBackground(color) {
+    if (!color) return;
+    this.background = color;
+    localStorage.setItem('ifc-background', color);
+    if (this.world?.scene?.three) this.world.scene.three.background = new THREE.Color(color);
+    if (this.world?.renderer) this.world.renderer.needsUpdate = true;
   }
 
   async setQualityProfile(profile) {
