@@ -240,13 +240,51 @@ export class FragmentsPilot {
       }
     }
     this.setLoading(false);
-    this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
-    this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    this.renderModels(this.getProjectLabel());
+    this.renderTree(this.getProjectLabel());
     if (imported) await this.fit();
     if (failures.length) {
       const prefix = imported ? `${imported} IFC(s) aberto(s). ` : 'Nenhum IFC foi aberto. ';
       this.showStatus(`${prefix}${failures.join(' · ')}.`);
     }
+  }
+
+  getProjectLabel() {
+    if (this.loadedWork === 'galpao') return 'Galpão Industrial';
+    if (this.loadedWork === 'casa-terrea') return 'Casa Térrea';
+    return 'Projeto local';
+  }
+
+  async startNewProject() {
+    if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    await this.clearSelection();
+    for (const modelId of [...this.fragments.list.keys()]) {
+      await this.fragments.core.disposeModel(modelId);
+      this.fragments.core.models.list.delete(modelId);
+    }
+    this.fragments.core.baseCoordinates = null;
+    this.fragments.baseCoordinationModel = '';
+    this.fragments.baseCoordinationMatrix = new THREE.Matrix4();
+    this.modelRecords.clear();
+    this.disposeColliderMesh(this.floorCollider);
+    this.disposeColliderMesh(this.obstacleCollider);
+    this.floorCollider = null;
+    this.obstacleCollider = null;
+    this.collisionBounds.makeEmpty();
+    this.walk.hasSafeFeet = false;
+    this.walk.feet.set(0, 0, 0);
+    this.walk.spawnFeet.set(0, 0, 0);
+    this.walk.lastFloorY = null;
+    this.lastCollisionContact = null;
+    this.collisionAlignmentDebug = '';
+    this.loadedWork = null;
+    this.list.innerHTML = '';
+    this.empty.classList.remove('hidden');
+    this.tree.replaceChildren();
+    this.tree.classList.add('hidden');
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
+    this.showStatus('Modelos descarregados desta sessão. O cache local de Fragments foi preservado.');
   }
 
   async addLocalIfc(file, index, total) {
@@ -258,6 +296,7 @@ export class FragmentsPilot {
     const modelId = `local-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${index}`}`;
     const cached = hash ? await this.tryGetCachedFragment(hash) : null;
     let model;
+    let fragmentBytes = cached?.buffer?.byteLength || 0;
 
     if (cached?.buffer) {
       this.setLoading(true, `Abrindo ${file.name} do cache local…`, Math.round(((index + 0.65) / total) * 100));
@@ -277,9 +316,14 @@ export class FragmentsPilot {
           }
         }
       });
-      // Caching is intentionally best-effort: quota/private-mode failures must
-      // not turn a successfully converted local IFC into a failed import.
-      if (hash) void this.cacheFragment(hash, file, model);
+      // Cache only the compact Fragment, never the original IFC. Getting the
+      // buffer here also lets the model panel report the real optimized size
+      // before the best-effort IndexedDB write completes.
+      if (hash) {
+        const fragmentBuffer = await model.getBuffer(false);
+        fragmentBytes = fragmentBuffer.byteLength;
+        void this.cacheFragment(hash, file, fragmentBuffer);
+      }
     }
 
     if (!model || !this.fragments.list.has(modelId)) throw new Error('o conversor não registrou um modelo visualizável');
@@ -301,7 +345,8 @@ export class FragmentsPilot {
       name: file.name,
       source: 'local',
       size: file.size,
-      fragmentBytes: cached?.buffer?.byteLength || 0,
+      fragmentBytes,
+      cacheState: cached ? 'cache' : 'converted',
       visible: true,
       colliderData: await this.createLocalCollisionData(model),
       cacheHash: hash
@@ -333,9 +378,8 @@ export class FragmentsPilot {
     }
   }
 
-  async cacheFragment(hash, file, model) {
+  async cacheFragment(hash, file, buffer) {
     try {
-      const buffer = await model.getBuffer(false);
       await this.fragmentCache.put({ hash, buffer, name: file.name, sourceBytes: file.size, fragmentBytes: buffer.byteLength, createdAt: Date.now() });
     } catch (error) {
       console.warn('Não foi possível salvar o Fragment no cache local:', error);
@@ -472,7 +516,7 @@ export class FragmentsPilot {
       .map((bounds) => new THREE.Box3(
         new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
         new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.max.z)
-      ).applyMatrix4(modelWorldInverse).expand(new THREE.Vector3(0.16, 0.12, 0.16)));
+      ).applyMatrix4(modelWorldInverse).expandByVector(new THREE.Vector3(0.16, 0.12, 0.16)));
   }
 
   isInsideLocalDoorPortal(a, b, c, portals) {
@@ -564,7 +608,7 @@ export class FragmentsPilot {
       const row = document.createElement('div');
       row.className = 'ifc-model-row';
       const label = record.source === 'local'
-        ? `${this.escape(record.name)} · IFC local · ${(record.size / 1024 ** 2).toFixed(1)} MB`
+        ? `${this.escape(record.name)} · IFC local · ${(record.size / 1024 ** 2).toFixed(1)} MB · Fragment ${(record.fragmentBytes / 1024).toFixed(0)} KB · ${record.cacheState === 'cache' ? 'reaberto do cache' : 'convertido agora'}`
         : `Fragments · ${(record.fragmentBytes / 1024).toFixed(0)} KB`;
       const remove = record.source === 'local' ? '<button class="ifc-model-remove" type="button" aria-label="Remover IFC local">🗑</button>' : '';
       row.innerHTML = `<input type="checkbox" ${record.visible ? 'checked' : ''} aria-label="Mostrar ${this.escape(record.discipline)}"><div><strong>${this.escape(record.discipline)}</strong><small>${label}</small><button class="ifc-model-isolate" type="button">Isolar disciplina</button></div>${remove}`;
@@ -603,7 +647,7 @@ export class FragmentsPilot {
       const model = this.fragments.list.get(id);
       if (model) model.object.visible = visible;
     });
-    this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    this.renderModels(this.getProjectLabel());
     await this.clearSelection();
     this.buildCollisionProxy();
     this.fragments.core.update(true);
@@ -618,8 +662,8 @@ export class FragmentsPilot {
     this.modelRecords.delete(modelId);
     this.buildCollisionProxy();
     await this.clearSelection();
-    this.renderModels(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
-    this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    this.renderModels(this.getProjectLabel());
+    this.renderTree(this.getProjectLabel());
     await this.fit();
     this.showStatus(`${record.name} foi removido desta sessão. O IFC original nunca foi salvo; o cache otimizado local permanece para reabertura rápida.`);
   }
@@ -1338,7 +1382,7 @@ export class FragmentsPilot {
       if (!identity['Classe IFC'] && identity.Entity) identity['Classe IFC'] = identity.Entity;
       const psets = Object.fromEntries(propertyRows.map(({ key, value }) => [key, value]));
       this.properties.innerHTML = this.renderPropertyGroups({ Identificação: identity, Atributos: details, 'Property Sets e quantidades': psets });
-      this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea', { type: identity.Entity || identity['Classe IFC'], name: identity.Name });
+      this.renderTree(this.getProjectLabel(), { type: identity.Entity || identity['Classe IFC'], name: identity.Name });
       this.filterProperties();
     } catch (error) {
       this.properties.innerHTML = `<p class="ifc-empty-copy">Não foi possível obter as propriedades: ${this.escape(error.message)}</p>`;
@@ -1378,7 +1422,7 @@ export class FragmentsPilot {
     if (!this.properties) return;
     this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>';
     if (this.search) this.search.value = '';
-    this.renderTree(this.loadedWork === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea');
+    this.renderTree(this.getProjectLabel());
   }
 
   async clearSelection() {
