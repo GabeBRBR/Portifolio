@@ -11,7 +11,6 @@ const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 const MAX_LOCAL_MODELS = 3;
 const MAX_TOTAL_MODELS = 8;
 const MAX_LOCAL_FILE_BYTES = 200 * 1024 ** 2;
-const MAX_LOCAL_COLLISION_TRIANGLES = 150000;
 // `IfcImporter` appends `web-ifc.wasm` to this directory. copy-assets.mjs
 // deliberately publishes that filename under a stable Vite-base-aware path.
 const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
@@ -339,6 +338,7 @@ export class FragmentsPilot {
     await new Promise((resolve) => requestAnimationFrame(resolve));
     model.object.updateWorldMatrix(true, true);
     this.setLoading(true, `Preparando colisões de ${file.name}…`, Math.round(((index + 0.92) / total) * 100));
+    const colliderData = await this.createLocalCollisionData(model);
     this.modelRecords.set(modelId, {
       id: modelId,
       discipline: file.name,
@@ -348,12 +348,15 @@ export class FragmentsPilot {
       fragmentBytes,
       cacheState: cached ? 'cache' : 'converted',
       visible: true,
-      colliderData: await this.createLocalCollisionData(model),
+      colliderData,
       cacheHash: hash
     });
     this.buildCollisionProxy();
     this.world.renderer.needsUpdate = true;
-    this.showStatus(`${file.name} foi convertido localmente${cached ? ' a partir do cache' : ''}. Nenhum arquivo foi enviado ao servidor.`);
+    const collisionNote = colliderData.partial
+      ? ' O colisor foi preparado parcialmente; faltaram superfícies IFC classificadas como piso.'
+      : '';
+    this.showStatus(`${file.name} foi convertido localmente${cached ? ' a partir do cache' : ''}. Nenhum arquivo foi enviado ao servidor.${collisionNote}`);
   }
 
   async ensureIfcLoader() {
@@ -398,106 +401,93 @@ export class FragmentsPilot {
   }
 
   async createLocalCollisionData(model) {
-    // Hosted models have a compact collider generated during the build. For a
-    // user-selected IFC we create an equivalent, decimated proxy once at load
-    // time. It is never rebuilt by the walking loop.
+    // Hosted models keep their pre-built colliders. Local IFCs must not sample
+    // the BatchedMesh used by the renderer: its GPU-oriented ranges can differ
+    // from the source representation after an import. The Fragments worker
+    // returns each IFC item's original mesh and its own transform instead.
     model.object.updateWorldMatrix(true, true);
-    // Collision data is always stored in the model's own coordinate space.
-    // Fragments may later translate model.object to federate IFCs, so baking
-    // that root transform here would make a local collider differ from an
-    // optimized collider loaded from disk.
     const modelWorldInverse = new THREE.Matrix4().copy(model.object.matrixWorld).invert();
-    const doorPortals = await this.getLocalDoorPortals(model, modelWorldInverse);
-    const excludedIds = await this.getLocalCollisionExcludedIds(model);
-    // A local IFC may export furniture, finishes and even rugs as generic
-    // building elements. Collision must be opt-in: temporarily retain only
-    // navigable construction categories while sampling the static proxy.
-    // Otherwise a thin object's vertical faces become an invisible wall.
-    if (excludedIds.length) {
-      await model.setVisible(excludedIds, false);
-      await this.fragments.core.update(true);
-    }
-    try {
-      let triangleCount = 0;
-      this.forEachLocalCollisionSource(model, ({ count }) => {
-        triangleCount += Math.floor(count / 3);
-      });
-      if (!triangleCount) return this.createLocalBoundsFloor(model);
-
-      const stride = Math.max(1, Math.ceil(triangleCount / MAX_LOCAL_COLLISION_TRIANGLES));
-      const maxVertices = Math.min(triangleCount, MAX_LOCAL_COLLISION_TRIANGLES) * 3;
-      const floors = new Float32Array(maxVertices * 3);
-      const obstacles = new Float32Array(maxVertices * 3);
-      let floorValues = 0;
-      let obstacleValues = 0;
-      const a = new THREE.Vector3();
-      const b = new THREE.Vector3();
-      const c = new THREE.Vector3();
-      const normal = new THREE.Vector3();
-
-      this.forEachLocalCollisionSource(model, ({ position, index, start, count, matrixWorld }) => {
-        for (let offset = 0; offset + 2 < count; offset += 3 * stride) {
-          const vertexOffset = start + offset;
-          const ia = index ? index.getX(vertexOffset) : vertexOffset;
-          const ib = index ? index.getX(vertexOffset + 1) : vertexOffset + 1;
-          const ic = index ? index.getX(vertexOffset + 2) : vertexOffset + 2;
-          a.fromBufferAttribute(position, ia).applyMatrix4(matrixWorld).applyMatrix4(modelWorldInverse);
-          b.fromBufferAttribute(position, ib).applyMatrix4(matrixWorld).applyMatrix4(modelWorldInverse);
-          c.fromBufferAttribute(position, ic).applyMatrix4(matrixWorld).applyMatrix4(modelWorldInverse);
-          // Some IFC exporters leave a wall face across an IFCDOOR opening.
-          // Carve only the door's expanded bounding portal from the navigation
-          // mesh so that a visual door is always a route for the player.
-          if (this.isInsideLocalDoorPortal(a, b, c, doorPortals)) continue;
-          normal.subVectors(b, a).cross(this.walkVectors.next.subVectors(c, a));
-          if (normal.lengthSq() < 1e-10) continue;
-          normal.normalize();
-          // Horizontal faces support the player even when the authoring tool
-          // exported their winding downward. Reversing the two last vertices
-          // gives floor raycasts a consistent upward-facing normal.
-          const isFloor = Math.abs(normal.y) > 0.45;
-          const target = isFloor ? floors : obstacles;
-          let write = isFloor ? floorValues : obstacleValues;
-          if (write + 9 > target.length) continue;
-          if (isFloor && normal.y < 0) target.set([a.x, a.y, a.z, c.x, c.y, c.z, b.x, b.y, b.z], write);
-          else target.set([a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z], write);
-          if (isFloor) floorValues += 9; else obstacleValues += 9;
-        }
-      });
-      const makeSource = (positions, length) => {
-        const compact = positions.slice(0, length);
-        const indices = new Uint32Array(compact.length / 3);
-        for (let index = 0; index < indices.length; index += 1) indices[index] = index;
-        return { positions: compact, indices };
-      };
-      const fallback = floorValues ? null : this.createLocalBoundsFloor(model, modelWorldInverse);
-      return {
-        coordinateSpace: 'model-local',
-        floors: floorValues ? makeSource(floors, floorValues) : fallback.floors,
-        obstacles: makeSource(obstacles, obstacleValues)
-      };
-    } finally {
-      if (excludedIds.length) {
-        await model.setVisible(excludedIds, true);
-        await this.hideSpaces(model);
-        await this.fragments.core.update(true);
+    const [doorPortals, floorIds, obstacleIds] = await Promise.all([
+      this.getLocalDoorPortals(model, modelWorldInverse),
+      this.getLocalCollisionCategoryIds(model, [/^IFC(?:SLAB|COVERING|STAIR(?:FLIGHT)?|RAMP|FOOTING|PAVEMENT|BUILDINGELEMENTPROXY)$/i]),
+      this.getLocalCollisionCategoryIds(model, [/^IFC(?:WALL(?:STANDARDCASE)?|COLUMN|BEAM|CURTAINWALL)$/i])
+    ]);
+    const [floors, obstacles] = await Promise.all([
+      this.extractLocalCollisionRole(model, floorIds, 'floor', doorPortals),
+      this.extractLocalCollisionRole(model, obstacleIds, 'obstacle', doorPortals)
+    ]);
+    // A thin footprint is preferable to a missing walking surface, but it is
+    // deliberately only a last-resort floor and never creates box obstacles.
+    const fallback = floors.positions.length ? null : this.createLocalBoundsFloor(model, modelWorldInverse);
+    return {
+      coordinateSpace: 'model-local',
+      floors: floors.positions.length ? floors : fallback.floors,
+      obstacles,
+      partial: !floors.positions.length,
+      debug: {
+        floorItems: floorIds.length,
+        obstacleItems: obstacleIds.length,
+        floorTriangles: floors.indices.length / 3,
+        obstacleTriangles: obstacles.indices.length / 3,
+        doorPortals: doorPortals.length
       }
-    }
+    };
   }
 
-  async getLocalCollisionExcludedIds(model) {
-    // Local imports have no precomputed collider with per-item metadata. Use
-    // a conservative allow-list of construction classes instead of attempting
-    // to infer physicality from generic Revit families. In particular, do not
-    // include IFCBUILDINGELEMENTPROXY or IFCMEMBER: the CREA IFC uses
-    // those classes for a rug, appliances, TV, roof tiles and ceiling framing.
-    const solid = '(?:IFCWALL(?:STANDARDCASE)?|IFCCOLUMN|IFCBEAM|IFCCURTAINWALL|IFCSLAB|IFCSTAIR(?:FLIGHT)?|IFCRAMP|IFCFOOTING|IFCPAVEMENT)';
-    const nonSolidCategory = new RegExp(`^IFC(?!${solid}$).+`, 'i');
-    const byCategory = await model.getItemsOfCategories([nonSolidCategory]);
+  async getLocalCollisionCategoryIds(model, categories) {
+    const byCategory = await model.getItemsOfCategories(categories);
     return [...new Set(Object.values(byCategory).flat())];
   }
 
+  async extractLocalCollisionRole(model, localIds, role, doorPortals) {
+    if (!localIds.length) return this.emptyCollisionSource();
+    let meshGroups;
+    try {
+      meshGroups = await model.getItemsGeometry(localIds);
+    } catch (error) {
+      console.warn(`Não foi possível extrair a geometria IFC de ${role}:`, error);
+      return this.emptyCollisionSource();
+    }
+    const positions = [];
+    const indices = [];
+    const a = new THREE.Vector3();
+    const b = new THREE.Vector3();
+    const c = new THREE.Vector3();
+    const normal = new THREE.Vector3();
+    for (const meshes of meshGroups || []) {
+      for (const mesh of meshes || []) {
+        if (!mesh.positions?.length || !mesh.transform) continue;
+        const transform = mesh.transform.isMatrix4
+          ? mesh.transform
+          : new THREE.Matrix4().fromArray(mesh.transform.elements || mesh.transform);
+        const sourceIndices = mesh.indices || null;
+        const sourceCount = sourceIndices?.length || Math.floor(mesh.positions.length / 3);
+        for (let offset = 0; offset + 2 < sourceCount; offset += 3) {
+          const ia = sourceIndices ? sourceIndices[offset] : offset;
+          const ib = sourceIndices ? sourceIndices[offset + 1] : offset + 1;
+          const ic = sourceIndices ? sourceIndices[offset + 2] : offset + 2;
+          if (ia == null || ib == null || ic == null) continue;
+          a.fromArray(mesh.positions, ia * 3).applyMatrix4(transform);
+          b.fromArray(mesh.positions, ib * 3).applyMatrix4(transform);
+          c.fromArray(mesh.positions, ic * 3).applyMatrix4(transform);
+          normal.subVectors(b, a).cross(this.walkVectors.next.subVectors(c, a));
+          if (normal.lengthSq() < 1e-10) continue;
+          normal.normalize();
+          const supportsWalking = normal.y > 0.45;
+          const blocksWalking = Math.abs(normal.y) <= 0.55;
+          if (role === 'floor' ? !supportsWalking : !blocksWalking) continue;
+          if (role === 'obstacle' && this.isInsideLocalDoorPortal(a, b, c, doorPortals)) continue;
+          const base = positions.length / 3;
+          positions.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+          indices.push(base, base + 1, base + 2);
+        }
+      }
+    }
+    return { positions: new Float32Array(positions), indices: new Uint32Array(indices) };
+  }
+
   async getLocalDoorPortals(model, modelWorldInverse) {
-    const byCategory = await model.getItemsOfCategories([/^IFCDOOR$/i]);
+    const byCategory = await model.getItemsOfCategories([/^IFC(?:DOOR|OPENINGELEMENT)$/i]);
     const doorIds = [...new Set(Object.values(byCategory).flat())];
     if (!doorIds.length) return [];
 
@@ -509,7 +499,7 @@ export class FragmentsPilot {
     // enough to cut the leaf, frame and any residual wall face, while keeping
     // the removal localized to the actual doorway.
     return boxes
-      .filter((bounds) => bounds?.isBox3 && !bounds.isEmpty())
+      .filter((bounds) => bounds?.min && bounds?.max)
       // Bounds returned through the Fragments worker preserve `isBox3`, but
       // are plain structured-clone objects in some browser/worker versions.
       // Rebuild a native Box3 instead of calling its prototype's `clone`.
@@ -530,56 +520,6 @@ export class FragmentsPilot {
     return portals.some((portal) => maxX >= portal.min.x && minX <= portal.max.x
       && maxY >= portal.min.y && minY <= portal.max.y
       && maxZ >= portal.min.z && minZ <= portal.max.z);
-  }
-
-  forEachLocalCollisionSource(model, callback) {
-    // Fragments render most IFC elements through THREE.BatchedMesh. Its shared
-    // vertex buffer stores every shape at local coordinates while every element
-    // has its own instance matrix. Sampling only object.matrixWorld made local
-    // IFCSLAB floors generate a collider at the wrong place. Include those
-    // per-instance matrices (and InstancedMesh for compatibility) here.
-    model.object.traverse((object) => {
-      const geometry = object.geometry;
-      const position = geometry?.getAttribute?.('position');
-      if (!position?.count) return;
-      const index = geometry.index;
-      const fullCount = index ? index.count : position.count;
-      if (fullCount < 3) return;
-
-      if (object.isBatchedMesh && typeof object.getGeometryRangeAt === 'function') {
-        const instanceCount = Array.isArray(object._instanceInfo) ? object._instanceInfo.length : object.instanceCount;
-        const instanceMatrix = new THREE.Matrix4();
-        const worldMatrix = new THREE.Matrix4();
-        const range = {};
-        for (let instanceId = 0; instanceId < instanceCount; instanceId += 1) {
-          // Removed batch slots are retained internally but must not become
-          // invisible collision walls or floors.
-          if (object._instanceInfo?.[instanceId]?.active === false) continue;
-          if (typeof object.getVisibleAt === 'function' && !object.getVisibleAt(instanceId)) continue;
-          const geometryId = object.getGeometryIdAt(instanceId);
-          object.getGeometryRangeAt(geometryId, range);
-          const count = index ? range.indexCount : range.vertexCount;
-          if (count < 3) continue;
-          object.getMatrixAt(instanceId, instanceMatrix);
-          worldMatrix.copy(object.matrixWorld).multiply(instanceMatrix);
-          callback({ position, index, start: index ? range.indexStart : range.vertexStart, count, matrixWorld: worldMatrix });
-        }
-        return;
-      }
-
-      if (object.isInstancedMesh && typeof object.getMatrixAt === 'function') {
-        const instanceMatrix = new THREE.Matrix4();
-        const worldMatrix = new THREE.Matrix4();
-        for (let instanceId = 0; instanceId < object.count; instanceId += 1) {
-          object.getMatrixAt(instanceId, instanceMatrix);
-          worldMatrix.copy(object.matrixWorld).multiply(instanceMatrix);
-          callback({ position, index, start: 0, count: fullCount, matrixWorld: worldMatrix });
-        }
-        return;
-      }
-
-      callback({ position, index, start: 0, count: fullCount, matrixWorld: object.matrixWorld });
-    });
   }
 
   createLocalBoundsFloor(model, modelWorldInverse = new THREE.Matrix4().copy(model.object.matrixWorld).invert()) {
@@ -759,7 +699,7 @@ export class FragmentsPilot {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     geometry.computeBoundingBox();
-    geometry.boundsTree = new MeshBVH(geometry, { maxLeafTris: 24, setBoundingBox: false });
+    geometry.boundsTree = new MeshBVH(geometry, { targetLeafSize: 24, setBoundingBox: false });
     const material = new THREE.MeshBasicMaterial({
       color: role === 'obstacles' ? '#ef4444' : '#f59e0b', side: THREE.DoubleSide,
       transparent: true, opacity: 0.24, depthWrite: false
@@ -792,7 +732,12 @@ export class FragmentsPilot {
       const centerDelta = collisionCenter.distanceTo(visualCenter);
       const applied = modelRanges[0].collisionToWorld.elements;
       const state = centerDelta > 1.2 ? 'deslocado' : 'alinhado';
-      messages.push(`${record.discipline || record.name}: Δcentro ${centerDelta.toFixed(2)} m (${state}) · translação ${applied[12].toFixed(2)}, ${applied[13].toFixed(2)}, ${applied[14].toFixed(2)}`);
+      const stats = record.colliderData?.debug;
+      const coverage = stats
+        ? ` · ${stats.floorTriangles} triângulos de piso, ${stats.obstacleTriangles} de obstáculo · ${stats.doorPortals} vão(ãos)`
+        : '';
+      const partial = record.colliderData?.partial ? ' · cobertura parcial' : '';
+      messages.push(`${record.discipline || record.name}: Δcentro ${centerDelta.toFixed(2)} m (${state}) · translação ${applied[12].toFixed(2)}, ${applied[13].toFixed(2)}, ${applied[14].toFixed(2)}${coverage}${partial}`);
     }
     this.collisionAlignmentDebug = messages.join('\n');
   }
