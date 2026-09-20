@@ -11,6 +11,12 @@ const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 const MAX_LOCAL_MODELS = 3;
 const MAX_TOTAL_MODELS = 8;
 const MAX_LOCAL_FILE_BYTES = 200 * 1024 ** 2;
+const QUALITY_STORAGE_KEY = 'ifc-fragments-quality-profile';
+const QUALITY_PROFILES = Object.freeze({
+  high: { label: 'Alto', pixelRatio: 1.25, movingPixelRatio: 1, updateRate: 40, lod: LodMode.ALL_GEOMETRY },
+  balanced: { label: 'Equilibrado', pixelRatio: 1, movingPixelRatio: 0.8, updateRate: 60, lod: LodMode.DEFAULT },
+  performance: { label: 'Desempenho', pixelRatio: 0.75, movingPixelRatio: 0.65, updateRate: 90, lod: LodMode.DEFAULT }
+});
 // `IfcImporter` appends `web-ifc.wasm` to this directory. copy-assets.mjs
 // deliberately publishes that filename under a stable Vite-base-aware path.
 const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
@@ -40,6 +46,12 @@ export class FragmentsPilot {
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
     this.collisionBounds = new THREE.Box3();
+    const savedProfile = localStorage.getItem(QUALITY_STORAGE_KEY);
+    this.quality = {
+      profile: QUALITY_PROFILES[savedProfile] ? savedProfile : 'balanced',
+      adaptiveStep: 0, averageFrameMs: 16.7, lastFrameAt: performance.now(),
+      lastCameraMotionAt: 0, lastAdjustmentAt: 0, appliedLod: null, appliedUpdateRate: null
+    };
     // The player is intentionally independent from the camera. CameraControls
     // owns the orbit camera, while PointerLockControls owns only its rotation.
     // Keeping a feet position here prevents either control from restoring an
@@ -93,7 +105,7 @@ export class FragmentsPilot {
     this.world.renderer.showLogo = false;
     this.world.renderer.mode = OBC.RendererMode.MANUAL;
     this.world.renderer.three.shadowMap.enabled = false;
-    this.world.renderer.three.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
+    this.applyQuality(true);
     this.world.camera = new OBC.OrthoPerspectiveCamera(this.components);
     this.components.init();
     // The default far plane is intentionally conservative for small BIM
@@ -125,6 +137,7 @@ export class FragmentsPilot {
     // when a player turns quickly. 40 ms stays below 25 updates/s while
     // letting the worker prefetch the player's forward view.
     this.fragments.core.settings.maxUpdateRate = 40;
+    this.applyQuality(true);
     this.highlighter = this.components.get(OBCF.Highlighter);
     this.highlighter.setup({
       world: this.world,
@@ -140,6 +153,8 @@ export class FragmentsPilot {
       this.world.renderer.needsUpdate = true;
     });
     this.world.camera.controls.addEventListener('update', () => {
+      this.quality.lastCameraMotionAt = performance.now();
+      this.applyQuality();
       this.fragments.core.update();
       this.world.renderer.needsUpdate = true;
     });
@@ -246,6 +261,67 @@ export class FragmentsPilot {
       const prefix = imported ? `${imported} IFC(s) aberto(s). ` : 'Nenhum IFC foi aberto. ';
       this.showStatus(`${prefix}${failures.join(' · ')}.`);
     }
+  }
+
+  getQualityProfile() {
+    return this.quality.profile;
+  }
+
+  async setQualityProfile(profile) {
+    if (!QUALITY_PROFILES[profile]) return;
+    this.quality.profile = profile;
+    this.quality.adaptiveStep = 0;
+    this.quality.lastAdjustmentAt = performance.now();
+    localStorage.setItem(QUALITY_STORAGE_KEY, profile);
+    this.applyQuality(true);
+    this.showStatus(`Qualidade ${QUALITY_PROFILES[profile].label} selecionada. A proteção automática continua disponível durante movimentos pesados.`);
+  }
+
+  applyQuality(force = false) {
+    if (!this.world?.renderer) return;
+    const profile = QUALITY_PROFILES[this.quality.profile];
+    const now = performance.now();
+    const moving = this.walk.mode === 'walk' || now - this.quality.lastCameraMotionAt < 320;
+    const safetyFactor = this.quality.adaptiveStep ? 0.8 : 1;
+    const deviceRatio = window.devicePixelRatio || 1;
+    const targetRatio = Math.min(deviceRatio, (moving ? profile.movingPixelRatio : profile.pixelRatio) * safetyFactor);
+    const renderer = this.world.renderer.three;
+    if (force || Math.abs(renderer.getPixelRatio() - targetRatio) > 0.01) {
+      renderer.setPixelRatio(targetRatio);
+      this.world.renderer.needsUpdate = true;
+    }
+    if (!this.fragments) return;
+    const updateRate = Math.round(profile.updateRate + this.quality.adaptiveStep * 25);
+    if (this.quality.appliedUpdateRate !== updateRate) {
+      this.fragments.core.settings.maxUpdateRate = updateRate;
+      this.quality.appliedUpdateRate = updateRate;
+    }
+    if (this.walk.mode === 'walk') return;
+    const lod = this.quality.adaptiveStep ? LodMode.DEFAULT : profile.lod;
+    if (!force && this.quality.appliedLod === lod) return;
+    this.quality.appliedLod = lod;
+    const updates = [];
+    this.modelRecords.forEach((record, id) => {
+      if (!record.visible) return;
+      const model = this.fragments.list.get(id);
+      if (model) updates.push(model.setLodMode(lod));
+    });
+    if (updates.length) void Promise.allSettled(updates);
+  }
+
+  updateAdaptiveQuality(now) {
+    const frameMs = Math.min(120, Math.max(0, now - this.quality.lastFrameAt));
+    this.quality.lastFrameAt = now;
+    this.quality.averageFrameMs += (frameMs - this.quality.averageFrameMs) * 0.08;
+    if (now - this.quality.lastAdjustmentAt < 1200) return;
+    const moving = this.walk.mode === 'walk' || now - this.quality.lastCameraMotionAt < 320;
+    if (moving && this.quality.averageFrameMs > 28 && this.quality.adaptiveStep === 0) {
+      this.quality.adaptiveStep = 1;
+    } else if (!moving && this.quality.averageFrameMs < 19 && this.quality.adaptiveStep === 1) {
+      this.quality.adaptiveStep = 0;
+    } else return;
+    this.quality.lastAdjustmentAt = now;
+    this.applyQuality(true);
   }
 
   getProjectLabel() {
@@ -1279,6 +1355,7 @@ export class FragmentsPilot {
     const now = performance.now();
     const delta = Math.min(0.1, (now - this.walk.lastFrame) / 1000);
     this.walk.lastFrame = now;
+    this.updateAdaptiveQuality(now);
     this.updateWalk(delta);
   }
 
