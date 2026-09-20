@@ -1,7 +1,7 @@
 # Fase 11 Validacao Final e Legado
 
 - [x] Inventario de paridade concluido.
-- [ ] Fundo no Fragments.
+- [x] Fundo no Fragments.
 - [ ] Explosao no Fragments.
 - [ ] Cortes no Fragments.
 - [ ] Matriz de regressao aprovada pelo usuario.
