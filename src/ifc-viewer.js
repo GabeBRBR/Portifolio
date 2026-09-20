@@ -34,7 +34,7 @@ const UI_IDS = Object.freeze({
   close: 'ifc-close-btn', fullscreen: 'ifc-fullscreen-btn', files: 'ifc-file-input', loadDemo: 'ifc-load-demo-btn',
   importDialog: 'ifc-import-scope-dialog', importFileNames: 'ifc-import-file-names', importSameProject: 'ifc-import-same-project', importNewProject: 'ifc-import-new-project', importCancel: 'ifc-import-cancel',
   explodeRange: 'ifc-explode-range', explodeValue: 'ifc-explode-value', background: 'ifc-background-input', resetClip: 'ifc-reset-clip', clipRanges: 'ifc-clip-ranges',
-  walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair', bimTree: 'ifc-bim-tree', modelNote: 'ifc-model-note'
+  walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair', bimTree: 'ifc-bim-tree', modelNote: 'ifc-model-note', qualitySelect: 'ifc-quality-select'
 });
 const clipLabels = [['minX', 'X−'], ['maxX', 'X+'], ['minY', 'Y−'], ['maxY', 'Y+'], ['minZ', 'Z−'], ['maxZ', 'Z+']];
 // Alguns exportadores classificam terreno e pisos como elementos genéricos, e não IfcSlab.
@@ -117,6 +117,8 @@ class IFCViewer {
     this.ui.background.addEventListener('input', (event) => this.setBackground(event.target.value));
     this.modal.querySelectorAll('[data-color]').forEach((button) => button.addEventListener('click', () => this.setBackground(button.dataset.color)));
     this.ui.resetClip.addEventListener('click', () => this.resetClipBox());
+    this.ui.qualitySelect.value = localStorage.getItem('ifc-fragments-quality-profile') || 'balanced';
+    this.ui.qualitySelect.addEventListener('change', (event) => this.fragmentsPilot?.setQualityProfile(event.target.value));
     this.ui.clearSelection.addEventListener('click', () => this.clearSelection());
     this.search.addEventListener('input', () => this.filterProperties());
     window.addEventListener('keydown', (event) => this.onKey(event, true));
@@ -409,6 +411,7 @@ class IFCViewer {
       if (action === 'fit') return this.fragmentsPilot?.fit({ animate: true });
       if (action === 'orbit') return this.fragmentsPilot?.exitWalk();
       if (action === 'walk') return this.fragmentsPilot?.startWalkPlacement();
+      if (action === 'quality') return this.togglePanel('ifc-quality-panel');
       return this.showStatus('Este recurso continua no motor padrão e será migrado nas próximas fases do plano.');
     }
     if (action === 'orbit') return this.setMode('orbit'); if (action === 'walk') return this.setMode('walk-placement'); if (action === 'fit') return this.fitModelToView(); if (action === 'explode') return this.togglePanel('ifc-explode-panel'); if (action === 'clip') return this.togglePanel('ifc-clip-panel'); if (action === 'background') return this.togglePanel('ifc-background-panel');
@@ -429,6 +432,7 @@ class IFCViewer {
           showStatus: (message) => this.showStatus(message),
           onWalkDebug: (message) => { this.fragmentsWalkDebug = message; }
         });
+        this.ui.qualitySelect.value = this.fragmentsPilot.getQualityProfile();
         return this.fragmentsPilot;
       });
     }
