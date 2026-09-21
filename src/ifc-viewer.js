@@ -412,6 +412,8 @@ class IFCViewer {
       if (action === 'fit') return this.fragmentsPilot?.fit({ animate: true });
       if (action === 'orbit') return this.fragmentsPilot?.exitWalk();
       if (action === 'walk') return this.fragmentsPilot?.startWalkPlacement();
+      if (action === 'explode') return this.togglePanel('ifc-explode-panel');
+      if (action === 'clip') { this.fragmentsPilot?.resetClipBox(); this.renderClipControls(); return this.togglePanel('ifc-clip-panel'); }
       if (action === 'quality') return this.togglePanel('ifc-quality-panel');
       if (action === 'background') return this.togglePanel('ifc-background-panel');
       return this.showStatus('Este recurso continua no motor padrão e será migrado nas próximas fases do plano.');
@@ -555,6 +557,7 @@ class IFCViewer {
 
   setExplodeDistance(distance) {
     this.ui.explodeValue.textContent = `${distance.toFixed(1).replace('.', ',')} m`;
+    if (this.engine === 'fragments') return this.fragmentsPilot?.setExplodeDistance(distance);
     if (!this.meshes.length) return;
     if (!this.federationCenter) this.refreshExplosionCache();
     this.meshes.forEach((mesh) => {
@@ -576,6 +579,7 @@ class IFCViewer {
     this.federationCenter = bounds.isEmpty() ? null : bounds.getCenter(new THREE.Vector3());
   }
   resetClipBox() {
+    if (this.engine === 'fragments') { this.fragmentsPilot?.resetClipBox(); return this.renderClipControls(); }
     if (!this.meshes.length) return this.renderClipControls(); const box = new THREE.Box3(); this.meshes.forEach((mesh) => box.expandByObject(mesh)); const padding = .01; this.clipBox = { minX: box.min.x - padding, maxX: box.max.x + padding, minY: box.min.y - padding, maxY: box.max.y + padding, minZ: box.min.z - padding, maxZ: box.max.z + padding }; this.applyClipBox(); this.renderClipControls();
   }
   applyClipBox() {
@@ -589,8 +593,8 @@ class IFCViewer {
     [-b.minX, b.maxX, -b.minY, b.maxY, -b.minZ, b.maxZ].forEach((constant, index) => { this.clipPlanes[index].constant = constant; });
     this.requestRender();
   }
-  renderClipControls() { const root = this.ui.clipRanges; root.innerHTML = ''; if (!this.clipBox) return; const min = Math.min(this.clipBox.minX, this.clipBox.minY, this.clipBox.minZ); const max = Math.max(this.clipBox.maxX, this.clipBox.maxY, this.clipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${this.clipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${this.clipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { this.clipBox[key] = Number(event.target.value); row.querySelector('output').textContent = `${this.clipBox[key].toFixed(2)} m`; this.applyClipBox(); }); root.append(row); }); }
-  setClipBox(bounds) { this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
+  renderClipControls() { const root = this.ui.clipRanges; root.innerHTML = ''; const activeClipBox = this.engine === 'fragments' ? this.fragmentsPilot?.getClipBox() : this.clipBox; if (!activeClipBox) return; const min = Math.min(activeClipBox.minX, activeClipBox.minY, activeClipBox.minZ); const max = Math.max(activeClipBox.maxX, activeClipBox.maxY, activeClipBox.maxZ); clipLabels.forEach(([key, label]) => { const row = document.createElement('div'); row.className = 'ifc-clip-row'; row.innerHTML = `<label>${label}<output>${activeClipBox[key].toFixed(2)} m</output></label><input type="range" min="${min}" max="${max}" step="0.05" value="${activeClipBox[key]}">`; row.querySelector('input').addEventListener('input', (event) => { const value = Number(event.target.value); const updated = this.engine === 'fragments' ? this.fragmentsPilot?.setClipBox({ [key]: value }) : (this.clipBox[key] = value, this.applyClipBox(), this.clipBox); if (updated) row.querySelector('output').textContent = `${updated[key].toFixed(2)} m`; }); root.append(row); }); }
+  setClipBox(bounds) { if (this.engine === 'fragments') { this.fragmentsPilot?.setClipBox(bounds); return this.renderClipControls(); } this.clipBox = { ...this.clipBox, ...bounds }; this.applyClipBox(); this.renderClipControls(); }
   setBackground(color) { this.background = color; localStorage.setItem('ifc-background', color); if (this.engine === 'fragments') this.fragmentsPilot?.setBackground(color); else this.scene?.background.set(color); this.ui.background.value = color; this.requestRender(); }
 
   onKey(event, down) {
