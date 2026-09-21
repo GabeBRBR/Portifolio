@@ -43,6 +43,10 @@ export class FragmentsPilot {
     this.fragmentCache = new FragmentCache();
     this.ifcLoader = null;
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
+    this.explodeDistance = 0;
+    this.clipBox = null;
+    this.clipPlanes = [];
+    this.explosionRebuildTimer = null;
     this.collisionDebugEnabled = new URLSearchParams(window.location.search).has('ifcDebug');
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
@@ -274,6 +278,107 @@ export class FragmentsPilot {
     localStorage.setItem('ifc-background', color);
     if (this.world?.scene?.three) this.world.scene.three.background = new THREE.Color(color);
     if (this.world?.renderer) this.world.renderer.needsUpdate = true;
+  }
+
+  getClipBox() {
+    return this.clipBox ? { ...this.clipBox } : null;
+  }
+
+  getVisibleModelBounds() {
+    const bounds = new THREE.Box3();
+    this.modelRecords.forEach((record, id) => {
+      if (!record.visible) return;
+      const model = this.fragments?.list.get(id);
+      if (!model) return;
+      const modelBounds = new THREE.Box3().setFromObject(model.object);
+      if (!modelBounds.isEmpty()) bounds.union(modelBounds);
+      else if (model.box && !model.box.isEmpty()) bounds.union(model.box);
+    });
+    return bounds;
+  }
+
+  resetClipBox() {
+    const bounds = this.getVisibleModelBounds();
+    if (bounds.isEmpty()) return null;
+    const padding = 0.01;
+    this.clipBox = {
+      minX: bounds.min.x - padding, maxX: bounds.max.x + padding,
+      minY: bounds.min.y - padding, maxY: bounds.max.y + padding,
+      minZ: bounds.min.z - padding, maxZ: bounds.max.z + padding
+    };
+    this.applyClipBox();
+    return this.getClipBox();
+  }
+
+  setClipBox(bounds) {
+    if (!this.clipBox && !this.resetClipBox()) return null;
+    const next = { ...this.clipBox, ...bounds };
+    if (next.minX > next.maxX || next.minY > next.maxY || next.minZ > next.maxZ) return this.getClipBox();
+    this.clipBox = next;
+    this.applyClipBox();
+    return this.getClipBox();
+  }
+
+  applyClipBox() {
+    if (!this.clipBox || !this.world?.renderer) return;
+    if (this.clipPlanes.length !== 6) {
+      this.clipPlanes = [
+        new THREE.Plane(new THREE.Vector3(1, 0, 0)), new THREE.Plane(new THREE.Vector3(-1, 0, 0)),
+        new THREE.Plane(new THREE.Vector3(0, 1, 0)), new THREE.Plane(new THREE.Vector3(0, -1, 0)),
+        new THREE.Plane(new THREE.Vector3(0, 0, 1)), new THREE.Plane(new THREE.Vector3(0, 0, -1))
+      ];
+      this.world.renderer.three.localClippingEnabled = true;
+      this.clipPlanes.forEach((plane) => this.world.renderer.setPlane(true, plane, false));
+    }
+    const b = this.clipBox;
+    [-b.minX, b.maxX, -b.minY, b.maxY, -b.minZ, b.maxZ]
+      .forEach((constant, index) => { this.clipPlanes[index].constant = constant; });
+    this.world.renderer.needsUpdate = true;
+  }
+
+  prepareExplosion() {
+    const records = [...this.modelRecords.values()].filter((record) => record.visible);
+    const centers = [];
+    for (const record of records) {
+      const model = this.fragments?.list.get(record.id);
+      if (!model) continue;
+      if (!record.explosionBasePosition) record.explosionBasePosition = model.object.position.clone();
+      if (!record.explosionBaseCenter) {
+        const bounds = new THREE.Box3().setFromObject(model.object);
+        if (!bounds.isEmpty()) record.explosionBaseCenter = bounds.getCenter(new THREE.Vector3());
+      }
+      if (record.explosionBaseCenter) centers.push(record.explosionBaseCenter);
+    }
+    const federationCenter = centers.reduce((sum, center) => sum.add(center), new THREE.Vector3()).multiplyScalar(centers.length ? 1 / centers.length : 1);
+    records.forEach((record, index) => {
+      if (!record.explosionBaseCenter) return;
+      record.explosionDirection = record.explosionBaseCenter.clone().sub(federationCenter);
+      if (record.explosionDirection.lengthSq() < 1e-7) {
+        const angle = (index / Math.max(records.length, 1)) * Math.PI * 2;
+        record.explosionDirection.set(Math.cos(angle), 0, Math.sin(angle));
+      } else record.explosionDirection.normalize();
+    });
+    return records;
+  }
+
+  setExplodeDistance(distance) {
+    const nextDistance = Math.max(0, Number(distance) || 0);
+    const records = this.prepareExplosion();
+    records.forEach((record) => {
+      const model = this.fragments?.list.get(record.id);
+      if (!model?.object || !record.explosionBasePosition || !record.explosionDirection) return;
+      model.object.position.copy(record.explosionBasePosition).addScaledVector(record.explosionDirection, nextDistance);
+      model.object.updateWorldMatrix(true, true);
+    });
+    this.explodeDistance = nextDistance;
+    this.fragments?.core.update(true);
+    this.world.renderer.needsUpdate = true;
+    // The visible roots move instantly, but rebuilding on every range input
+    // would repeatedly create large BVHs. Walking is therefore reconciled
+    // after the user pauses the slider, and never while its collider is stale.
+    if (this.walk.mode !== 'orbit') void this.exitWalk({ fit: false });
+    if (this.explosionRebuildTimer) clearTimeout(this.explosionRebuildTimer);
+    this.explosionRebuildTimer = window.setTimeout(() => this.buildCollisionProxy(), 180);
   }
 
   async setQualityProfile(profile) {
