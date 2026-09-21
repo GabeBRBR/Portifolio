@@ -237,7 +237,7 @@ export class FragmentsPilot {
     await this.fit({ animate: false });
     this.fragments.core.update(true);
     await new Promise((resolve) => requestAnimationFrame(resolve));
-    this.showStatus(`${workName} otimizado ativo: órbita e zoom usam culling/LOD. Seleção, cortes e caminhada continuam no motor atual nesta fase.`);
+    this.showStatus(`${workName} otimizado ativo: órbita, seleção, caminhada, cortes e explosão usam o motor Fragments.`);
   }
 
   async addFiles(fileList) {
