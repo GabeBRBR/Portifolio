@@ -46,7 +46,10 @@ export class FragmentsPilot {
     this.explodeDistance = 0;
     this.clipBox = null;
     this.clipPlanes = [];
-    this.explosionRebuildTimer = null;
+    this.explodedGroup = null;
+    this.explodedElements = [];
+    this.explosionBuildPromise = null;
+    this.explosionBuildVersion = 0;
     this.collisionDebugEnabled = new URLSearchParams(window.location.search).has('ifcDebug');
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
@@ -179,6 +182,7 @@ export class FragmentsPilot {
     if (!models.length) throw new Error(`nenhum modelo otimizado encontrado para ${workName}`);
     if (this.loadedWork) {
       if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+      this.clearExplodedView();
       await this.clearSelection();
       for (const modelId of [...this.fragments.list.keys()]) {
         await this.fragments.core.disposeModel(modelId);
@@ -336,49 +340,133 @@ export class FragmentsPilot {
     this.world.renderer.needsUpdate = true;
   }
 
-  prepareExplosion() {
-    const records = [...this.modelRecords.values()].filter((record) => record.visible);
-    const centers = [];
-    for (const record of records) {
-      const model = this.fragments?.list.get(record.id);
-      if (!model) continue;
-      if (!record.explosionBasePosition) record.explosionBasePosition = model.object.position.clone();
-      if (!record.explosionBaseCenter) {
-        const bounds = new THREE.Box3().setFromObject(model.object);
-        if (!bounds.isEmpty()) record.explosionBaseCenter = bounds.getCenter(new THREE.Vector3());
-      }
-      if (record.explosionBaseCenter) centers.push(record.explosionBaseCenter);
-    }
-    const federationCenter = centers.reduce((sum, center) => sum.add(center), new THREE.Vector3()).multiplyScalar(centers.length ? 1 / centers.length : 1);
-    records.forEach((record, index) => {
-      if (!record.explosionBaseCenter) return;
-      record.explosionDirection = record.explosionBaseCenter.clone().sub(federationCenter);
-      if (record.explosionDirection.lengthSq() < 1e-7) {
-        const angle = (index / Math.max(records.length, 1)) * Math.PI * 2;
-        record.explosionDirection.set(Math.cos(angle), 0, Math.sin(angle));
-      } else record.explosionDirection.normalize();
+  getExplosionMaterial(model) {
+    let source = null;
+    model.object.traverse((object) => {
+      if (!source && object.material) source = Array.isArray(object.material) ? object.material[0] : object.material;
     });
-    return records;
+    if (source?.clone) {
+      const material = source.clone();
+      material.clippingPlanes = this.clipPlanes;
+      material.needsUpdate = true;
+      return material;
+    }
+    return new THREE.MeshStandardMaterial({ color: '#b7b1a6', roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
   }
 
-  setExplodeDistance(distance) {
+  async buildExplodedView() {
+    if (this.explodedElements.length) return this.explodedElements;
+    if (this.explosionBuildPromise) return this.explosionBuildPromise;
+    const version = ++this.explosionBuildVersion;
+    this.explosionBuildPromise = (async () => {
+      this.setLoading(true, 'Preparando explosão por elementos IFC…', 0);
+      const group = new THREE.Group();
+      group.name = 'Explosão por elementos IFC';
+      const elements = [];
+      const records = [...this.modelRecords.values()].filter((record) => record.visible);
+      let completed = 0;
+      for (const record of records) {
+        const model = this.fragments?.list.get(record.id);
+        if (!model) continue;
+        const itemIds = await model.getItemsIdsWithGeometry();
+        const meshGroups = await model.getItemsGeometry(itemIds);
+        model.object.updateWorldMatrix(true, true);
+        const material = this.getExplosionMaterial(model);
+        for (let itemIndex = 0; itemIndex < meshGroups.length; itemIndex += 1) {
+          const meshes = meshGroups[itemIndex];
+          if (!meshes?.length) continue;
+          const element = new THREE.Group();
+          element.name = `IFC ${itemIds[itemIndex]}`;
+          element.applyMatrix4(model.object.matrixWorld);
+          for (const meshData of meshes) {
+            if (!meshData.positions?.length) continue;
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(meshData.positions), 3));
+            if (meshData.indices?.length) geometry.setIndex(new THREE.BufferAttribute(meshData.indices, 1));
+            geometry.computeVertexNormals();
+            const piece = new THREE.Mesh(geometry, material);
+            const transform = meshData.transform?.isMatrix4
+              ? meshData.transform
+              : new THREE.Matrix4().fromArray(meshData.transform?.elements || meshData.transform || []);
+            piece.applyMatrix4(transform);
+            element.add(piece);
+          }
+          if (!element.children.length) continue;
+          group.add(element);
+          element.updateWorldMatrix(true, true);
+          const box = new THREE.Box3().setFromObject(element);
+          if (box.isEmpty()) continue;
+          elements.push({ element, basePosition: element.position.clone(), center: box.getCenter(new THREE.Vector3()), record });
+        }
+        completed += 1;
+        this.setLoading(true, `Preparando explosão por elementos IFC…`, Math.round((completed / records.length) * 100));
+      }
+      if (version !== this.explosionBuildVersion) {
+        group.traverse((object) => object.geometry?.dispose?.());
+        return [];
+      }
+      this.world.scene.three.add(group);
+      group.visible = false;
+      this.explodedGroup = group;
+      this.explodedElements = elements;
+      return elements;
+    })();
+    try {
+      return await this.explosionBuildPromise;
+    } finally {
+      this.explosionBuildPromise = null;
+      this.setLoading(false);
+    }
+  }
+
+  clearExplodedView() {
+    this.explosionBuildVersion += 1;
+    if (this.explodedGroup) {
+      this.explodedGroup.removeFromParent();
+      const materials = new Set();
+      this.explodedGroup.traverse((object) => {
+        object.geometry?.dispose?.();
+        if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach((material) => materials.add(material));
+      });
+      materials.forEach((material) => material.dispose?.());
+    }
+    this.explodedGroup = null;
+    this.explodedElements = [];
+  }
+
+  async setExplodeDistance(distance) {
     const nextDistance = Math.max(0, Number(distance) || 0);
-    const records = this.prepareExplosion();
-    records.forEach((record) => {
-      const model = this.fragments?.list.get(record.id);
-      if (!model?.object || !record.explosionBasePosition || !record.explosionDirection) return;
-      model.object.position.copy(record.explosionBasePosition).addScaledVector(record.explosionDirection, nextDistance);
-      model.object.updateWorldMatrix(true, true);
-    });
     this.explodeDistance = nextDistance;
-    this.fragments?.core.update(true);
+    if (!nextDistance) {
+      if (this.explodedGroup) this.explodedGroup.visible = false;
+      this.modelRecords.forEach((record, id) => {
+        const model = this.fragments?.list.get(id);
+        if (model) model.object.visible = record.visible;
+      });
+      this.buildCollisionProxy();
+      this.world.renderer.needsUpdate = true;
+      return;
+    }
+    if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    const elements = await this.buildExplodedView();
+    if (!elements.length || this.explodeDistance !== nextDistance) return;
+    const center = elements.reduce((sum, entry) => sum.add(entry.center), new THREE.Vector3()).multiplyScalar(1 / elements.length);
+    elements.forEach((entry, index) => {
+      const direction = entry.center.clone().sub(center);
+      if (direction.lengthSq() < 1e-7) {
+        const angle = (index / elements.length) * Math.PI * 2;
+        direction.set(Math.cos(angle), 0, Math.sin(angle));
+      } else direction.normalize();
+      entry.element.position.copy(entry.basePosition).addScaledVector(direction, nextDistance);
+      entry.element.updateMatrix();
+    });
+    this.modelRecords.forEach((record, id) => {
+      const model = this.fragments?.list.get(id);
+      if (model) model.object.visible = false;
+    });
+    this.explodedGroup.visible = true;
     this.world.renderer.needsUpdate = true;
-    // The visible roots move instantly, but rebuilding on every range input
-    // would repeatedly create large BVHs. Walking is therefore reconciled
-    // after the user pauses the slider, and never while its collider is stale.
-    if (this.walk.mode !== 'orbit') void this.exitWalk({ fit: false });
-    if (this.explosionRebuildTimer) clearTimeout(this.explosionRebuildTimer);
-    this.explosionRebuildTimer = window.setTimeout(() => this.buildCollisionProxy(), 180);
+    this.showStatus(`Explosão por ${elements.length} elementos IFC ativa. Retorne a 0,0 m para reativar seleção e caminhada.`);
   }
 
   async setQualityProfile(profile) {
@@ -446,6 +534,7 @@ export class FragmentsPilot {
 
   async startNewProject() {
     if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    this.clearExplodedView();
     await this.clearSelection();
     for (const modelId of [...this.fragments.list.keys()]) {
       await this.fragments.core.disposeModel(modelId);
@@ -840,6 +929,14 @@ export class FragmentsPilot {
     const record = this.modelRecords.get(modelId);
     if (!record || record.source !== 'local') return;
     if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    if (this.explodedGroup) {
+      this.explodeDistance = 0;
+      this.clearExplodedView();
+      this.modelRecords.forEach((entry, id) => {
+        const model = this.fragments.list.get(id);
+        if (model) model.object.visible = entry.visible;
+      });
+    }
     await this.fragments.core.disposeModel(modelId);
     this.modelRecords.delete(modelId);
     this.buildCollisionProxy();

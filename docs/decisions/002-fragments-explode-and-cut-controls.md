@@ -14,11 +14,15 @@ Na migração da Fase 11, os controles de fundo já usavam a cena Fragments, mas
 
 ## Decisão
 
-Aplicar explosão somente nas raízes dos modelos federados: cada raiz guarda sua posição e centro originais e recebe um deslocamento radial reversível. Após a pausa no controle, o BVH de caminhada é reconstruído para coincidir com a posição visual.
+Aplicar explosão por elemento IFC. Para cada modelo, o visualizador consulta os IDs que possuem geometria e recupera a `MeshData` original de cada item pelo worker Fragments. Durante a explosão, uma vista temporária posiciona cada elemento radialmente a partir do centro do conjunto; em `0,0 m`, ela é ocultada e os Fragments originais voltam a ser exibidos sem alterar o IFC.
 
 Aplicar cortes como seis planos globais no `SimpleRenderer` de That Open, delimitados pelos controles X, Y e Z do painel existente. Os planos atuam sobre a geometria Fragments renderizada, em vez de alterar buffers ou criar cópias da malha.
 
 ## Alternativas consideradas
+
+### Deslocar somente raízes de disciplina
+
+Rejeitada: separa arquitetura, estrutura e instalações, mas não revela como lajes, paredes, portas, pilares e equipamentos se relacionam — não atende à expectativa de uma vista explodida BIM.
 
 ### Alterar vértices dos Fragments
 
@@ -30,6 +34,6 @@ Rejeitada: manteria um controle visual sem efeito real no modelo.
 
 ## Consequências
 
-- Explodir preserva a transformação original e é reversível ao voltar para 0 m.
-- A caminhada só volta a usar colisão depois da reconstrução curta do BVH.
+- Explodir preserva o modelo original e é reversível ao voltar para 0 m.
+- Seleção e caminhada ficam indisponíveis enquanto os elementos temporários estão separados; ambas retornam ao restaurar o modelo Fragments original.
 - Cortes atingem todos os modelos visíveis, incluindo IFCs locais e modelos publicados.
