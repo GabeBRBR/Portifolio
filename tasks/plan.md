@@ -7,7 +7,7 @@ Concluir a migracao para Fragments com evidencias reproduziveis de qualidade, re
 ## Decisoes de arquitetura
 
 - Fragments passa a ser o motor padrao. Durante a validacao, `?ifcEngine=legacy` continua como rota de contingencia explicita; o usuario comum nao precisa mais de parametro para usar o novo motor.
-- As metricas de diagnostico existentes serao registradas como instantaneos comparaveis, sempre com modelo, motor, perfil de qualidade e data. Como nao existe baseline historico salvo da Fase 1, a comparacao final sera estabelecida novamente entre legado e Fragments no mesmo navegador e nos mesmos modelos.
+- As metricas de diagnostico existentes serao registradas como instantaneos comparaveis, sempre com modelo, motor, perfil de qualidade e data. A coleta nao exibira painel de depuracao no link publico de teste. Como nao existe baseline historico salvo da Fase 1, a comparacao final sera estabelecida novamente entre legado e Fragments no mesmo navegador e nos mesmos modelos.
 - A remocao do legado depende da matriz aprovada, de um build limpo e de documentacao operacional. Nao sera feita como efeito colateral de outras iteracoes.
 
 ## Dependencias
@@ -25,12 +25,12 @@ instantaneos de benchmark + matriz de regressao
 ### T12.1 Instantaneos de benchmark no diagnostico
 
 - [ ] Permitir copiar ou exportar um instantaneo com FPS, frame time medio e p95, draw calls, triangulos, memoria, primeiro frame, modelo, motor e perfil de qualidade.
-- [ ] Manter o recurso restrito a `ifcDebug=1`; a interface publica nao deve ganhar ruido de diagnostico.
+- [ ] Coletar o recurso sem parametro de depuracao; a interface publica nao deve ganhar painel, parametros ou ruido de diagnostico.
 - [ ] Validar em um modelo pequeno, medio e pesado no motor Fragments; registrar o mesmo conjunto no legado enquanto ele existir.
 
 **Aceite:** cada resultado pode ser comparado fora do navegador sem transcricao manual ambigua.
 
-**Verificacao:** build de producao e teste manual com `?ifcDebug=1`.
+**Verificacao:** build de producao e teste manual no link publico sem `ifcDebug`.
 
 ## Iteracao 2 Matriz de regressao publicada
 
