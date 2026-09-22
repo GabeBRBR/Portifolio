@@ -17,6 +17,7 @@ export class PerformanceMonitor {
     this.lastPublish = 0;
     this.firstUsableStartedAt = 0;
     this.firstUsableMs = null;
+    this.lastMetrics = null;
   }
 
   start() { return performance.now(); }
@@ -42,11 +43,13 @@ export class PerformanceMonitor {
     if (now - this.lastPublish < 400) return;
     this.lastPublish = now;
     const info = renderer.info;
-    this.onUpdate?.({
+    this.lastMetrics = {
       fps: Math.round(1000 / Math.max(mean(this.frameTimes), 0.001)), frameMs: mean(this.frameTimes), frameP95: percentile(this.frameTimes, .95), walkMs: mean(this.walkTimes),
       calls: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures,
       meshes: meshCount, materials: materialCount, firstUsableMs: this.firstUsableMs, operations: Object.fromEntries(this.operations), resourceCycle: this.resourceCycles.at(-1)
-    });
+    };
+    this.onUpdate?.(this.lastMetrics);
   }
+  snapshot(context) { return this.lastMetrics ? { capturedAt: new Date().toISOString(), ...context, ...this.lastMetrics } : null; }
   push(values, value) { values.push(value); if (values.length > 120) values.shift(); }
 }

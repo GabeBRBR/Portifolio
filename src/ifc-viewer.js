@@ -31,7 +31,7 @@ const UI_IDS = Object.freeze({
   modal: 'ifc-viewer-modal', canvas: 'ifc-canvas-container', modelList: 'ifc-model-list', modelEmpty: 'ifc-model-empty',
   loading: 'ifc-loading-overlay', loadingText: 'ifc-loading-text', progress: 'ifc-progress-bar', status: 'ifc-status',
   properties: 'ifc-properties-content', propertySearch: 'ifc-property-search', clearSelection: 'ifc-clear-selection',
-  close: 'ifc-close-btn', fullscreen: 'ifc-fullscreen-btn', files: 'ifc-file-input', loadDemo: 'ifc-load-demo-btn',
+  close: 'ifc-close-btn', fullscreen: 'ifc-fullscreen-btn', benchmarkCopy: 'ifc-benchmark-copy-btn', files: 'ifc-file-input', loadDemo: 'ifc-load-demo-btn',
   importDialog: 'ifc-import-scope-dialog', importFileNames: 'ifc-import-file-names', importSameProject: 'ifc-import-same-project', importNewProject: 'ifc-import-new-project', importCancel: 'ifc-import-cancel',
   explodeRange: 'ifc-explode-range', explodeValue: 'ifc-explode-value', background: 'ifc-background-input', resetClip: 'ifc-reset-clip', clipRanges: 'ifc-clip-ranges',
   walkHelp: 'ifc-walk-help', walkCrosshair: 'ifc-walk-crosshair', bimTree: 'ifc-bim-tree', modelNote: 'ifc-model-note', qualitySelect: 'ifc-quality-select'
@@ -86,7 +86,7 @@ class IFCViewer {
     this.walkVectors = { origin: new THREE.Vector3(), wallOrigin: new THREE.Vector3(), move: new THREE.Vector3(), forward: new THREE.Vector3(), right: new THREE.Vector3(), next: new THREE.Vector3(), direction: new THREE.Vector3(), down: new THREE.Vector3(0, -1, 0) };
     this.initDom();
     this.performanceMonitor = new PerformanceMonitor({
-      enabled: new URLSearchParams(window.location.search).has('ifcDebug'),
+      enabled: true,
       onUpdate: (metrics) => this.renderDiagnostics(metrics)
     });
     this.modelDisposer = new ModelDisposer();
@@ -108,6 +108,7 @@ class IFCViewer {
   bindUi() {
     this.ui.close.addEventListener('click', () => this.closeViewer());
     this.ui.fullscreen.addEventListener('click', () => this.toggleFullscreen());
+    this.ui.benchmarkCopy.addEventListener('click', () => this.copyBenchmark());
     this.ui.files.addEventListener('change', (event) => this.promptImportScope(event.target.files));
     this.ui.importSameProject.addEventListener('click', () => this.importPendingFiles('same-project'));
     this.ui.importNewProject.addEventListener('click', () => this.importPendingFiles('new-project'));
@@ -443,6 +444,19 @@ class IFCViewer {
     }
     return (await this.fragmentsPilotPromise).open(workKey);
   }
+  async copyBenchmark() {
+    const legacyContext = { engine: 'legacy', model: this.demoKey === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea', quality: 'n/a' };
+    const snapshot = this.engine === 'fragments'
+      ? this.fragmentsPilot?.getBenchmarkSnapshot()
+      : this.performanceMonitor.snapshot(legacyContext);
+    if (!snapshot) return this.showStatus('Aguarde alguns segundos após carregar o modelo para copiar a medição.');
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
+      this.showStatus('Instantâneo de desempenho copiado. Envie o conteúdo para registrar este teste.');
+    } catch {
+      this.showStatus('Não foi possível copiar a medição neste navegador.');
+    }
+  }
   togglePanel(id) {
     const panel = document.getElementById(id);
     const shouldOpen = panel.classList.contains('hidden');
@@ -679,7 +693,7 @@ class IFCViewer {
   }
   requestRender() { this.needsRender = true; }
   renderDiagnostics(metrics) {
-    if (!this.performanceMonitor.enabled) return;
+    if (!new URLSearchParams(window.location.search).has('ifcDebug')) return;
     if (!this.diagnostics) {
       this.diagnostics = document.createElement('aside');
       this.diagnostics.className = 'ifc-diagnostics';

@@ -57,9 +57,10 @@ export class FragmentsPilot {
     const savedProfile = localStorage.getItem(QUALITY_STORAGE_KEY);
     this.quality = {
       profile: QUALITY_PROFILES[savedProfile] ? savedProfile : 'balanced',
-      adaptiveStep: 0, averageFrameMs: 16.7, lastFrameAt: performance.now(),
+      adaptiveStep: 0, averageFrameMs: 16.7, lastFrameAt: performance.now(), frameTimes: [],
       lastCameraMotionAt: 0, lastAdjustmentAt: 0, appliedLod: null, appliedUpdateRate: null
     };
+    this.benchmark = { startedAt: 0, firstUsableMs: null };
     // The player is intentionally independent from the camera. CameraControls
     // owns the orbit camera, while PointerLockControls owns only its rotation.
     // Keeping a feet position here prevents either control from restoring an
@@ -171,6 +172,8 @@ export class FragmentsPilot {
   }
 
   async loadWork(workKey) {
+    this.benchmark.startedAt = performance.now();
+    this.benchmark.firstUsableMs = null;
     const workName = workKey === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea';
     this.setLoading(true, `Carregando ${workName} otimizado…`, 0);
     this.list.innerHTML = '';
@@ -241,6 +244,7 @@ export class FragmentsPilot {
     await this.fit({ animate: false });
     this.fragments.core.update(true);
     await new Promise((resolve) => requestAnimationFrame(resolve));
+    this.benchmark.firstUsableMs = performance.now() - this.benchmark.startedAt;
     this.showStatus(`${workName} otimizado ativo: órbita, seleção, caminhada, cortes e explosão usam o motor Fragments.`);
   }
 
@@ -539,6 +543,8 @@ export class FragmentsPilot {
   updateAdaptiveQuality(now) {
     const frameMs = Math.min(120, Math.max(0, now - this.quality.lastFrameAt));
     this.quality.lastFrameAt = now;
+    this.quality.frameTimes.push(frameMs);
+    if (this.quality.frameTimes.length > 120) this.quality.frameTimes.shift();
     this.quality.averageFrameMs += (frameMs - this.quality.averageFrameMs) * 0.08;
     if (now - this.quality.lastAdjustmentAt < 1200) return;
     const moving = this.walk.mode === 'walk' || now - this.quality.lastCameraMotionAt < 320;
@@ -549,6 +555,21 @@ export class FragmentsPilot {
     } else return;
     this.quality.lastAdjustmentAt = now;
     this.applyQuality(true);
+  }
+
+  getBenchmarkSnapshot() {
+    const frameTimes = this.quality.frameTimes;
+    const frameMs = frameTimes.length ? frameTimes.reduce((sum, value) => sum + value, 0) / frameTimes.length : this.quality.averageFrameMs;
+    const sorted = [...frameTimes].sort((a, b) => a - b);
+    const frameP95 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] : frameMs;
+    const info = this.world?.renderer?.three?.info;
+    if (!info) return null;
+    return {
+      capturedAt: new Date().toISOString(), engine: 'fragments', model: this.getProjectLabel(), quality: this.quality.profile,
+      fps: Math.round(1000 / Math.max(frameMs, 0.001)), frameMs: Number(frameMs.toFixed(2)), frameP95: Number(frameP95.toFixed(2)),
+      drawCalls: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures,
+      firstUsableMs: this.benchmark.firstUsableMs === null ? null : Math.round(this.benchmark.firstUsableMs)
+    };
   }
 
   getProjectLabel() {
