@@ -345,13 +345,11 @@ export class FragmentsPilot {
     model.object.traverse((object) => {
       if (!source && object.material) source = Array.isArray(object.material) ? object.material[0] : object.material;
     });
-    if (source?.clone) {
-      const material = source.clone();
-      material.clippingPlanes = this.clipPlanes;
-      material.needsUpdate = true;
-      return material;
-    }
-    return new THREE.MeshStandardMaterial({ color: '#b7b1a6', roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
+    // LodMaterial is a Fragments renderer-internal material and cannot be
+    // cloned as a regular Three.js material. The temporary exploded view uses
+    // a stable material instead; it never mutates the source model.
+    const color = source?.color?.isColor ? source.color : new THREE.Color('#b7b1a6');
+    return new THREE.MeshStandardMaterial({ color, roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
   }
 
   async buildExplodedView() {
@@ -447,26 +445,38 @@ export class FragmentsPilot {
       this.world.renderer.needsUpdate = true;
       return;
     }
-    if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
-    const elements = await this.buildExplodedView();
-    if (!elements.length || this.explodeDistance !== nextDistance) return;
-    const center = elements.reduce((sum, entry) => sum.add(entry.center), new THREE.Vector3()).multiplyScalar(1 / elements.length);
-    elements.forEach((entry, index) => {
-      const direction = entry.center.clone().sub(center);
-      if (direction.lengthSq() < 1e-7) {
-        const angle = (index / elements.length) * Math.PI * 2;
-        direction.set(Math.cos(angle), 0, Math.sin(angle));
-      } else direction.normalize();
-      entry.element.position.copy(entry.basePosition).addScaledVector(direction, nextDistance);
-      entry.element.updateMatrix();
-    });
-    this.modelRecords.forEach((record, id) => {
-      const model = this.fragments?.list.get(id);
-      if (model) model.object.visible = false;
-    });
-    this.explodedGroup.visible = true;
-    this.world.renderer.needsUpdate = true;
-    this.showStatus(`Explosão por ${elements.length} elementos IFC ativa. Retorne a 0,0 m para reativar seleção e caminhada.`);
+    try {
+      if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+      const elements = await this.buildExplodedView();
+      if (!elements.length || this.explodeDistance !== nextDistance) return;
+      const center = elements.reduce((sum, entry) => sum.add(entry.center), new THREE.Vector3()).multiplyScalar(1 / elements.length);
+      elements.forEach((entry, index) => {
+        const direction = entry.center.clone().sub(center);
+        if (direction.lengthSq() < 1e-7) {
+          const angle = (index / elements.length) * Math.PI * 2;
+          direction.set(Math.cos(angle), 0, Math.sin(angle));
+        } else direction.normalize();
+        entry.element.position.copy(entry.basePosition).addScaledVector(direction, nextDistance);
+        entry.element.updateMatrix();
+      });
+      this.modelRecords.forEach((record, id) => {
+        const model = this.fragments?.list.get(id);
+        if (model) model.object.visible = false;
+      });
+      this.explodedGroup.visible = true;
+      this.world.renderer.needsUpdate = true;
+      this.showStatus(`Explosão por ${elements.length} elementos IFC ativa. Retorne a 0,0 m para reativar seleção e caminhada.`);
+    } catch (error) {
+      console.error('Falha ao preparar a explosão IFC:', error);
+      this.explodeDistance = 0;
+      this.clearExplodedView();
+      this.modelRecords.forEach((record, id) => {
+        const model = this.fragments?.list.get(id);
+        if (model) model.object.visible = record.visible;
+      });
+      this.world.renderer.needsUpdate = true;
+      this.showStatus(`Não foi possível preparar a explosão por elementos: ${error.message || 'erro desconhecido'}.`);
+    }
   }
 
   async setQualityProfile(profile) {
