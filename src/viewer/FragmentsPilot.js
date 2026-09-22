@@ -340,16 +340,24 @@ export class FragmentsPilot {
     this.world.renderer.needsUpdate = true;
   }
 
-  getExplosionMaterial(model) {
-    let source = null;
-    model.object.traverse((object) => {
-      if (!source && object.material) source = Array.isArray(object.material) ? object.material[0] : object.material;
+  async getExplosionMaterials(model, itemIds) {
+    const materials = new Map();
+    const definitions = await model.getItemsMaterialDefinition(itemIds);
+    definitions.forEach(({ definition, localIds }) => {
+      const material = new THREE.MeshStandardMaterial({
+        color: definition.color || new THREE.Color('#b7b1a6'),
+        transparent: Boolean(definition.transparent) || (definition.opacity ?? 1) < 0.999,
+        opacity: definition.opacity ?? 1,
+        depthTest: definition.depthTest ?? true,
+        depthWrite: definition.depthWrite ?? true,
+        side: THREE.DoubleSide,
+        roughness: 0.74,
+        metalness: 0.05,
+        clippingPlanes: this.clipPlanes
+      });
+      localIds.forEach((localId) => materials.set(localId, material));
     });
-    // LodMaterial is a Fragments renderer-internal material and cannot be
-    // cloned as a regular Three.js material. The temporary exploded view uses
-    // a stable material instead; it never mutates the source model.
-    const color = source?.color?.isColor ? source.color : new THREE.Color('#b7b1a6');
-    return new THREE.MeshStandardMaterial({ color, roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
+    return materials;
   }
 
   async buildExplodedView() {
@@ -367,12 +375,19 @@ export class FragmentsPilot {
         const model = this.fragments?.list.get(record.id);
         if (!model) continue;
         const itemIds = await model.getItemsIdsWithGeometry();
-        const meshGroups = await model.getItemsGeometry(itemIds);
+        const [meshGroups, materialSet] = await Promise.all([
+          model.getItemsGeometry(itemIds),
+          this.getExplosionMaterials(model, itemIds)
+        ]);
         model.object.updateWorldMatrix(true, true);
-        const material = this.getExplosionMaterial(model);
         for (let itemIndex = 0; itemIndex < meshGroups.length; itemIndex += 1) {
           const meshes = meshGroups[itemIndex];
           if (!meshes?.length) continue;
+          let material = materialSet.get(itemIds[itemIndex]);
+          if (!material) {
+            material = new THREE.MeshStandardMaterial({ color: '#b7b1a6', roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
+            materialSet.set(itemIds[itemIndex], material);
+          }
           const element = new THREE.Group();
           element.name = `IFC ${itemIds[itemIndex]}`;
           element.applyMatrix4(model.object.matrixWorld);
