@@ -4,5 +4,5 @@
 - [x] Fundo no Fragments.
 - [x] Explosao no Fragments.
 - [x] Cortes no Fragments.
-- [ ] Matriz de regressao aprovada pelo usuario.
-- [ ] Remocao segura do legado e documentacao final.
+- [x] Matriz de regressao aprovada pelo usuario (2026-09-21).
+- [x] Consolidacao documentada: Fragments e o motor recomendado; o motor padrao permanece como fallback intencional, sem duplicar controles no fluxo Fragments.
