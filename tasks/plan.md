@@ -6,7 +6,7 @@ Concluir a migracao para Fragments com evidencias reproduziveis de qualidade, re
 
 ## Decisoes de arquitetura
 
-- Fragments passa a ser o motor padrao. Durante a validacao, `?ifcEngine=legacy` continua como rota de contingencia explicita; o usuario comum nao precisa mais de parametro para usar o novo motor.
+- Fragments passa a ser o unico motor exposto. URLs antigas com `ifcEngine` ou `ifcDebug` sao normalizadas para o link publico simples; o codigo legado permanece temporariamente apenas como material de migracao interna.
 - As metricas de diagnostico existentes serao registradas como instantaneos comparaveis, sempre com modelo, motor, perfil de qualidade e data. A coleta nao exibira painel de depuracao no link publico de teste. Como nao existe baseline historico salvo da Fase 1, a comparacao final sera estabelecida novamente entre legado e Fragments no mesmo navegador e nos mesmos modelos.
 - A remocao do legado depende da matriz aprovada, de um build limpo e de documentacao operacional. Nao sera feita como efeito colateral de outras iteracoes.
 
@@ -46,13 +46,13 @@ instantaneos de benchmark + matriz de regressao
 
 ## Iteracao 3 Fragments como padrao com reversao
 
-### T12.3 Inverter o feature flag
+### T12.3 Unificar o motor publico
 
-- [ ] Abrir Fragments sem parametro de URL e manter `?ifcEngine=legacy` como reversao temporaria.
-- [ ] Exibir o motor ativo no diagnostico, sem expor essa configuracao na interface publica.
+- [ ] Abrir Fragments sem parametro de URL e normalizar links antigos sem expor rotas de motor ou depuracao.
+- [ ] Manter o motor ativo fora da interface publica; nenhuma pagina paralela de depuracao sera usada.
 - [ ] Repetir o fluxo de IFC hospedado e externo, cache, caminhada, cortes e explosao no caminho padrao.
 
-**Aceite:** a pagina publicada abre no Fragments e o fallback funciona apenas pela URL de contingencia.
+**Aceite:** a pagina publicada abre no Fragments pelo link simples, inclusive quando um link antigo contem parametros obsoletos.
 
 **Verificacao:** build de producao, teste local e teste do usuario apos publicacao.
 

@@ -50,7 +50,7 @@ export class FragmentsPilot {
     this.explodedElements = [];
     this.explosionBuildPromise = null;
     this.explosionBuildVersion = 0;
-    this.collisionDebugEnabled = new URLSearchParams(window.location.search).has('ifcDebug');
+    this.collisionDebugEnabled = false;
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
     this.collisionBounds = new THREE.Box3();

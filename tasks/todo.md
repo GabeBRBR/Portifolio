@@ -2,7 +2,7 @@
 
 - [ ] T12.1 Exportar instantaneos de benchmark sem expor `ifcDebug` no link publico.
 - [ ] T12.2 Preencher e aprovar a matriz de regressao em todos os modelos e fluxos.
-- [ ] T12.3 Tornar Fragments o motor padrao e manter o legado como fallback temporario por URL.
+- [ ] T12.3 Tornar Fragments o unico motor exposto e normalizar links antigos.
 - [ ] T12.4 Remover o legado, listeners, IDs, estilos e avisos de build que ficarem orfaos.
 - [ ] T12.5 Documentar instalacao, desenvolvimento, conversao e publicacao.
 
