@@ -56,8 +56,18 @@ const requiredElement = (id) => {
   return element;
 };
 
+const normalizeViewerUrl = () => {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('ifcEngine') && !url.searchParams.has('ifcDebug')) return;
+  url.searchParams.delete('ifcEngine');
+  url.searchParams.delete('ifcDebug');
+  const search = url.searchParams.toString();
+  window.history.replaceState({}, '', `${url.pathname}${search ? `?${search}` : ''}${url.hash}`);
+};
+
 class IFCViewer {
   constructor() {
+    normalizeViewerUrl();
     this.api = null;
     this.ready = false;
     this.models = new Map();
@@ -70,7 +80,7 @@ class IFCViewer {
     this.clipPlanes = [];
     this.explodeDistance = 0;
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
-    this.engine = new URLSearchParams(window.location.search).get('ifcEngine') === 'fragments' ? 'fragments' : 'legacy';
+    this.engine = 'fragments';
     this.walk = { keys: new Set(), jumpRequested: false, velocityY: 0, grounded: true, height: 1.7, radius: .28, stepHeight: .2, gravity: 24, terminalVelocity: 28, speed: 3.8, run: 7.2, zoom: 1 };
     this.lastFrame = performance.now();
     this.lastRender = 0;
@@ -693,7 +703,7 @@ class IFCViewer {
   }
   requestRender() { this.needsRender = true; }
   renderDiagnostics(metrics) {
-    if (!new URLSearchParams(window.location.search).has('ifcDebug')) return;
+    return;
     if (!this.diagnostics) {
       this.diagnostics = document.createElement('aside');
       this.diagnostics.className = 'ifc-diagnostics';
