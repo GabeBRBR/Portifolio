@@ -3,6 +3,7 @@ import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { IfcImporter } from '@thatopen/fragments';
+import { buildBimIndex } from '../src/bim/ifc-index-builder.js';
 import {
   IfcAPI,
   IFCBEAM,
@@ -22,7 +23,8 @@ import {
   IFCSTAIR,
   IFCSTAIRFLIGHT,
   IFCWALL,
-  IFCWALLSTANDARDCASE
+  IFCWALLSTANDARDCASE,
+  LogLevel
 } from 'web-ifc';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -121,11 +123,23 @@ function createCollider(api, source, coordinateToOrigin) {
   return { bytes: encodeCollider(floors, obstacles), floors, obstacles };
 }
 
+function createBimIndex(api, source) {
+  const modelID = api.OpenModel(new Uint8Array(source), { COORDINATE_TO_ORIGIN: false });
+  try {
+    return buildBimIndex(api, modelID);
+  } finally {
+    api.CloseModel(modelID);
+  }
+}
+
 await mkdir(outputRoot, { recursive: true });
 const webIfc = new IfcAPI();
 webIfc.SetWasmPath(`${wasmDirectory}${path.sep}`, true);
 await webIfc.Init();
-const manifest = { version: 2, generatedAt: new Date().toISOString(), models: [] };
+// Revit exports routinely contain breps web-ifc cannot triangulate; those
+// elements are still indexed, so the per-element warnings are only noise here.
+webIfc.SetLogLevel?.(LogLevel.LOG_LEVEL_OFF);
+const manifest = { version: 3, generatedAt: new Date().toISOString(), models: [] };
 
 for (const [work, discipline, sourcePath, id] of models) {
   const absoluteSource = path.join(root, sourcePath);
@@ -161,6 +175,12 @@ for (const [work, discipline, sourcePath, id] of models) {
       obstacleTriangles: generated.obstacles.indices.length / 3
     };
   }
+  // BIM index: class, type, storey, materials, systems and quantities of
+  // every element, consumed by the navigator, element sheet and takeoffs.
+  const bimIndex = createBimIndex(webIfc, source);
+  const bimIndexBytes = Buffer.from(JSON.stringify(bimIndex));
+  const bimIndexDestination = path.join(outputRoot, work, `${id}.bim.json`);
+  await writeFile(bimIndexDestination, bimIndexBytes);
   const outputInfo = await stat(destination);
   manifest.models.push({
     id,
@@ -177,10 +197,14 @@ for (const [work, discipline, sourcePath, id] of models) {
     colliderHash,
     colliderBytes,
     colliderStats,
+    bimIndex: relative(bimIndexDestination),
+    bimIndexHash: sha256(bimIndexBytes),
+    bimIndexBytes: bimIndexBytes.byteLength,
+    bimElements: bimIndex.elements.length,
     sourceBytes: source.byteLength,
     fragmentBytes: outputInfo.size
   });
-  console.log(`${discipline}: ${relative(destination)} (${Math.round(outputInfo.size / 1024)} KB), colisão ${Math.round(colliderBytes / 1024)} KB`);
+  console.log(`${discipline}: ${relative(destination)} (${Math.round(outputInfo.size / 1024)} KB), colisão ${Math.round(colliderBytes / 1024)} KB, índice BIM ${bimIndex.elements.length} elementos (${Math.round(bimIndexBytes.byteLength / 1024)} KB)`);
 }
 
 await writeFile(path.join(outputRoot, 'models.json'), `${JSON.stringify(manifest, null, 2)}\n`);

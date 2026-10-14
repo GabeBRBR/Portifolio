@@ -25,3 +25,6 @@ dist/
 # Configurações e recursos locais do Codex
 .agents/
 .codex/
+
+# Pacote temporário de dependências usado para testes fora do Windows
+_deps.tgz

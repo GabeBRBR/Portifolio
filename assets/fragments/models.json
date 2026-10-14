@@ -1,13 +1,13 @@
 {
-  "version": 2,
-  "generatedAt": "2026-09-13T22:42:19.642Z",
+  "version": 3,
+  "generatedAt": "2026-10-12T19:48:29.435Z",
   "models": [
     {
       "id": "casa-terrea-arquitetura",
       "work": "casa-terrea",
       "discipline": "Arquitetura",
       "source": "assets/IFC/Casa Térrea/CASA-AQR.ifc",
-      "sourceHash": "cbd61eff3ea613072755dad05136f3c2eae64284892bf14609b5a0bfcd333e24",
+      "sourceHash": "8611cb03f7cedab0ec99799c38ee30d40e84b96fa9b9dfef092c5053b0a83b01",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-arquitetura.frag",
       "fragmentHash": "7e3cc2d8543e44ebd55e562a18773bc325e69a4f472281f8849ed71968d317b6",
       "collider": "assets/fragments/casa-terrea/casa-terrea-arquitetura.collider",
@@ -18,7 +18,11 @@
         "floorTriangles": 27967,
         "obstacleTriangles": 32318
       },
-      "sourceBytes": 16096012,
+      "bimIndex": "assets/fragments/casa-terrea/casa-terrea-arquitetura.bim.json",
+      "bimIndexHash": "6143bd13606db7d85dba7ae100d99edf17d9198d5bddc950dd6cb64ebc682daf",
+      "bimIndexBytes": 279135,
+      "bimElements": 674,
+      "sourceBytes": 15931815,
       "fragmentBytes": 945566
     },
     {
@@ -26,7 +30,7 @@
       "work": "casa-terrea",
       "discipline": "Estrutural",
       "source": "assets/IFC/Casa Térrea/CASA-EST.ifc",
-      "sourceHash": "55ac31c25e75ca5a895c8ea1d39b2608c86ece71965111783543af6b9a4402e9",
+      "sourceHash": "e9d6cdff921542393a5fadd6c28a2439ab206370b4ce78d5994c386d47e867c4",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-estrutural.frag",
       "fragmentHash": "75cb8a0c54b3d6edd1e6f5332f2f81c4039c9355e3a5e49cabe1ed6c6c6779e3",
       "collider": "assets/fragments/casa-terrea/casa-terrea-estrutural.collider",
@@ -37,7 +41,11 @@
         "floorTriangles": 2444,
         "obstacleTriangles": 3176
       },
-      "sourceBytes": 336766,
+      "bimIndex": "assets/fragments/casa-terrea/casa-terrea-estrutural.bim.json",
+      "bimIndexHash": "58a604fd39a9fedf19a3541fbf09d7074b2286eeae27be8d25ed5b7d885bdf59",
+      "bimIndexBytes": 79752,
+      "bimElements": 198,
+      "sourceBytes": 332066,
       "fragmentBytes": 76350
     },
     {
@@ -45,7 +53,7 @@
       "work": "casa-terrea",
       "discipline": "Elétrica",
       "source": "assets/IFC/Casa Térrea/CASA-ELE.ifc",
-      "sourceHash": "75f9d1f10eb0babe6b5456c225d64c07a862a50549647dc2dc9093201418d4f0",
+      "sourceHash": "18ffbaec17bf88d1c0ff2591df839b08d5a6acafb9e08188a1b2e6238eda71cd",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-eletrica.frag",
       "fragmentHash": "e45f3d8f9c7f70688a10c000dbae002ae2066e99ebde14126803c234c461ff6d",
       "collider": null,
@@ -53,7 +61,11 @@
       "colliderHash": null,
       "colliderBytes": 0,
       "colliderStats": null,
-      "sourceBytes": 12623391,
+      "bimIndex": "assets/fragments/casa-terrea/casa-terrea-eletrica.bim.json",
+      "bimIndexHash": "3c79fda19886152b730d691418db05f877f0bdfb9ecbf5cb2671cf9915031577",
+      "bimIndexBytes": 707253,
+      "bimElements": 1645,
+      "sourceBytes": 12423823,
       "fragmentBytes": 832744
     },
     {
@@ -61,7 +73,7 @@
       "work": "casa-terrea",
       "discipline": "Hidráulica",
       "source": "assets/IFC/Casa Térrea/CASA-HID.ifc",
-      "sourceHash": "c70a3bdf0b4a782457e2c0bb628ded40cbdb78279eb36a8d72fc474e5c9f8c94",
+      "sourceHash": "581abbf63f2a1f3d60c741437cf2a43abe88ddd5167f48066fecee27b394e1a5",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-hidraulica.frag",
       "fragmentHash": "dddfc52c150fcae9516496a2ed6d2b5f7ec05b5e05b5c5c23e1b219d9fbfd165",
       "collider": null,
@@ -69,7 +81,11 @@
       "colliderHash": null,
       "colliderBytes": 0,
       "colliderStats": null,
-      "sourceBytes": 10488564,
+      "bimIndex": "assets/fragments/casa-terrea/casa-terrea-hidraulica.bim.json",
+      "bimIndexHash": "7d6e9c8457bce484825e349ce9493e651119b60c3957a80a5a515c4f1e0f0eea",
+      "bimIndexBytes": 265883,
+      "bimElements": 598,
+      "sourceBytes": 10293766,
       "fragmentBytes": 760704
     },
     {
@@ -77,7 +93,7 @@
       "work": "casa-terrea",
       "discipline": "Sanitária",
       "source": "assets/IFC/Casa Térrea/CASA-ESG.ifc",
-      "sourceHash": "b9a8dca9d32f3795feaecf8ffa568f5ae90cd758471cded827c39b1231f8e057",
+      "sourceHash": "909eb4488f174988a3f43c20aaa5c94a036f7c64b738a0b6303f8157414ccd6e",
       "fragment": "assets/fragments/casa-terrea/casa-terrea-sanitaria.frag",
       "fragmentHash": "2ae2a94fd2d646228b62b0de7046bee1df9a3d9ef7cff8dfec0d66bb44f8a0ae",
       "collider": null,
@@ -85,7 +101,11 @@
       "colliderHash": null,
       "colliderBytes": 0,
       "colliderStats": null,
-      "sourceBytes": 13557352,
+      "bimIndex": "assets/fragments/casa-terrea/casa-terrea-sanitaria.bim.json",
+      "bimIndexHash": "fe5c392705c7b9ff77f5438ee0b94412a3d5ecbd1efe016bd3fb4dda32e38a4b",
+      "bimIndexBytes": 216108,
+      "bimElements": 482,
+      "sourceBytes": 13315335,
       "fragmentBytes": 742911
     },
     {
@@ -93,7 +113,7 @@
       "work": "galpao",
       "discipline": "Arquitetura",
       "source": "assets/IFC/Galpão/ARQ.ifc",
-      "sourceHash": "a4aec301f9bf2e62d85cbf4aa277b69ddb325134f7561599f573bdcfce076521",
+      "sourceHash": "22f85cd8ed1f70b40f67f4fc8920a4ca43bde2f3453d2c164fe7abff738d8287",
       "fragment": "assets/fragments/galpao/galpao-arquitetura.frag",
       "fragmentHash": "6ab8afd7827ff049c56bf6f30e54d3574d4a3435ad5ccd6d6b05f3f3cfd3f5fe",
       "collider": "assets/fragments/galpao/galpao-arquitetura.collider",
@@ -104,7 +124,11 @@
         "floorTriangles": 1038,
         "obstacleTriangles": 2060
       },
-      "sourceBytes": 6966824,
+      "bimIndex": "assets/fragments/galpao/galpao-arquitetura.bim.json",
+      "bimIndexHash": "55badccc6f239aa66106072f836047353dbf8295146e513b89106922496b6fd8",
+      "bimIndexBytes": 58445,
+      "bimElements": 139,
+      "sourceBytes": 6830453,
       "fragmentBytes": 556174
     },
     {
@@ -112,7 +136,7 @@
       "work": "galpao",
       "discipline": "Estrutural",
       "source": "assets/IFC/Galpão/EST.ifc",
-      "sourceHash": "10a3721bd4887950e686b973f801c04b4864b69f1fd1dde96cb6321612f811e5",
+      "sourceHash": "a7866080b150c62c43ea104c7538e20263450d55550df59a0f4886bc59df7ef8",
       "fragment": "assets/fragments/galpao/galpao-estrutural.frag",
       "fragmentHash": "043121299b99c4888bd51a9aab15db934659c486fd7b2ec9c9ccba9799d31c8c",
       "collider": "assets/fragments/galpao/galpao-estrutural.collider",
@@ -123,7 +147,11 @@
         "floorTriangles": 7444,
         "obstacleTriangles": 65758
       },
-      "sourceBytes": 3943748,
+      "bimIndex": "assets/fragments/galpao/galpao-estrutural.bim.json",
+      "bimIndexHash": "4d5f4c5460c96a97672699aa5eb4651ea53854ff585bb87314d077eb5a431039",
+      "bimIndexBytes": 205374,
+      "bimElements": 503,
+      "sourceBytes": 3867247,
       "fragmentBytes": 203132
     }
   ]

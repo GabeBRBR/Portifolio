@@ -3,9 +3,11 @@ import * as OBCF from '@thatopen/components-front';
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
-import { LodMode } from '@thatopen/fragments';
+import { LodMode, RenderedFaces } from '@thatopen/fragments';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 import { FragmentCache } from './storage/FragmentCache.js';
+import { BimIndex } from '../bim/BimIndex.js';
+import { BimIndexService } from '../bim/BimIndexService.js';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 const MAX_LOCAL_MODELS = 3;
@@ -21,18 +23,31 @@ const QUALITY_PROFILES = Object.freeze({
 // deliberately publishes that filename under a stable Vite-base-aware path.
 const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
 
+const XRAY_STYLE = 'xray';
+const COLOR_STYLE_PREFIX = 'color:';
+const PLAN_STYLE_PREFIX = 'plan:';
+const PLAN_CUT_HEIGHT = 1.2;
+
 /**
- * Isolated Fragments proof of concept. The legacy viewer stays active by default
- * until selection, properties and walking are migrated in later phases.
+ * 3D engine of the BIM viewer (That Open Fragments). It owns the scene,
+ * selection, visibility, sections, walking and measurement tools, and keeps
+ * the federated BIM index in sync with the loaded models. The interface lives
+ * in src/app and talks to the engine only through its public methods and the
+ * callbacks given to the constructor.
  */
-export class FragmentsPilot {
-  constructor({ container, list, empty, properties, search, tree, walkHelp, walkCrosshair, setLoading, showStatus, onWalkDebug }) {
+export class ViewerEngine {
+  constructor({ container, walkHelp, walkCrosshair, setLoading, showStatus, onWalkDebug, onSelectionChange, onModelsChange, onModeChange }) {
     this.container = container;
-    this.list = list;
-    this.empty = empty;
-    this.properties = properties;
-    this.search = search;
-    this.tree = tree;
+    this.onSelectionChange = onSelectionChange;
+    this.onModelsChange = onModelsChange;
+    this.onModeChange = onModeChange;
+    this.bimIndex = new BimIndex();
+    this.indexService = null;
+    this.selection = {};
+    this.xrayEnabled = false;
+    this.colorGroups = [];
+    this.plan = null;
+    this.measureMode = null;
     this.walkHelp = walkHelp;
     this.walkCrosshair = walkCrosshair;
     this.setLoading = setLoading;
@@ -153,11 +168,25 @@ export class FragmentsPilot {
       selectMaterialDefinition: { color: new THREE.Color('#2474c6'), opacity: 0.8, transparent: false, preserveOriginalMaterial: true },
       zoomToSelection: false
     });
-    this.highlighter.events.select.onHighlight.add((selection) => this.inspectSelection(selection));
-    this.highlighter.events.select.onClear.add(() => this.renderEmptyProperties());
+    // Ctrl+click adds to the selection; the element sheet then sums quantities.
+    this.highlighter.multiple = 'ctrlKey';
+    this.highlighter.events.select.onHighlight.add(() => this.emitSelection());
+    this.highlighter.events.select.onClear.add(() => this.emitSelection());
+    this.hider = this.components.get(OBC.Hider);
+    this.indexService = new BimIndexService({ cache: this.fragmentCache, wasmPath: new URL(WEB_IFC_WASM_DIRECTORY, window.location.href).href });
+    new ResizeObserver(() => {
+      this.world.renderer?.resize?.();
+      this.world.camera?.updateAspect?.();
+      this.world.renderer.needsUpdate = true;
+    }).observe(this.container);
     this.fragments.list.onItemSet.add(({ value: model }) => {
       model.useCamera(this.world.camera.three);
       this.world.scene.three.add(model.object);
+      this.fragments.core.update(true);
+      this.world.renderer.needsUpdate = true;
+    });
+    this.world.camera.projection.onChanged.add(() => {
+      this.fragments.list.forEach((model) => model.useCamera(this.world.camera.three));
       this.fragments.core.update(true);
       this.world.renderer.needsUpdate = true;
     });
@@ -175,9 +204,7 @@ export class FragmentsPilot {
     this.benchmark.startedAt = performance.now();
     this.benchmark.firstUsableMs = null;
     const workName = workKey === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea';
-    this.setLoading(true, `Carregando ${workName} otimizado…`, 0);
-    this.list.innerHTML = '';
-    this.empty.classList.add('hidden');
+    this.setLoading(true, `Carregando ${workName}…`, 0);
     const response = await fetch(`${FRAGMENTS_MANIFEST}?t=${Date.now()}`);
     if (!response.ok) throw new Error(`manifesto Fragments não encontrado (${response.status})`);
     const manifest = await response.json();
@@ -186,7 +213,8 @@ export class FragmentsPilot {
     if (this.loadedWork) {
       if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
       this.clearExplodedView();
-      await this.clearSelection();
+      await this.resetPresentation();
+      this.bimIndex.clear();
       for (const modelId of [...this.fragments.list.keys()]) {
         await this.fragments.core.disposeModel(modelId);
         this.fragments.core.models.list.delete(modelId);
@@ -210,7 +238,7 @@ export class FragmentsPilot {
     for (let index = 0; index < models.length; index += 1) {
       const model = models[index];
       try {
-        this.setLoading(true, `Carregando ${model.discipline} otimizado…`, Math.round((index / models.length) * 100));
+        this.setLoading(true, `Carregando ${model.discipline}…`, Math.round((index / models.length) * 100));
         const fragmentUrl = model.fragmentHash ? `${model.fragment}?v=${model.fragmentHash}` : model.fragment;
         const fragmentResponse = await fetch(fragmentUrl);
         if (!fragmentResponse.ok) throw new Error(`arquivo otimizado não encontrado (${fragmentResponse.status})`);
@@ -232,20 +260,20 @@ export class FragmentsPilot {
           ? await this.loadCollider(colliderUrl, colliderCoordinateSpace)
           : null;
         this.modelRecords.set(model.id, { ...model, visible: true, colliderData });
+        if (loadedModel) await this.attachIndex(model.id, () => this.indexService.loadHosted(model));
       } catch (error) {
-        this.showStatus(`Piloto Fragments: não foi possível carregar ${model.discipline}: ${error.message}`);
+        this.showStatus(`Não foi possível carregar ${model.discipline}: ${error.message}`);
       }
     }
     this.loadedWork = workKey;
     this.setLoading(false);
-    this.renderModels(workName);
-    this.renderTree(workName);
+    this.notifyModels();
     this.buildCollisionProxy();
     await this.fit({ animate: false });
     this.fragments.core.update(true);
     await new Promise((resolve) => requestAnimationFrame(resolve));
     this.benchmark.firstUsableMs = performance.now() - this.benchmark.startedAt;
-    this.showStatus(`${workName} otimizado ativo: órbita, seleção, caminhada, cortes e explosão usam o motor Fragments.`);
+    this.showStatus(`${workName}: ${this.bimIndex.size} elementos indexados. Clique em um elemento para ver seus dados.`);
   }
 
   async addFiles(fileList) {
@@ -267,8 +295,7 @@ export class FragmentsPilot {
       }
     }
     this.setLoading(false);
-    this.renderModels(this.getProjectLabel());
-    this.renderTree(this.getProjectLabel());
+    this.notifyModels();
     if (imported) await this.fit();
     if (failures.length) {
       const prefix = imported ? `${imported} IFC(s) aberto(s). ` : 'Nenhum IFC foi aberto. ';
@@ -298,9 +325,14 @@ export class FragmentsPilot {
       if (!record.visible) return;
       const model = this.fragments?.list.get(id);
       if (!model) return;
-      const modelBounds = new THREE.Box3().setFromObject(model.object);
-      if (!modelBounds.isEmpty()) bounds.union(modelBounds);
-      else if (model.box && !model.box.isEmpty()) bounds.union(model.box);
+      // Fragments keeps an exact box per model. Box3.setFromObject over its
+      // BatchedMesh children is unreliable (instance transforms are not
+      // applied), which displaced the section box on some models.
+      if (model.box && !model.box.isEmpty()) bounds.union(model.box);
+      else {
+        const modelBounds = new THREE.Box3().setFromObject(model.object);
+        if (!modelBounds.isEmpty()) bounds.union(modelBounds);
+      }
     });
     return bounds;
   }
@@ -581,7 +613,8 @@ export class FragmentsPilot {
   async startNewProject() {
     if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
     this.clearExplodedView();
-    await this.clearSelection();
+    await this.resetPresentation();
+    this.bimIndex.clear();
     for (const modelId of [...this.fragments.list.keys()]) {
       await this.fragments.core.disposeModel(modelId);
       this.fragments.core.models.list.delete(modelId);
@@ -602,10 +635,7 @@ export class FragmentsPilot {
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
     this.loadedWork = null;
-    this.list.innerHTML = '';
-    this.empty.classList.remove('hidden');
-    this.tree.replaceChildren();
-    this.tree.classList.add('hidden');
+    this.notifyModels();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
     this.showStatus('Modelos descarregados desta sessão. O cache local de Fragments foi preservado.');
@@ -619,6 +649,16 @@ export class FragmentsPilot {
     const hash = await this.hashBuffer(sourceBuffer);
     const modelId = `local-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${index}`}`;
     const cached = hash ? await this.tryGetCachedFragment(hash) : null;
+    // The BIM index is built from the IFC in a worker while the main thread
+    // converts the geometry; a cached index skips the work entirely.
+    const indexJob = (async () => {
+      const cachedIndex = await this.indexService.getCached(hash);
+      if (cachedIndex) return cachedIndex;
+      const built = await this.indexService.buildFromIfc(sourceBuffer);
+      void this.indexService.putCached(hash, built);
+      return built;
+    })();
+    indexJob.catch(() => {});
     let model;
     let fragmentBytes = cached?.buffer?.byteLength || 0;
 
@@ -666,7 +706,7 @@ export class FragmentsPilot {
     const colliderData = await this.createLocalCollisionData(model);
     this.modelRecords.set(modelId, {
       id: modelId,
-      discipline: file.name,
+      discipline: this.uniqueDiscipline(this.guessDiscipline(file.name)),
       name: file.name,
       source: 'local',
       size: file.size,
@@ -676,6 +716,8 @@ export class FragmentsPilot {
       colliderData,
       cacheHash: hash
     });
+    this.setLoading(true, `Indexando dados BIM de ${file.name}…`, Math.round(((index + 0.97) / total) * 100));
+    await this.attachIndex(modelId, () => indexJob);
     this.buildCollisionProxy();
     this.world.renderer.needsUpdate = true;
     const collisionNote = colliderData.partial
@@ -720,10 +762,28 @@ export class FragmentsPilot {
     return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
   }
 
-  guessDiscipline(name) {
-    const upper = name.toUpperCase();
-    return /EST|STR/.test(upper) ? 'Estrutural' : /ELE|HID|MEP|HVAC/.test(upper) ? 'MEP' : 'IFC local';
+  uniqueDiscipline(label) {
+    const taken = new Set([...this.modelRecords.values()].map((record) => record.discipline));
+    if (!taken.has(label)) return label;
+    let index = 2;
+    while (taken.has(`${label} ${index}`)) index += 1;
+    return `${label} ${index}`;
   }
+
+  /** Discipline from the usual file-name codes (ARQ, EST, ELE, HID, ESG…); otherwise the file name. */
+  guessDiscipline(name) {
+    const stem = String(name).replace(/\.ifc$/i, '');
+    const upper = stem.toUpperCase();
+    const rules = [
+      [/(^|[^A-Z])(ARQ|AQR|ARC|ARCH)/, 'Arquitetura'],
+      [/(^|[^A-Z])(EST|STR|ESTR)/, 'Estrutural'],
+      [/(^|[^A-Z])(ELE|ELET|ELT)/, 'Elétrica'],
+      [/(^|[^A-Z])(HID|HYD|AGUA|AF)([^A-Z]|$)/, 'Hidráulica'],
+      [/(^|[^A-Z])(ESG|SAN|PLU)/, 'Sanitária']
+    ];
+    return rules.find(([pattern]) => pattern.test(upper))?.[1] || stem;
+  }
+
 
   async createLocalCollisionData(model) {
     // Hosted models keep their pre-built colliders. Local IFCs must not sample
@@ -918,33 +978,6 @@ export class FragmentsPilot {
     return { positions: new Float32Array(), indices: new Uint32Array() };
   }
 
-  renderModels(workName) {
-    this.list.innerHTML = '';
-    this.empty.classList.toggle('hidden', this.modelRecords.size > 0);
-    this.modelRecords.forEach((record) => {
-      const row = document.createElement('div');
-      row.className = 'ifc-model-row';
-      const label = record.source === 'local'
-        ? `${this.escape(record.name)} · IFC local · ${(record.size / 1024 ** 2).toFixed(1)} MB · Fragment ${(record.fragmentBytes / 1024).toFixed(0)} KB · ${record.cacheState === 'cache' ? 'reaberto do cache' : 'convertido agora'}`
-        : `Fragments · ${(record.fragmentBytes / 1024).toFixed(0)} KB`;
-      const remove = record.source === 'local' ? '<button class="ifc-model-remove" type="button" aria-label="Remover IFC local">🗑</button>' : '';
-      row.innerHTML = `<input type="checkbox" ${record.visible ? 'checked' : ''} aria-label="Mostrar ${this.escape(record.discipline)}"><div><strong>${this.escape(record.discipline)}</strong><small>${label}</small><button class="ifc-model-isolate" type="button">Isolar disciplina</button></div>${remove}`;
-      row.querySelector('input').addEventListener('change', (event) => this.setModelVisibility(record.id, event.target.checked));
-      row.querySelector('.ifc-model-isolate').addEventListener('click', () => this.isolateModel(record.id));
-      row.querySelector('.ifc-model-remove')?.addEventListener('click', () => this.removeModel(record.id));
-      this.list.append(row);
-    });
-    this.showStatus(`${workName}: ${this.modelRecords.size} disciplina(s) em Fragments. Clique em um elemento para consultar dados BIM.`);
-  }
-
-  renderTree(workName, selected = null) {
-    if (!this.tree) return;
-    const disciplines = [...this.modelRecords.values()].map((record) => `<li>${this.escape(record.discipline)} <span>(${this.escape(record.id)})</span></li>`).join('');
-    const selectedLine = selected ? `<li>Elemento: ${this.escape(selected.type || 'IFC')} · ${this.escape(selected.name || 'Sem nome')}</li>` : '<li>Selecione um elemento para revelar sua classe e relações espaciais.</li>';
-    this.tree.innerHTML = `<details open><summary>Estrutura BIM</summary><ul><li>Projeto: ${this.escape(workName)}<ul>${disciplines}</ul></li>${selectedLine}</ul></details>`;
-    this.tree.classList.remove('hidden');
-  }
-
   async setModelVisibility(modelId, visible) {
     const record = this.modelRecords.get(modelId);
     const model = this.fragments.list.get(modelId);
@@ -955,6 +988,7 @@ export class FragmentsPilot {
     if (!visible) await this.clearSelection();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
+    this.notifyModels();
   }
 
   async isolateModel(modelId) {
@@ -964,11 +998,11 @@ export class FragmentsPilot {
       const model = this.fragments.list.get(id);
       if (model) model.object.visible = visible;
     });
-    this.renderModels(this.getProjectLabel());
     await this.clearSelection();
     this.buildCollisionProxy();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
+    this.notifyModels();
   }
 
   async removeModel(modelId) {
@@ -983,12 +1017,12 @@ export class FragmentsPilot {
         if (model) model.object.visible = entry.visible;
       });
     }
+    await this.clearSelection();
     await this.fragments.core.disposeModel(modelId);
     this.modelRecords.delete(modelId);
+    this.bimIndex.removeModel(modelId);
     this.buildCollisionProxy();
-    await this.clearSelection();
-    this.renderModels(this.getProjectLabel());
-    this.renderTree(this.getProjectLabel());
+    this.notifyModels();
     await this.fit();
     this.showStatus(`${record.name} foi removido desta sessão. O IFC original nunca foi salvo; o cache otimizado local permanece para reabertura rápida.`);
   }
@@ -1167,12 +1201,15 @@ export class FragmentsPilot {
   }
 
   async hideSpaces(model) {
+    if (this.spacesVisible) return;
     const byCategory = await model.getItemsOfCategories([/^IFCSPACE$/i]);
     const spaces = Object.values(byCategory).flat();
     if (spaces.length) await model.setVisible(spaces, false);
   }
 
-  startWalkPlacement() {
+  async startWalkPlacement() {
+    if (this.plan) await this.exitPlan({ fit: false });
+    this.setMeasureMode(null);
     if (!this.collisionProxy) return this.showStatus('Aguarde o carregamento de uma disciplina para iniciar a caminhada.');
     this.clearSelection();
     // The highlighter also listens to canvas clicks. Disable it before the
@@ -1668,56 +1705,14 @@ export class FragmentsPilot {
         center.x, center.y, center.z,
         animate
       );
-      const radius = maxDim * 0.72;
-      await controls.fitToSphere(new THREE.Sphere(center, Math.max(radius, 1)), animate);
+      // fitToSphere keeps the oblique viewing angle (fitToBox snaps to an axis).
+      const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+      sphere.radius = Math.max(sphere.radius * 0.82, 1);
+      await controls.fitToSphere(sphere, animate);
     }
 
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
-  }
-
-  async inspectSelection(selection) {
-    const first = Object.entries(selection).find(([, localIds]) => localIds.size);
-    if (!first) return this.renderEmptyProperties();
-    const [modelId, localIds] = first;
-    const localId = [...localIds][0];
-    this.properties.innerHTML = '<p class="ifc-empty-copy">Consultando propriedades BIM…</p>';
-    try {
-      const dataByModel = await this.fragments.getData({ [modelId]: new Set([localId]) }, {
-        attributesDefault: true,
-        // Keep the inspection scoped to this item. IsDefinedBy carries its
-        // Psets/quantities; expanding containment or decomposition would pull
-        // the wider model graph into this panel.
-        relations: { IsDefinedBy: { attributes: true, relations: true } }
-      });
-      const item = dataByModel[modelId]?.[0];
-      if (!item) throw new Error('dados do elemento não foram encontrados no Fragment');
-      const record = this.modelRecords.get(modelId);
-      const directRows = [];
-      const propertyRows = [];
-      Object.entries(item).forEach(([key, value]) => {
-        if (key === 'IsDefinedBy') this.flattenItem(value, '', propertyRows, new WeakSet(), 0, 4, 120);
-        else this.flattenItem(value, key, directRows, new WeakSet(), 0, 1, 40);
-      });
-      const identityKeys = new Set(['Entity', 'Name', 'ObjectType', 'Tag', 'GlobalId', 'expressID']);
-      const identity = {
-        'Model ID': modelId,
-        'Local ID': localId,
-        Disciplina: record?.discipline || '—'
-      };
-      const details = {};
-      for (const { key, value } of directRows) {
-        const target = identityKeys.has(key) ? identity : details;
-        target[key] = value;
-      }
-      if (!identity['Classe IFC'] && identity.Entity) identity['Classe IFC'] = identity.Entity;
-      const psets = Object.fromEntries(propertyRows.map(({ key, value }) => [key, value]));
-      this.properties.innerHTML = this.renderPropertyGroups({ Identificação: identity, Atributos: details, 'Property Sets e quantidades': psets });
-      this.renderTree(this.getProjectLabel(), { type: identity.Entity || identity['Classe IFC'], name: identity.Name });
-      this.filterProperties();
-    } catch (error) {
-      this.properties.innerHTML = `<p class="ifc-empty-copy">Não foi possível obter as propriedades: ${this.escape(error.message)}</p>`;
-    }
   }
 
   flattenItem(value, prefix, output, visited = new WeakSet(), depth = 0, maxDepth = 4, maxRows = 120) {
@@ -1741,33 +1736,434 @@ export class FragmentsPilot {
     Object.entries(value).forEach(([key, nested]) => this.flattenItem(nested, prefix ? `${prefix} › ${key}` : key, output, visited, depth + 1, maxDepth, maxRows));
   }
 
-  renderPropertyGroups(groups) {
-    return Object.entries(groups).map(([title, values]) => {
-      const entries = Object.entries(values).filter(([, value]) => value !== undefined);
-      if (!entries.length) return '';
-      return `<section class="ifc-property-group"><h3>${this.escape(title)}</h3>${entries.map(([key, value]) => `<dl class="ifc-property-row"><dt>${this.escape(key)}</dt><dd>${this.escape(value)}</dd></dl>`).join('')}</section>`;
-    }).join('');
+  // ---------------------------------------------------------------------------
+  // BIM index
+  // ---------------------------------------------------------------------------
+
+  /** Loads (or builds) a model's BIM index and maps it to Fragments local ids by GUID. */
+  async attachIndex(modelId, loadIndex) {
+    const model = this.fragments.list.get(modelId);
+    const record = this.modelRecords.get(modelId);
+    if (!model || !record) return;
+    try {
+      const index = await loadIndex();
+      if (!index?.elements?.length) return;
+      const guids = index.elements.map((element) => element.guid || '');
+      const localIds = await model.getLocalIdsByGuids(guids);
+      // Elements without a GlobalId keep their IFC express id, which the
+      // Fragments importer also uses as local id.
+      const resolved = localIds.map((localId, position) => (localId ?? (guids[position] ? null : index.elements[position].id)));
+      this.bimIndex.addModel(modelId, record, index, resolved);
+    } catch (error) {
+      console.warn(`Índice BIM indisponível para ${record.discipline}:`, error);
+      this.showStatus(`${record.discipline}: dados BIM indisponíveis (${error.message}). O modelo 3D continua navegável.`);
+    }
   }
 
-  renderEmptyProperties() {
-    if (!this.properties) return;
-    this.properties.innerHTML = '<p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p>';
-    if (this.search) this.search.value = '';
-    this.renderTree(this.getProjectLabel());
+  getModelSummaries() {
+    return [...this.modelRecords.values()].map((record) => ({
+      id: record.id,
+      discipline: record.discipline,
+      name: record.name || record.discipline,
+      source: record.source || 'hosted',
+      visible: record.visible,
+      size: record.size || record.sourceBytes || 0,
+      fragmentBytes: record.fragmentBytes || 0,
+      cacheState: record.cacheState || null,
+      elements: this.bimIndex.models.get(record.id)?.rows.length || 0
+    }));
+  }
+
+  notifyModels() {
+    this.onModelsChange?.(this.getModelSummaries());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Selection
+  // ---------------------------------------------------------------------------
+
+  /** Normalises a ModelIdMap to loaded models and Set values. */
+  cleanMap(map) {
+    const clean = {};
+    Object.entries(map || {}).forEach(([modelId, ids]) => {
+      if (!this.fragments?.list.has(modelId)) return;
+      const set = new Set(ids);
+      if (set.size) clean[modelId] = set;
+    });
+    return clean;
+  }
+
+  emitSelection() {
+    const current = this.cleanMap(this.highlighter?.selection?.select || {});
+    this.selection = current;
+    if (this.xrayEnabled) void this.applyXray();
+    this.onSelectionChange?.(current);
+  }
+
+  async select(map, { zoom = false, box = null } = {}) {
+    if (!this.highlighter) return;
+    if (this.explodeDistance) return this.showStatus('Volte a explosão para 0,0 m para selecionar elementos.');
+    const clean = this.cleanMap(map);
+    if (!Object.keys(clean).length) return this.clearSelection();
+    await this.highlighter.highlightByID('select', clean, true, false);
+    this.emitSelection();
+    this.requestFrames();
+    if (zoom) await this.fitToMap(clean, box);
   }
 
   async clearSelection() {
     if (this.highlighter) await this.highlighter.clear('select');
-    this.renderEmptyProperties();
+    this.emitSelection();
   }
 
-  filterProperties() {
-    const query = this.search?.value.trim().toLocaleLowerCase('pt-BR') || '';
-    this.properties.querySelectorAll('.ifc-property-row').forEach((row) => row.classList.toggle('is-hidden', !!query && !row.textContent.toLocaleLowerCase('pt-BR').includes(query)));
+  /** Union of the bounding boxes of the given items (scene coordinates). */
+  async getMapBox(map) {
+    const box = new THREE.Box3();
+    for (const [modelId, ids] of Object.entries(this.cleanMap(map))) {
+      const model = this.fragments.list.get(modelId);
+      if (!model) continue;
+      try {
+        const merged = await model.getMergedBox([...ids]);
+        if (merged?.min && merged?.max && Number.isFinite(merged.min.x)) {
+          box.union(new THREE.Box3(
+            new THREE.Vector3(merged.min.x, merged.min.y, merged.min.z),
+            new THREE.Vector3(merged.max.x, merged.max.y, merged.max.z)
+          ));
+        }
+      } catch (error) {
+        console.warn('Não foi possível medir os elementos:', error);
+      }
+    }
+    return box;
   }
 
-  escape(value) {
-    return String(value ?? '—').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+  /** Frames the given items; `hint` is an optional {min,max} box already known (e.g. from the BIM index). */
+  async fitToMap(map, hint = null) {
+    const box = hint ? new THREE.Box3(new THREE.Vector3(...hint.min), new THREE.Vector3(...hint.max)) : await this.getMapBox(map);
+    if (box.isEmpty()) return;
+    const sphere = box.getBoundingSphere(new THREE.Sphere());
+    sphere.radius = Math.max(sphere.radius * 1.35, 1.2);
+    await this.world.camera.controls.fitToSphere(sphere, true);
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
+  }
+
+  /** Reads the full IFC attributes and property sets of one item. */
+  async getItemProperties(modelId, localId) {
+    const value = (entry) => {
+      let current = entry;
+      for (let depth = 0; depth < 4 && current && typeof current === 'object' && 'value' in current; depth += 1) current = current.value;
+      return current;
+    };
+    const data = await this.fragments.getData({ [modelId]: new Set([localId]) }, {
+      attributesDefault: true,
+      relations: { IsDefinedBy: { attributes: true, relations: true } }
+    });
+    const item = data[modelId]?.[0];
+    if (!item) return null;
+    const attributes = {};
+    Object.entries(item).forEach(([key, entry]) => {
+      if (key === 'IsDefinedBy' || key.startsWith('_')) return;
+      const plain = value(entry);
+      if (plain !== null && plain !== undefined && typeof plain !== 'object') attributes[key] = plain;
+    });
+    const sets = [];
+    const definitions = Array.isArray(item.IsDefinedBy) ? item.IsDefinedBy : [];
+    definitions.forEach((definition, index) => {
+      const title = value(definition.Name) || value(definition._category) || `Conjunto ${index + 1}`;
+      const entries = definition.HasProperties || definition.Quantities || [];
+      const rows = {};
+      (Array.isArray(entries) ? entries : []).forEach((property) => {
+        const name = value(property.Name);
+        const raw = value(property.NominalValue ?? property.LengthValue ?? property.AreaValue ?? property.VolumeValue ?? property.CountValue ?? property.WeightValue ?? property.TimeValue);
+        if (name && raw !== undefined && raw !== null && typeof raw !== 'object') rows[name] = raw;
+      });
+      if (!Object.keys(rows).length) {
+        const flat = [];
+        this.flattenItem(definition, '', flat, new WeakSet(), 0, 3, 60);
+        flat.forEach(({ key, value: entryValue }) => { if (!key.startsWith('_')) rows[key] = entryValue; });
+      }
+      if (Object.keys(rows).length) sets.push({ title, rows, quantities: Boolean(definition.Quantities) });
+    });
+    return { attributes, sets };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Visibility, X-ray and colours
+  // ---------------------------------------------------------------------------
+
+  async afterVisibilityChange() {
+    await this.fragments.core.update(true);
+    this.requestFrames();
+  }
+
+  /** Highlights and visibility are applied by the Fragments worker; draw again once they land. */
+  requestFrames() {
+    if (!this.world?.renderer) return;
+    this.world.renderer.needsUpdate = true;
+    clearTimeout(this.frameTimer);
+    this.frameTimer = setTimeout(() => {
+      this.fragments?.core.update(true);
+      this.world.renderer.needsUpdate = true;
+    }, 120);
+  }
+
+  async isolate(map) {
+    const clean = this.cleanMap(map);
+    if (!Object.keys(clean).length) return;
+    await this.hider.isolate(clean);
+    await this.afterVisibilityChange();
+  }
+
+  async setItemsVisible(map, visible) {
+    const clean = this.cleanMap(map);
+    if (!Object.keys(clean).length) return;
+    await this.hider.set(visible, clean);
+    await this.afterVisibilityChange();
+  }
+
+  async showAll() {
+    await this.hider.set(true);
+    if (!this.spacesVisible) {
+      for (const model of this.fragments.list.values()) await this.hideSpaces(model);
+    }
+    await this.afterVisibilityChange();
+  }
+
+  async setSpacesVisible(visible) {
+    this.spacesVisible = visible;
+    for (const model of this.fragments.list.values()) {
+      const byCategory = await model.getItemsOfCategories([/^IFCSPACE$/i]);
+      const spaces = Object.values(byCategory).flat();
+      if (spaces.length) await model.setVisible(spaces, visible);
+    }
+    await this.afterVisibilityChange();
+  }
+
+  ensureStyle(name, color, { opacity = 1, transparent = false, priority = 1 } = {}) {
+    this.highlighter.styles.set(name, {
+      color: new THREE.Color(color),
+      opacity,
+      transparent,
+      renderedFaces: RenderedFaces.TWO,
+      priority
+    });
+  }
+
+  async setXray(enabled) {
+    this.xrayEnabled = Boolean(enabled);
+    await this.applyXray();
+  }
+
+  async applyXray() {
+    if (!this.highlighter) return;
+    if (!this.highlighter.styles.has(XRAY_STYLE)) {
+      this.ensureStyle(XRAY_STYLE, '#a7b0ba', { opacity: 0.07, transparent: true, priority: 10 });
+    }
+    const version = (this.xrayVersion = (this.xrayVersion || 0) + 1);
+    if (!this.xrayEnabled) {
+      await this.highlighter.clear(XRAY_STYLE);
+      this.requestFrames();
+      return;
+    }
+    const map = {};
+    for (const [modelId, model] of this.fragments.list) {
+      if (!this.modelRecords.get(modelId)?.visible) continue;
+      const ids = await model.getItemsIdsWithGeometry();
+      const selected = this.selection[modelId];
+      const ghosted = selected ? ids.filter((id) => !selected.has(id)) : ids;
+      if (ghosted.length) map[modelId] = new Set(ghosted);
+    }
+    if (version !== this.xrayVersion) return;
+    await this.highlighter.clear(XRAY_STYLE);
+    if (Object.keys(map).length) await this.highlighter.highlightByID(XRAY_STYLE, map, true, false);
+    this.requestFrames();
+  }
+
+  /** @param {{color:string, map:object}[]} groups */
+  async applyColorGroups(groups) {
+    if (!this.highlighter) return;
+    await this.clearColorGroups();
+    this.colorGroups = [];
+    for (let index = 0; index < groups.length; index += 1) {
+      const name = `${COLOR_STYLE_PREFIX}${index}`;
+      const clean = this.cleanMap(groups[index].map);
+      if (!Object.keys(clean).length) continue;
+      this.ensureStyle(name, groups[index].color, { priority: 1 });
+      this.colorGroups.push(name);
+      await this.highlighter.highlightByID(name, clean, true, false);
+    }
+    this.requestFrames();
+  }
+
+  async clearColorGroups() {
+    if (!this.highlighter) return;
+    const names = [...this.highlighter.styles.keys()].filter((name) => name.startsWith(COLOR_STYLE_PREFIX));
+    for (const name of names) {
+      await this.highlighter.clear(name);
+      this.highlighter.styles.delete(name);
+    }
+    this.colorGroups = [];
+    this.requestFrames();
+  }
+
+  /** Back to a neutral presentation: no selection, colours, X-ray, plan or hidden items. */
+  async resetPresentation() {
+    if (!this.highlighter) return;
+    await this.exitPlan({ fit: false });
+    this.setMeasureMode(null);
+    this.clearMeasurements();
+    await this.clearColorGroups();
+    this.xrayEnabled = false;
+    await this.highlighter.clear(XRAY_STYLE).catch(() => {});
+    await this.highlighter.clear('select');
+    this.selection = {};
+    if (this.fragments?.list.size) await this.hider.set(true);
+    this.onSelectionChange?.({});
+  }
+
+  // ---------------------------------------------------------------------------
+  // Storey plan
+  // ---------------------------------------------------------------------------
+
+  /** Shows only the given storey's elements, cut 1.2 m above its lowest point, seen from above. */
+  async enterPlan(map, label, { baseY = null, styles = [], box: hint = null } = {}) {
+    if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    if (this.explodeDistance) await this.setExplodeDistance(0);
+    const clean = this.cleanMap(map);
+    const box = hint ? new THREE.Box3(new THREE.Vector3(...hint.min), new THREE.Vector3(...hint.max)) : await this.getMapBox(clean);
+    if (box.isEmpty()) return false;
+    await this.isolate(clean);
+    // Cut 1.2 m above the storey level, as in a floor plan. Without a known
+    // level, fall back to the lowest point of the storey's elements.
+    const base = Number.isFinite(baseY) && baseY > box.min.y - 2 && baseY < box.max.y + 0.5 ? baseY : box.min.y;
+    const cut = Math.min(base + PLAN_CUT_HEIGHT, Math.max(box.max.y + 0.02, base + 0.05));
+    this.resetClipBox();
+    this.setClipBox({ minY: Math.max(box.min.y, base - 0.35) - 0.05, maxY: cut });
+    const center = box.getCenter(new THREE.Vector3());
+    await this.world.camera.projection.set('Orthographic');
+    this.world.camera.set('Plan');
+    await this.world.camera.controls.setLookAt(center.x, box.max.y + 60, center.z + 0.001, center.x, box.min.y, center.z, false);
+    await this.world.camera.controls.fitToBox(box, true, { paddingTop: 1.5, paddingBottom: 3, paddingLeft: 1.5, paddingRight: 1.5 });
+    this.plan = { label, map: clean };
+    // Drawing convention for the plan: cut walls dark, floors light, etc.
+    for (let index = 0; index < styles.length; index += 1) {
+      const name = `${PLAN_STYLE_PREFIX}${index}`;
+      const styleMap = this.cleanMap(styles[index].map);
+      if (!Object.keys(styleMap).length) continue;
+      this.ensureStyle(name, styles[index].color, { priority: 5 });
+      await this.highlighter.highlightByID(name, styleMap, true, false);
+    }
+    this.requestFrames();
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
+    this.onModeChange?.({ plan: label });
+    return true;
+  }
+
+  async exitPlan({ fit = true } = {}) {
+    if (!this.plan) return;
+    this.plan = null;
+    for (const name of [...this.highlighter.styles.keys()].filter((key) => key.startsWith(PLAN_STYLE_PREFIX))) {
+      await this.highlighter.clear(name);
+      this.highlighter.styles.delete(name);
+    }
+    this.world.camera.set('Orbit');
+    await this.world.camera.projection.set('Perspective');
+    this.resetClipBox();
+    await this.showAll();
+    if (fit) await this.fit({ animate: true });
+    this.onModeChange?.({ plan: null });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Measurements
+  // ---------------------------------------------------------------------------
+
+  ensureMeasurements() {
+    if (this.measurements) return this.measurements;
+    const formatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+    const length = this.components.get(OBCF.LengthMeasurement);
+    const area = this.components.get(OBCF.AreaMeasurement);
+    [length, area].forEach((tool) => {
+      tool.world = this.world;
+      tool.color = new THREE.Color('#b8860b');
+      tool.enabled = false;
+      tool.visible = true;
+    });
+    try { length.units = 'm'; area.units = 'm2'; } catch { /* units are optional in older builds */ }
+    if ('valueFormatter' in OBCF.Measurement) OBCF.Measurement.valueFormatter = (value) => formatter.format(value);
+    const canvas = this.world.renderer.three.domElement;
+    canvas.addEventListener('dblclick', () => {
+      const tool = this.activeMeasureTool();
+      if (tool) void tool.create();
+    });
+    window.addEventListener('keydown', (event) => {
+      const tool = this.activeMeasureTool();
+      if (!tool || event.target?.closest?.('input, textarea, select')) return;
+      if (event.code === 'Enter') tool.endCreation?.();
+      else if (event.code === 'Escape') tool.cancelCreation?.();
+      else if (event.code === 'Delete' || event.code === 'Backspace') tool.delete?.();
+    });
+    this.measurements = { length, area };
+    return this.measurements;
+  }
+
+  activeMeasureTool() {
+    if (!this.measureMode || !this.measurements) return null;
+    return this.measurements[this.measureMode] || null;
+  }
+
+  /** @param {'length'|'area'|null} mode */
+  setMeasureMode(mode) {
+    if (!this.components) return;
+    if (mode && this.walk.mode !== 'orbit') return;
+    const tools = mode || this.measurements ? this.ensureMeasurements() : null;
+    this.measureMode = mode || null;
+    if (tools) {
+      tools.length.enabled = mode === 'length';
+      tools.area.enabled = mode === 'area';
+    }
+    // The selection click would compete with picking measurement points.
+    if (this.highlighter) this.highlighter.enabled = !mode;
+    this.world.renderer.needsUpdate = true;
+  }
+
+  clearMeasurements() {
+    if (!this.measurements) return;
+    Object.values(this.measurements).forEach((tool) => {
+      try { tool.list.clear(); } catch (error) { console.warn('Falha ao limpar medições:', error); }
+    });
+    this.world.renderer.needsUpdate = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Saved views
+  // ---------------------------------------------------------------------------
+
+  getViewState() {
+    const controls = this.world?.camera?.controls;
+    if (!controls) return null;
+    const position = controls.getPosition(new THREE.Vector3());
+    const target = controls.getTarget(new THREE.Vector3());
+    return {
+      position: position.toArray().map((value) => Number(value.toFixed(3))),
+      target: target.toArray().map((value) => Number(value.toFixed(3))),
+      clip: this.getClipBox()
+    };
+  }
+
+  async applyViewState(state) {
+    if (!state?.position || !state?.target) return;
+    if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    if (this.plan) await this.exitPlan({ fit: false });
+    const [px, py, pz] = state.position;
+    const [tx, ty, tz] = state.target;
+    await this.world.camera.controls.setLookAt(px, py, pz, tx, ty, tz, true);
+    if (state.clip) this.setClipBox(state.clip);
+    else this.resetClipBox();
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
   }
 
   setActive(active) {

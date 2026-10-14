@@ -1,94 +1,92 @@
-# Plano de Implementacao Fase 12 Consolidacao e retirada controlada do legado
+# Plano de Implementação Fase 13: Visualizador como dashboard BIM
 
-## Visao geral
+## Visão geral
 
-Concluir a migracao para Fragments com evidencias reproduziveis de qualidade, regressao e desempenho. O objetivo nao e apagar o motor padrao prematuramente: primeiro o Fragments se torna o caminho padrao com uma reversao explicita; a retirada do codigo legado so ocorre depois da matriz final aprovada.
+Transformar o visualizador em uma ferramenta de consulta para clientes, que também sirva de vitrine no portfólio. Para cada elemento: área, volume, pavimento, tipo, materiais e sistema. Para o projeto: navegação por pavimento, disciplina, categoria e sistema; quantitativos exportáveis; e uma visão geral com indicadores e qualidade dos dados.
 
-## Decisoes de arquitetura
+A fase começa concluindo a retirada do legado da Fase 12 (T12.4) e a documentação operacional (T12.5).
 
-- Fragments passa a ser o unico motor exposto. URLs antigas com `ifcEngine` ou `ifcDebug` sao normalizadas para o link publico simples; o codigo legado permanece temporariamente apenas como material de migracao interna.
-- As metricas de diagnostico existentes serao registradas como instantaneos comparaveis, sempre com modelo, motor, perfil de qualidade e data. A coleta nao exibira painel de depuracao no link publico de teste. Como nao existe baseline historico salvo da Fase 1, a comparacao final sera estabelecida novamente entre legado e Fragments no mesmo navegador e nos mesmos modelos.
-- A remocao do legado depende da matriz aprovada, de um build limpo e de documentacao operacional. Nao sera feita como efeito colateral de outras iteracoes.
+## Decisões de arquitetura
 
-## Dependencias
+- **Índice BIM pré-calculado** (ADR-003): `*.bim.json` por modelo, gerado na conversão e, para IFCs locais, num worker com cache em IndexedDB. A associação aos Fragments é feita por GlobalId.
+- **Quantidades**: as do IFC têm prioridade; na falta delas, medição geométrica com a origem sempre indicada.
+- **Interface tipo aplicativo** com três abas (Modelo, Quantitativos, Visão geral) sobre um único motor 3D (`ViewerEngine`), que nunca é recriado ao trocar de aba.
+- **Seleção única**: clique no 3D, navegador, tabela e gráficos usam o mesmo caminho (`Highlighter` → `onSelectionChange`).
+- **Cores, raio-X e planta** usam estilos do `Highlighter` com prioridade: seleção > raio-X > planta > cores por parâmetro.
+- **Sem novas dependências**: exportação XLSX/CSV própria, gráficos em HTML/CSS.
 
-```text
-instantaneos de benchmark + matriz de regressao
-    -> Fragments como padrao com fallback explicito
-        -> nova validacao publicada
-            -> retirada do legado e limpeza de residuos
-                -> documentacao operacional e encerramento
-```
+## Iterações
 
-## Iteracao 1 Evidencias reproduziveis
+### 13.0 Base
 
-### T12.1 Instantaneos de benchmark no diagnostico
+- [x] T12.4: remover motor legado, `hero-3d.js` e `ifc-viewer.js` da raiz, `assets/js/`, `src/viewer/performance/` e o Three r128 do CDN.
+- [x] Carregar `script.js` como módulo (remove o aviso do Vite e a cópia manual no build).
+- [x] Renomear `FragmentsPilot` para `ViewerEngine` e tirar dele a renderização de painéis.
+- [x] Corrigir caixa de corte e enquadramento: usar `model.box` dos Fragments em vez de `Box3.setFromObject` (inválido em BatchedMesh).
 
-- [ ] Permitir copiar ou exportar um instantaneo com FPS, frame time medio e p95, draw calls, triangulos, memoria, primeiro frame, modelo, motor e perfil de qualidade.
-- [ ] Coletar o recurso sem parametro de depuracao; a interface publica nao deve ganhar painel, parametros ou ruido de diagnostico.
-- [ ] Validar em um modelo pequeno, medio e pesado no motor Fragments; registrar o mesmo conjunto no legado enquanto ele existir.
+### 13.1 Índice BIM
 
-**Aceite:** cada resultado pode ser comparado fora do navegador sem transcricao manual ambigua.
+- [x] `buildBimIndex`: pavimento (contenção + agregação), tipo, materiais (camadas, perfis, constituintes), sistemas, Psets-chave, Qto e unidades.
+- [x] Métricas geométricas com eliminação de sólidos duplicados e descarte de volumes inválidos.
+- [x] Conversor gera `.bim.json` com hash no manifesto (saída determinística).
+- [x] Worker e cache para IFCs locais.
 
-**Verificacao:** build de producao e teste manual no link publico sem `ifcDebug`.
+### 13.2 Ficha do elemento
 
-## Iteracao 2 Matriz de regressao publicada
+- [x] Faixa de quantidades por tipo de elemento, com origem (IFC ou medido).
+- [x] Pavimento com cota, tipo e família, materiais, sistema, função (estrutural, externo), classe, marca, GlobalId.
+- [x] Ações: enquadrar, isolar, ocultar, selecionar mesmo tipo, copiar GlobalId.
+- [x] Psets completos sob demanda com filtro.
+- [x] Seleção múltipla (Ctrl + clique) com totais, composição e exportação.
 
-### T12.2 Checklist de aceite por modelo e fluxo
+### 13.3 Navegador do projeto
 
-- [ ] Registrar os testes de carregamento, orbita, selecao, propriedades, disciplinas, clipping, fundo, tela cheia, caminhada, troca de obra, upload, cache e federacao.
-- [ ] Cobrir pequeno, medio, pesado e IFC externo; anotar ambiente, modelo e falha encontrada, se houver.
-- [ ] Publicar a iteracao e obter aprovacao do usuario antes de trocar o motor padrao.
+- [x] Abas Pavimentos, Disciplinas, Categorias (com tipos) e Sistemas.
+- [x] Busca por nome, tipo, material, pavimento ou GlobalId.
+- [x] Selecionar, isolar e ocultar grupos; mostrar tudo.
+- [x] Planta do pavimento: isolamento, corte a 1,2 m da cota, vista superior ortográfica e convenção de cores.
+- [x] Disciplinas com visibilidade, "só esta" e remoção de IFC local.
 
-**Aceite:** nenhum fluxo critico fica sem resultado explicitamente registrado.
+### 13.4 Quantitativos
 
-**Verificacao:** matriz preenchida, build de producao e teste do usuario na pagina publicada.
+- [x] Agrupamento em dois níveis (categoria, tipo, pavimento, material, disciplina, sistema, diâmetro).
+- [x] Filtros por disciplina, pavimento e texto.
+- [x] Linha da tabela seleciona e enquadra no 3D ao lado.
+- [x] Exportação Excel (Resumo + Elementos) e CSV pt-BR.
 
-## Iteracao 3 Fragments como padrao com reversao
+### 13.5 Visão geral
 
-### T12.3 Unificar o motor publico
+- [x] Indicadores: elementos, concreto, paredes, tubulações, ambientes.
+- [x] Gráficos por disciplina, pavimento, tipo de parede e diâmetro.
+- [x] Tabela de ambientes.
+- [x] Qualidade dos dados: pavimento, tipo, material, classificação e origem das quantidades.
 
-- [ ] Abrir Fragments sem parametro de URL e normalizar links antigos sem expor rotas de motor ou depuracao.
-- [ ] Manter o motor ativo fora da interface publica; nenhuma pagina paralela de depuracao sera usada.
-- [ ] Repetir o fluxo de IFC hospedado e externo, cache, caminhada, cortes e explosao no caminho padrao.
+### 13.6 Ferramentas
 
-**Aceite:** a pagina publicada abre no Fragments pelo link simples, inclusive quando um link antigo contem parametros obsoletos.
+- [x] Colorir por parâmetro com legenda clicável (oito cores validadas e "Outros").
+- [x] Raio-X.
+- [x] Medição de distância e de área.
+- [x] Vistas salvas por projeto.
+- [x] Layout responsivo com gavetas no celular.
 
-**Verificacao:** build de producao, teste local e teste do usuario apos publicacao.
+## Verificação
 
-## Iteracao 4 Retirada do legado e limpeza
+- Testes automatizados em Chromium (headless) sobre um build esbuild equivalente, nos dois exemplos:
+  - seleção no 3D;
+  - navegador e busca;
+  - cores e raio-X;
+  - planta;
+  - quantitativos e XLSX validado com openpyxl;
+  - visão geral;
+  - medição;
+  - vistas;
+  - celular;
+  - importação local com reabertura pelo cache.
+- O build oficial com Vite roda no GitHub Actions ou localmente (`pnpm build`).
 
-### T12.4 Remover somente codigo comprovadamente substituido
+## Próximos passos possíveis
 
-- [ ] Isolar e remover o parser, renderizador, UI e dependencias exclusivas do motor legado depois da aprovacao da Iteracao 3.
-- [ ] Eliminar IDs, listeners, estilos e caminhos de codigo orfaos; o script principal do site continua separado do motor IFC.
-- [ ] Corrigir o aviso de build relacionado ao carregamento de `script.js` sem alterar funcionalidades do portfolio.
-
-**Aceite:** uma unica arquitetura do viewer e build sem avisos relacionados ao viewer ou ao carregamento do script principal.
-
-**Verificacao:** build, auditoria de imports e regressao completa no Fragments.
-
-## Iteracao 5 Operacao e encerramento
-
-### T12.5 Documentacao operacional
-
-- [ ] Criar README com instalar, desenvolver, buildar, converter IFCs para Fragments e publicar no GitHub Pages.
-- [ ] Registrar resultados finais, limitacoes conhecidas e decisoes de retirada no historico de arquitetura.
-
-**Aceite:** uma pessoa nova consegue executar e publicar o viewer a partir do repositorio.
-
-**Verificacao:** seguir os comandos documentados em uma sessao limpa e executar o build.
-
-## Checkpoints de publicacao
-
-- Cada iteracao funcional termina em commit, push para `main` e deploy do GitHub Pages antes do teste do usuario.
-- Nenhuma remocao de codigo legado e iniciada sem a aprovacao do checkpoint anterior.
-
-## Riscos e mitigacoes
-
-| Risco | Impacto | Mitigacao |
-| --- | --- | --- |
-| Metricas variam por hardware | Medio | Comparar motores na mesma maquina, navegador, modelo e perfil. |
-| Retirada remove um recurso ainda usado | Alto | Usar fallback temporario e matriz completa antes de apagar o legado. |
-| IFC externo revela caso nao coberto | Alto | Incluir upload e reabertura por cache na matriz em cada checkpoint. |
-| Limpeza afeta o portfolio | Medio | Alterar somente scripts e estilos ligados ao viewer; validar navegacao geral. |
+- Reexportar os IFCs com quantidades base e reconverter.
+- Link compartilhável de seleção ou vista.
+- Seções verticais e cotas automáticas na planta.
+- Checagem IDS (requisitos de informação) na aba Visão geral.
