@@ -15,7 +15,6 @@
   <!-- FontAwesome Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <!-- Tailwind CSS CDN with Custom Editorial Palette -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -275,7 +274,7 @@
                   <span class="font-mono text-xs font-bold text-white uppercase tracking-wider bg-ink/90 px-3.5 py-1.5 rounded border border-ochre/40 shadow">
                     ▶ Abrir Visualizador IFC 3D em Tela Cheia
                   </span>
-                  <span class="block text-[11px] text-slate-300 font-mono mt-1.5">Modelos Federados · Colisão 1ª Pessoa · Portas Vazadas</span>
+                  <span class="block text-[11px] text-slate-300 font-mono mt-1.5">Navegador do projeto · Quantitativos · Caminhada em 1ª pessoa</span>
                 </div>
               </div>
               <span class="project-code-tag !bg-ochre !text-ink font-bold">● MODELO BIM 3D INTERATIVO (WASM)</span>
@@ -283,12 +282,12 @@
             <div class="lg:col-span-5 project-plate-body justify-between">
               <div>
                 <div class="flex items-center justify-between gap-2 mb-1">
-                  <span class="project-plate-sub text-ochre font-bold">Three.js + Web-IFC Engine</span>
+                  <span class="project-plate-sub text-ochre font-bold">That Open Fragments + web-ifc</span>
                   <span class="tech-badge highlight text-xs">WebGL 3D</span>
                 </div>
                 <h3 class="project-plate-title text-xl mb-2">Visualizador BIM Multidisciplinar</h3>
                 <p class="project-plate-desc text-xs sm:text-sm mb-4 leading-relaxed">
-                  Modelo BIM federado no navegador, com disciplinas, camadas e navegação em primeira pessoa.
+                  Modelo BIM federado no navegador: ficha de cada elemento com área, volume e pavimento, navegador por pavimento, tipo e sistema, quantitativos exportáveis para Excel e caminhada em primeira pessoa.
                 </p>
               </div>
               <div class="space-y-3 pt-3 border-t border-border-light">
@@ -296,7 +295,7 @@
                   <span class="tech-badge highlight"><i class="ph-bold ph-person-walking mr-1"></i> Modo Caminhar 1ª Pessoa</span>
                   <span class="tech-badge highlight"><i class="ph-bold ph-stack mr-1"></i> Modelos Federados</span>
                   <span class="tech-badge">Planos de Corte</span>
-                  <span class="tech-badge">Inspector BIM</span>
+                  <span class="tech-badge">Quantitativos</span>
                 </div>
                 <button type="button" class="btn-primary-dark w-full justify-center !py-2.5 !text-xs !bg-ink hover:!bg-ochre hover:!text-ink transition-colors">
                   <i class="ph-bold ph-cube text-ochre mr-1"></i>
@@ -1005,71 +1004,159 @@ def auditar_durabilidade_nbr6118(dados_viga):
   </div>
 
   <!-- IFC BIM Viewer -->
-  <div id="ifc-viewer-modal" class="ifc-app hidden" role="dialog" aria-modal="true" aria-label="Visualizador BIM IFC">
-    <header class="ifc-app__header">
-      <div class="ifc-app__identity"><span class="ifc-app__mark">IFC</span><div><h2>Visualizador BIM</h2><p>Modelo federado no navegador</p></div></div>
-      <div class="ifc-app__actions">
-        <label class="ifc-button ifc-button--primary" for="ifc-file-input"><i class="ph-bold ph-plus"></i><span>Adicionar IFCs</span></label>
+  <div id="ifc-viewer-modal" class="bim-app hidden" role="dialog" aria-modal="true" aria-label="Visualizador BIM">
+    <header class="bim-topbar">
+      <div class="bim-brand">
+        <span class="bim-brand__mark" aria-hidden="true"><i class="ph-bold ph-cube-transparent"></i></span>
+        <div class="bim-brand__text">
+          <label class="bim-visually-hidden" for="bim-project-select">Projeto</label>
+          <select id="bim-project-select" class="bim-project-select">
+            <option value="casa-terrea">Casa Térrea</option>
+            <option value="galpao">Galpão Industrial</option>
+            <option value="local" hidden>IFCs abertos</option>
+          </select>
+          <span id="bim-project-meta" class="bim-brand__meta">Carregando…</span>
+        </div>
+      </div>
+      <nav class="bim-tabs" role="tablist" aria-label="Áreas do visualizador">
+        <button type="button" role="tab" class="bim-tab" data-tab="model" aria-selected="true"><i class="ph ph-cube"></i><span>Modelo</span></button>
+        <button type="button" role="tab" class="bim-tab" data-tab="takeoff" aria-selected="false"><i class="ph ph-table"></i><span>Quantitativos</span></button>
+        <button type="button" role="tab" class="bim-tab" data-tab="overview" aria-selected="false"><i class="ph ph-chart-bar"></i><span>Visão geral</span></button>
+      </nav>
+      <div class="bim-topbar__actions">
+        <label class="bim-button bim-button--accent" for="ifc-file-input"><i class="ph-bold ph-upload-simple"></i><span>Abrir IFC</span></label>
         <input id="ifc-file-input" type="file" multiple accept=".ifc,.IFC" hidden>
-        <button id="ifc-benchmark-copy-btn" class="ifc-icon-button" aria-label="Copiar instantâneo de desempenho" title="Copiar instantâneo de desempenho"><i class="ph-bold ph-chart-line-up"></i></button>
-        <button id="ifc-fullscreen-btn" class="ifc-icon-button" aria-label="Tela cheia" title="Tela cheia"><i class="ph-bold ph-expand"></i></button>
-        <button id="ifc-close-btn" class="ifc-icon-button" aria-label="Fechar" title="Fechar"><i class="ph-bold ph-x"></i></button>
+        <button id="ifc-benchmark-copy-btn" class="bim-icon-button" type="button" aria-label="Copiar medição de desempenho" title="Copiar medição de desempenho"><i class="ph ph-gauge"></i></button>
+        <button id="ifc-fullscreen-btn" class="bim-icon-button" type="button" aria-label="Tela cheia" title="Tela cheia"><i class="ph ph-corners-out"></i></button>
+        <button id="ifc-close-btn" class="bim-icon-button" type="button" aria-label="Fechar visualizador" title="Fechar"><i class="ph ph-x"></i></button>
       </div>
     </header>
-    <div class="ifc-app__body">
-      <aside id="ifc-model-panel" class="ifc-sidepanel ifc-sidepanel--models">
-        <div class="ifc-panel-heading"><span>Modelos</span><button id="ifc-load-demo-btn" class="ifc-text-button">Trocar exemplo</button></div>
-        <p id="ifc-model-empty" class="ifc-empty-copy">Nenhum modelo carregado.</p>
-        <div id="ifc-model-list" class="ifc-model-list"></div>
-        <section id="ifc-bim-tree" class="ifc-bim-tree hidden" aria-label="Estrutura BIM"></section>
-        <p id="ifc-model-note" class="ifc-panel-note">Os arquivos permanecem somente neste navegador.</p>
-      </aside>
-      <main id="ifc-canvas-container" class="ifc-viewport" aria-label="Área de visualização 3D">
-        <div id="ifc-loading-overlay" class="ifc-loading-overlay hidden" aria-live="polite"><div class="ifc-spinner"></div><strong id="ifc-loading-text">Preparando visualizador…</strong><div class="ifc-progress-track"><div id="ifc-progress-bar" class="ifc-progress-bar"></div></div></div>
-        <div id="ifc-status" class="ifc-status hidden" role="status"></div>
-        <div id="ifc-walk-crosshair" class="ifc-walk-crosshair hidden" aria-hidden="true"></div>
-        <div id="ifc-walk-help" class="ifc-walk-help hidden">Clique em um piso para posicionar-se. Depois use <b>W A S D</b> para andar, <b>Espaço</b> para pular, <b>Shift</b> para correr; <b>Esc</b> libera o mouse e o segundo <b>Esc</b> sai e reenquadra.</div>
-        <div class="ifc-toolbar" role="toolbar" aria-label="Ferramentas do modelo">
-          <button data-action="orbit" class="ifc-tool-btn active"><i class="ph-bold ph-rotate"></i><span>Órbita</span></button>
-          <button data-action="walk" class="ifc-tool-btn ifc-walk-only"><i class="ph-bold ph-person-walking"></i><span>Caminhar</span></button>
-          <button data-action="fit" class="ifc-tool-btn"><i class="ph-bold ph-arrows-to-dot"></i><span>Enquadrar</span></button>
-          <button data-action="explode" class="ifc-tool-btn"><i class="ph-bold ph-arrows-up-down"></i><span>Explodir</span></button>
-          <button data-action="clip" class="ifc-tool-btn"><i class="ph-bold ph-scissors"></i><span>Cortes</span></button>
-          <button data-action="quality" class="ifc-tool-btn"><i class="ph-bold ph-gauge"></i><span>Qualidade</span></button>
-          <button data-action="background" class="ifc-tool-btn"><i class="ph-bold ph-palette"></i><span>Fundo</span></button>
+
+    <div id="bim-workspace" class="bim-workspace" data-tab="model">
+      <aside id="bim-navigator" class="bim-panel bim-navigator" aria-label="Navegador do projeto"></aside>
+
+      <main class="bim-stage" aria-label="Modelo 3D">
+        <div id="ifc-canvas-container" class="bim-viewport"></div>
+        <div id="ifc-loading-overlay" class="bim-loading hidden" aria-live="polite">
+          <div class="bim-loading__spinner"></div>
+          <strong id="ifc-loading-text">Preparando visualizador…</strong>
+          <div class="bim-loading__track"><div id="ifc-progress-bar" class="bim-loading__bar"></div></div>
         </div>
-        <section id="ifc-explode-panel" class="ifc-float-panel hidden"><label for="ifc-explode-range">Afastamento radial <output id="ifc-explode-value">0,0 m</output></label><input id="ifc-explode-range" type="range" min="0" max="10" step="0.1" value="0"></section>
-        <section id="ifc-background-panel" class="ifc-float-panel hidden"><span>Cor de fundo</span><div class="ifc-swatches"><button data-color="#f7f5f0" style="--swatch:#f7f5f0" aria-label="Papel"></button><button data-color="#dce8ef" style="--swatch:#dce8ef" aria-label="Azul claro"></button><button data-color="#17212b" style="--swatch:#17212b" aria-label="Escuro"></button><input id="ifc-background-input" type="color" value="#f7f5f0" aria-label="Escolher cor de fundo"></div></section>
-        <section id="ifc-quality-panel" class="ifc-float-panel hidden"><label for="ifc-quality-select">Qualidade gráfica</label><select id="ifc-quality-select" class="ifc-select-input"><option value="high">Alto</option><option value="balanced" selected>Equilibrado</option><option value="performance">Desempenho</option></select><p class="ifc-panel-note">A proteção automática reduz temporariamente a resolução quando a navegação exigir.</p></section>
-        <section id="ifc-clip-panel" class="ifc-float-panel ifc-clip-panel hidden"><div class="ifc-panel-heading"><span>Caixa de corte</span><button id="ifc-reset-clip" class="ifc-text-button">Redefinir</button></div><div id="ifc-clip-ranges"></div></section>
+        <div id="ifc-status" class="bim-status hidden" role="status"></div>
+        <div id="bim-plan-banner" class="bim-plan-banner hidden" role="status">
+          <span><i class="ph-bold ph-map-trifold"></i> Planta: <strong id="bim-plan-label"></strong></span>
+          <button type="button" id="bim-plan-exit" class="bim-link-button">Voltar ao 3D</button>
+        </div>
+        <div id="ifc-walk-crosshair" class="bim-walk-crosshair hidden" aria-hidden="true"></div>
+        <div id="ifc-walk-help" class="bim-walk-help hidden">Clique em um piso para posicionar-se. Use <b>W A S D</b> para andar, <b>Espaço</b> para pular e <b>Shift</b> para correr. <b>Esc</b> libera o mouse; o segundo <b>Esc</b> sai.</div>
+        <div id="bim-measure-help" class="bim-walk-help hidden"></div>
+        <div id="bim-legend" class="bim-legend hidden" aria-label="Legenda de cores"></div>
+
+        <div class="bim-stage__drawers">
+          <button type="button" class="bim-drawer-toggle" data-drawer="navigator"><i class="ph ph-tree-structure"></i><span>Navegador</span></button>
+          <button type="button" class="bim-drawer-toggle" data-drawer="sheet"><i class="ph ph-identification-card"></i><span>Elemento</span></button>
+        </div>
+
+        <div class="bim-toolbar" role="toolbar" aria-label="Ferramentas do modelo">
+          <div class="bim-toolbar__group">
+            <button type="button" data-action="orbit" class="bim-tool active" title="Órbita"><i class="ph ph-arrows-clockwise"></i><span>Órbita</span></button>
+            <button type="button" data-action="walk" class="bim-tool bim-walk-only" title="Caminhar em primeira pessoa"><i class="ph ph-person-simple-walk"></i><span>Caminhar</span></button>
+            <button type="button" data-action="fit" class="bim-tool" title="Enquadrar tudo"><i class="ph ph-frame-corners"></i><span>Enquadrar</span></button>
+          </div>
+          <div class="bim-toolbar__group">
+            <button type="button" data-action="xray" class="bim-tool" aria-pressed="false" title="Raio-X: deixa translúcido tudo o que não está selecionado"><i class="ph ph-eye"></i><span>Raio-X</span></button>
+            <button type="button" data-action="color" class="bim-tool" title="Colorir por parâmetro"><i class="ph ph-palette"></i><span>Colorir</span></button>
+            <button type="button" data-action="clip" class="bim-tool" title="Caixa de corte"><i class="ph ph-scissors"></i><span>Cortes</span></button>
+            <button type="button" data-action="explode" class="bim-tool" title="Vista explodida"><i class="ph ph-arrows-out"></i><span>Explodir</span></button>
+          </div>
+          <div class="bim-toolbar__group">
+            <button type="button" data-action="measure" class="bim-tool" title="Medir distância ou área"><i class="ph ph-ruler"></i><span>Medir</span></button>
+            <button type="button" data-action="views" class="bim-tool" title="Vistas salvas"><i class="ph ph-bookmark-simple"></i><span>Vistas</span></button>
+            <button type="button" data-action="settings" class="bim-tool" title="Fundo e qualidade gráfica"><i class="ph ph-sliders-horizontal"></i><span>Ajustes</span></button>
+          </div>
+        </div>
+
+        <section id="bim-color-panel" class="bim-float hidden" aria-label="Colorir por parâmetro">
+          <label for="bim-color-select">Colorir elementos por</label>
+          <select id="bim-color-select" class="bim-select">
+            <option value="">Cores originais do modelo</option>
+            <option value="discipline">Disciplina</option>
+            <option value="storey">Pavimento</option>
+            <option value="classLabel">Categoria</option>
+            <option value="type">Tipo</option>
+            <option value="material">Material</option>
+            <option value="system">Sistema</option>
+            <option value="diameter">Ø equivalente</option>
+          </select>
+          <p class="bim-note">A legenda aparece no canto do modelo. Clique em um item da legenda para selecionar esses elementos.</p>
+        </section>
+        <section id="ifc-explode-panel" class="bim-float hidden" aria-label="Vista explodida">
+          <label for="ifc-explode-range">Afastamento <output id="ifc-explode-value">0,0 m</output></label>
+          <input id="ifc-explode-range" type="range" min="0" max="10" step="0.1" value="0">
+          <p class="bim-note">Em 0,0 m a seleção e a caminhada voltam a funcionar.</p>
+        </section>
+        <section id="ifc-clip-panel" class="bim-float bim-float--clip hidden" aria-label="Caixa de corte">
+          <div class="bim-float__head"><span>Caixa de corte</span><button id="ifc-reset-clip" type="button" class="bim-link-button">Redefinir</button></div>
+          <div id="ifc-clip-ranges"></div>
+        </section>
+        <section id="bim-measure-panel" class="bim-float hidden" aria-label="Medição">
+          <div class="bim-segmented" role="radiogroup" aria-label="Tipo de medição">
+            <button type="button" data-measure="length" role="radio" aria-checked="false"><i class="ph ph-ruler"></i> Distância</button>
+            <button type="button" data-measure="area" role="radio" aria-checked="false"><i class="ph ph-polygon"></i> Área</button>
+          </div>
+          <p class="bim-note">Duplo clique marca os pontos. Na área, <b>Enter</b> fecha o polígono. <b>Delete</b> apaga a medição sob o cursor.</p>
+          <div class="bim-float__actions">
+            <button type="button" id="bim-measure-clear" class="bim-link-button">Apagar medições</button>
+            <button type="button" id="bim-measure-stop" class="bim-link-button">Encerrar</button>
+          </div>
+        </section>
+        <section id="bim-views-panel" class="bim-float hidden" aria-label="Vistas salvas">
+          <form id="bim-view-form" class="bim-view-form">
+            <label class="bim-visually-hidden" for="bim-view-name">Nome da vista</label>
+            <input id="bim-view-name" type="text" maxlength="60" placeholder="Nome da vista" autocomplete="off">
+            <button type="submit" class="bim-button">Salvar vista</button>
+          </form>
+          <ul id="bim-view-list" class="bim-view-list"></ul>
+        </section>
+        <section id="bim-settings-panel" class="bim-float hidden" aria-label="Ajustes">
+          <span class="bim-float__label">Fundo</span>
+          <div class="bim-swatches">
+            <button type="button" data-color="#f2f1ec" style="--swatch:#f2f1ec" aria-label="Papel"></button>
+            <button type="button" data-color="#dfe7ec" style="--swatch:#dfe7ec" aria-label="Azul claro"></button>
+            <button type="button" data-color="#1b2633" style="--swatch:#1b2633" aria-label="Grafite"></button>
+            <input id="ifc-background-input" type="color" value="#f2f1ec" aria-label="Escolher cor de fundo">
+          </div>
+          <label class="bim-float__label" for="ifc-quality-select">Qualidade gráfica</label>
+          <select id="ifc-quality-select" class="bim-select"><option value="high">Alta</option><option value="balanced" selected>Equilibrada</option><option value="performance">Desempenho</option></select>
+          <label class="bim-check"><input type="checkbox" id="bim-spaces-toggle"> Mostrar ambientes (IfcSpace)</label>
+          <p class="bim-note">A qualidade cai temporariamente durante movimentos pesados para manter a navegação fluida.</p>
+        </section>
       </main>
-      <aside id="ifc-properties-panel" class="ifc-sidepanel ifc-sidepanel--properties">
-        <div class="ifc-panel-heading"><span>Propriedades</span><button id="ifc-clear-selection" class="ifc-text-button">Limpar</button></div>
-        <input id="ifc-property-search" type="search" placeholder="Buscar propriedade" aria-label="Buscar propriedade">
-        <div id="ifc-properties-content" class="ifc-properties-content"><p class="ifc-empty-copy">Selecione um elemento no modelo para consultar seus dados IFC.</p></div>
-      </aside>
+
+      <aside id="bim-sheet" class="bim-panel bim-sheet" aria-label="Dados do elemento"></aside>
+      <section id="bim-takeoff" class="bim-panel bim-takeoff" aria-label="Quantitativos"></section>
+      <section id="bim-overview" class="bim-panel bim-overview" aria-label="Visão geral do projeto"></section>
     </div>
-    <dialog id="ifc-import-scope-dialog" class="ifc-import-dialog" aria-labelledby="ifc-import-scope-title" aria-describedby="ifc-import-scope-copy">
-      <form method="dialog" class="ifc-import-dialog__surface">
-        <p class="ifc-import-dialog__eyebrow">Entrada de IFC</p>
-        <h3 id="ifc-import-scope-title">Como este arquivo se relaciona ao modelo aberto?</h3>
-        <p id="ifc-import-scope-copy">Escolha antes de processar o arquivo. Nada foi carregado ainda.</p>
-        <p id="ifc-import-file-names" class="ifc-import-dialog__files"></p>
-        <div class="ifc-import-dialog__choices">
-          <button id="ifc-import-same-project" class="ifc-import-choice" type="button">
-            <strong>Faz parte do projeto atual</strong>
-            <span>Mantém os modelos abertos e adiciona este IFC à federação.</span>
+
+    <dialog id="ifc-import-scope-dialog" class="bim-dialog" aria-labelledby="ifc-import-scope-title" aria-describedby="ifc-import-scope-copy">
+      <form method="dialog" class="bim-dialog__surface">
+        <h3 id="ifc-import-scope-title">Onde abrir este IFC?</h3>
+        <p id="ifc-import-scope-copy">O arquivo é processado neste navegador e não é enviado a nenhum servidor.</p>
+        <p id="ifc-import-file-names" class="bim-dialog__files"></p>
+        <div class="bim-dialog__choices">
+          <button id="ifc-import-new-project" class="bim-choice bim-choice--primary" type="button">
+            <strong>Abrir como novo projeto</strong>
+            <span>Fecha os modelos atuais e mostra só este IFC.</span>
           </button>
-          <button id="ifc-import-new-project" class="ifc-import-choice ifc-import-choice--primary" type="button">
-            <strong>É outro projeto</strong>
-            <span>Descarrega os modelos desta sessão, mantém o cache local e enquadra o novo IFC.</span>
+          <button id="ifc-import-same-project" class="bim-choice" type="button">
+            <strong>Adicionar ao projeto aberto</strong>
+            <span>Federa o IFC com as disciplinas já carregadas.</span>
           </button>
         </div>
-        <button id="ifc-import-cancel" class="ifc-import-cancel" type="submit">Cancelar</button>
+        <button id="ifc-import-cancel" class="bim-link-button bim-dialog__cancel" type="submit">Cancelar</button>
       </form>
     </dialog>
   </div>
-
   <!-- Floating WhatsApp Action Button -->
   <a href="https://wa.me/5562981143331?text=Ol%C3%A1%20Gabriel,%20vi%20seu%20portf%C3%B3lio%20e%20gostaria%20de%20conversar!" target="_blank" rel="noopener noreferrer" class="floating-whatsapp" title="WhatsApp Gabriel" aria-label="WhatsApp">
     <i class="ph-fill ph-whatsapp-logo"></i>
@@ -1097,7 +1184,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
   <script type="module" src="src/ifc-viewer.js"></script>
 
   <!-- Main Website Scripts -->
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
   <!-- GSAP Animations -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
