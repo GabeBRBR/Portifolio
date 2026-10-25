@@ -3,17 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gabriel Biagini Almeida Reis — Engenharia Civil, BIM &amp; Automação</title>
+  <title>Gabriel Biagini Almeida Reis — Engenharia Civil, BIM e Automação</title>
   <meta name="description" content="Portfólio profissional de Gabriel Biagini Almeida Reis. Engenheiro Civil formado pela UFG com vivência acadêmica no Canadá (SMUS). Especialista em BIM Multidisciplinar, Análise Numérica (ABAQUS / MEF), Nuvem de Pontos e Automação de Processos com Python e Dynamo.">
   <meta name="author" content="Gabriel Biagini Almeida Reis">
+  <link rel="canonical" href="https://gabebrbr.github.io/Portifolio/">
 
-  <!-- Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono -->
+  <!-- Prévia de link (WhatsApp, LinkedIn, etc.) -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="Gabriel Biagini · Engenharia Civil">
+  <meta property="og:title" content="Gabriel Biagini Almeida Reis · Engenharia Civil, BIM e Automação">
+  <meta property="og:description" content="Projetos estruturais, BIM multidisciplinar, as-built com nuvem de pontos e automação com Python e Dynamo. Goiânia, GO.">
+  <meta property="og:url" content="https://gabebrbr.github.io/Portifolio/">
+  <meta property="og:image" content="https://gabebrbr.github.io/Portifolio/assets/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Gabriel Biagini Almeida Reis, engenheiro civil">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon -->
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#F7F5F0">
+
+  <!-- Google Fonts: Manrope, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- FontAwesome Icons -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Phosphor Icons (versão fixa) -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 
   <!-- Tailwind CSS CDN with Custom Editorial Palette -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -39,8 +59,8 @@
             }
           },
           fontFamily: {
-            heading: ['"Plus Jakarta Sans"', 'sans-serif'],
-            sans: ['"Inter"', 'sans-serif'],
+            heading: ['Manrope', 'sans-serif'],
+            sans: ['Manrope', 'sans-serif'],
             mono: ['"JetBrains Mono"', 'monospace']
           }
         }
@@ -63,7 +83,7 @@
       <!-- Brand & Name -->
       <a href="#hero" class="flex items-center gap-3 no-underline group focus:outline-none">
         <div class="w-10 h-10 border border-ink/20 bg-surface flex items-center justify-center font-mono font-bold text-ink text-sm rounded shadow-sm group-hover:border-ink transition-colors">
-          GR
+          GB
         </div>
         <div class="flex flex-col">
           <span class="brand-title">Gabriel Biagini</span>
@@ -72,7 +92,7 @@
       </a>
 
       <!-- Desktop Navigation: work first, then context -->
-      <nav class="portfolio-desktop-nav hidden lg:flex items-center gap-7" aria-label="Navegação">
+      <nav class="portfolio-desktop-nav items-center gap-7" aria-label="Navegação">
         <a href="#projetos" class="nav-link"><span class="nav-num">01.</span>Projetos</a>
         <a href="#automacoes" class="nav-link"><span class="nav-num">02.</span>Automações</a>
         <a href="#trajetoria" class="nav-link"><span class="nav-num">03.</span>Pesquisa</a>
@@ -82,7 +102,7 @@
       </nav>
 
       <!-- Action Button -->
-      <div class="portfolio-header-contact hidden sm:flex items-center gap-4">
+      <div class="portfolio-header-contact items-center gap-4">
         <a href="#contato" class="btn-primary-dark !py-2 !px-4 !text-xs">
           <span>Contato</span>
           <i class="ph-bold ph-arrow-right text-xs"></i>
@@ -90,7 +110,7 @@
       </div>
 
       <!-- Mobile Menu Button -->
-      <button id="mobile-menu-btn" class="lg:hidden w-10 h-10 border border-border-editorial rounded flex items-center justify-center text-ink hover:bg-surface focus:outline-none" aria-label="Abrir Menu">
+      <button id="mobile-menu-btn" class="lg:hidden w-10 h-10 border border-border-editorial rounded flex items-center justify-center text-ink hover:bg-surface focus:outline-none" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-menu">
         <i class="ph-bold ph-list" id="mobile-menu-icon"></i>
       </button>
     </div>
@@ -99,11 +119,11 @@
     <div id="mobile-menu" class="absolute top-full left-0 w-full lg:hidden bg-surface border-b border-border-editorial px-6 py-6 transition-[opacity,transform] duration-300 shadow-lg opacity-0 pointer-events-none -translate-y-4">
       <nav class="flex flex-col gap-3">
         <a href="#projetos" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">01.</span>Projetos</a>
-        <a href="#automacoes" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">02.</span>Automações &amp; Scripts</a>
+        <a href="#automacoes" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">02.</span>Automações</a>
         <a href="#trajetoria" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">03.</span>Pesquisa</a>
         <a href="#experiencia" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">04.</span>Cases</a>
         <a href="#perfil" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">05.</span>Perfil</a>
-        <a href="#contato" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">06.</span>Contato Direto</a>
+        <a href="#contato" class="mobile-nav-link"><span class="font-mono text-xs text-ochre mr-2">06.</span>Contato</a>
         <div class="pt-4 border-t border-border-light flex flex-col gap-2">
           <a href="https://wa.me/5562981143331" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-direct justify-center py-2.5">
             <i class="ph-fill ph-whatsapp-logo text-base"></i> Conversar no WhatsApp
@@ -134,13 +154,13 @@
           </div>
 
           <p class="text-lg sm:text-xl text-ink-body font-normal leading-relaxed max-w-xl">
-            Reduza erros de execução e retrabalho no canteiro em at&eacute; 40%. Conecto projetos estruturais, BIM multidisciplinar e automação para entregas de engenharia com precisão absoluta.
+            Conecto projetos estruturais, BIM multidisciplinar e automação para que interferências e erros de projeto sejam resolvidos no modelo, antes de chegarem ao canteiro.
           </p>
 
           <!-- Action Buttons (Only ONE primary CTA) -->
           <div class="flex flex-wrap items-center gap-4 pt-2">
             <a href="#projetos" class="btn-primary-dark">
-              <span>Ver Cases de Estudo</span>
+              <span>Ver projetos</span>
               <i class="ph-bold ph-arrow-down text-xs"></i>
             </a>
             <a href="#contato" class="btn-outline-editorial">
@@ -150,8 +170,8 @@
           
           <!-- Proof Strip -->
           <div class="pt-6 border-t border-border-editorial mt-8">
-            <p class="text-xs text-ink-muted font-bold uppercase tracking-wider mb-3">Experiência prática em grandes operações:</p>
-            <div class="flex items-center gap-6 opacity-60">
+            <p class="text-xs text-ink-muted font-bold uppercase tracking-wider mb-3">Onde já atuei</p>
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-ink-secondary">
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-buildings mr-1"></i> AION BIM</span>
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-drop mr-1"></i> SANEAGO</span>
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-shield mr-1"></i> POLÍCIA CIVIL</span>
@@ -194,7 +214,7 @@
             <div class="flex gap-4 relative z-10">
               <div class="w-10 h-10 rounded-full bg-surface border border-border-editorial flex items-center justify-center shrink-0 shadow-sm text-ochre"><i class="ph-bold ph-cube text-sm"></i></div>
               <div>
-                <h4 class="font-bold text-ink text-sm">Modelagem &amp; Concepção</h4>
+                <h4 class="font-bold text-ink text-sm">Modelagem e concepção</h4>
                 <p class="text-xs text-ink-muted mt-1 leading-relaxed">BIM Multidisciplinar e cálculo em elementos finitos para simular a obra antes da execução.</p>
               </div>
             </div>
@@ -202,7 +222,7 @@
             <div class="flex gap-4 relative z-10">
               <div class="w-10 h-10 rounded-full bg-surface border border-border-editorial flex items-center justify-center shrink-0 shadow-sm text-ochre"><i class="ph-bold ph-stack text-sm"></i></div>
               <div>
-                <h4 class="font-bold text-ink text-sm">Compatibilização (Clash)</h4>
+                <h4 class="font-bold text-ink text-sm">Compatibilização (clash)</h4>
                 <p class="text-xs text-ink-muted mt-1 leading-relaxed">Cruzamento de disciplinas (MEP vs Estrutura) no Navisworks/Revit eliminando retrabalhos in loco.</p>
               </div>
             </div>
@@ -211,7 +231,7 @@
               <div class="w-10 h-10 rounded-full bg-surface border border-border-editorial flex items-center justify-center shrink-0 shadow-sm text-ochre"><i class="ph-bold ph-code text-sm"></i></div>
               <div>
                 <h4 class="font-bold text-ink text-sm">Automação (Python/Dynamo)</h4>
-                <p class="text-xs text-ink-muted mt-1 leading-relaxed">Scripts para parametrização em lote, auditoria normativa e extração de quantitativos exatos.</p>
+                <p class="text-xs text-ink-muted mt-1 leading-relaxed">Scripts para parametrização em lote, auditoria normativa e extração de quantitativos.</p>
               </div>
             </div>
           </div>
@@ -243,8 +263,8 @@
       
       <div class="section-header-editorial flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <span class="section-label">01 / Portfólio de Obras</span>
-          <h2 class="section-headline">Arquivo Técnico de Projetos</h2>
+          <span class="section-label">01 / Portfólio de obras</span>
+          <h2 class="section-headline">Arquivo técnico de projetos</h2>
         </div>
 
         <!-- Project Filters -->
@@ -272,7 +292,7 @@
                 </span>
                 <div>
                   <span class="font-mono text-xs font-bold text-white uppercase tracking-wider bg-ink/90 px-3.5 py-1.5 rounded border border-ochre/40 shadow">
-                    ▶ Abrir Visualizador IFC 3D em Tela Cheia
+                    Abrir visualizador 3D em tela cheia
                   </span>
                   <span class="block text-[11px] text-slate-300 font-mono mt-1.5">Navegador do projeto · Quantitativos · Caminhada em 1ª pessoa</span>
                 </div>
@@ -285,21 +305,21 @@
                   <span class="project-plate-sub text-ochre font-bold">That Open Fragments + web-ifc</span>
                   <span class="tech-badge highlight text-xs">WebGL 3D</span>
                 </div>
-                <h3 class="project-plate-title text-xl mb-2">Visualizador BIM Multidisciplinar</h3>
+                <h3 class="project-plate-title text-xl mb-2">Visualizador BIM multidisciplinar</h3>
                 <p class="project-plate-desc text-xs sm:text-sm mb-4 leading-relaxed">
                   Modelo BIM federado no navegador: ficha de cada elemento com área, volume e pavimento, navegador por pavimento, tipo e sistema, quantitativos exportáveis para Excel e caminhada em primeira pessoa.
                 </p>
               </div>
               <div class="space-y-3 pt-3 border-t border-border-light">
                 <div class="flex flex-wrap gap-1.5">
-                  <span class="tech-badge highlight"><i class="ph-bold ph-person-walking mr-1"></i> Modo Caminhar 1ª Pessoa</span>
-                  <span class="tech-badge highlight"><i class="ph-bold ph-stack mr-1"></i> Modelos Federados</span>
-                  <span class="tech-badge">Planos de Corte</span>
+                  <span class="tech-badge highlight"><i class="ph-bold ph-person-simple-walk mr-1"></i> Caminhada em 1ª pessoa</span>
+                  <span class="tech-badge highlight"><i class="ph-bold ph-stack mr-1"></i> Modelos federados</span>
+                  <span class="tech-badge">Planos de corte</span>
                   <span class="tech-badge">Quantitativos</span>
                 </div>
                 <button type="button" class="btn-primary-dark w-full justify-center !py-2.5 !text-xs !bg-ink hover:!bg-ochre hover:!text-ink transition-colors">
                   <i class="ph-bold ph-cube text-ochre mr-1"></i>
-                  <span>Lançar Visualizador 3D</span>
+                  <span>Abrir visualizador 3D</span>
                 </button>
               </div>
             </div>
@@ -315,7 +335,7 @@
           <div class="project-plate-body">
             <div>
               <span class="project-plate-sub">AION BIM · Residencial / Comercial</span>
-              <h3 class="project-plate-title">Barrilete &amp; Instalações Hidrossanitárias em Revit</h3>
+              <h3 class="project-plate-title">Barrilete e instalações hidrossanitárias em Revit</h3>
               <p class="project-plate-desc">Modelagem Revit de reservatórios, barriletes, prumadas e colunas sanitárias compatibilizadas.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -335,7 +355,7 @@
           <div class="project-plate-body">
             <div>
               <span class="project-plate-sub">Edifício Comercial · Jardim Sul</span>
-              <h3 class="project-plate-title">Traçado Elétrico, Eletrodutos &amp; Eletrocalhas</h3>
+              <h3 class="project-plate-title">Traçado elétrico, eletrodutos e eletrocalhas</h3>
               <p class="project-plate-desc">Encaminhamento elétrico em Revit e IFC para alimentadores, quadros e eletrocalhas.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -354,8 +374,8 @@
           </div>
           <div class="project-plate-body">
             <div>
-              <span class="project-plate-sub">Complexo Funerário &amp; Crematório</span>
-              <h3 class="project-plate-title">Projeto Estrutural Completo em Concreto Armado</h3>
+              <span class="project-plate-sub">Complexo funerário e crematório</span>
+              <h3 class="project-plate-title">Projeto estrutural completo em concreto armado</h3>
               <p class="project-plate-desc">Pranchas executivas de formas, fundações, vigas e lajes em concreto armado.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -375,7 +395,7 @@
           <div class="project-plate-body">
             <div>
               <span class="project-plate-sub">Edificação Multiuso</span>
-              <h3 class="project-plate-title">Planta de Locação, Estacas &amp; Pilares</h3>
+              <h3 class="project-plate-title">Planta de locação, estacas e pilares</h3>
               <p class="project-plate-desc">Locação estrutural com eixos, estacas, pilares, cargas de fundação e armação.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -395,7 +415,7 @@
           <div class="project-plate-body">
             <div>
               <span class="project-plate-sub">Complexo Industrial DAI / SIS</span>
-              <h3 class="project-plate-title">As-Built a partir de Nuvem de Pontos &amp; Fotos 360°</h3>
+              <h3 class="project-plate-title">As-built a partir de nuvem de pontos e fotos 360°</h3>
               <p class="project-plate-desc">As-built de edificação existente a partir de nuvem LiDAR e fotos 360°.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -414,8 +434,8 @@
           </div>
           <div class="project-plate-body">
             <div>
-              <span class="project-plate-sub">Propriedade Rural J&amp;F · Aruanã</span>
-              <h3 class="project-title">Levantamento Planialtimétrico &amp; Terraplenagem</h3>
+              <span class="project-plate-sub">Propriedade Rural J&amp;F · Haras Santa Luzia, Aruanã</span>
+              <h3 class="project-plate-title">Levantamento planialtimétrico e terraplenagem</h3>
               <p class="project-plate-desc">Levantamento com curvas de nível, corte e aterro para implantação e terraplenagem.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -435,7 +455,7 @@
           <div class="project-plate-body">
             <div>
               <span class="project-plate-sub">Edifício Residencial Jardim Sul</span>
-              <h3 class="project-plate-title">Vistas de Ambientes &amp; Isométricos Sanitários</h3>
+              <h3 class="project-plate-title">Vistas de ambientes e isométricos sanitários</h3>
               <p class="project-plate-desc">Vistas e isométricos para execução de instalações sanitárias em ambientes críticos.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -454,7 +474,7 @@
           <div class="project-plate-body">
             <div>
               <span class="project-plate-sub">Chácara · Senador Canedo, GO</span>
-              <h3 class="project-plate-title">Demarcação de Gleba &amp; Georreferenciamento</h3>
+              <h3 class="project-plate-title">Demarcação de gleba e georreferenciamento</h3>
               <p class="project-plate-desc">Demarcação em UTM/SIRGAS 2000 com memorial descritivo para regularização cartorial.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -474,7 +494,7 @@
           <div class="project-plate-body">
             <div>
               <span class="project-plate-sub">Residencial Foizer Capri</span>
-              <h3 class="project-plate-title">Pranchas Executivas de Água Fria &amp; Esgoto</h3>
+              <h3 class="project-plate-title">Pranchas executivas de água fria e esgoto</h3>
               <p class="project-plate-desc">Pranchas de água fria e esgoto com listas de conexões prontas para obra.</p>
             </div>
             <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
@@ -497,8 +517,8 @@
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">02 / Engenharia Computacional</span>
-        <h2 class="section-headline">Automações, Scripts &amp; Algoritmos</h2>
+        <span class="section-label">02 / Engenharia computacional</span>
+        <h2 class="section-headline">Automações, scripts e algoritmos</h2>
       </div>
 
       <p class="text-ink-body text-base max-w-3xl mb-8 leading-relaxed">
@@ -515,18 +535,18 @@
               <i class="ph-bold ph-code text-ochre mr-1"></i> Revit_Parametrizacao.py
             </button>
             <button class="code-tab" data-tab="tab-abaqus">
-              <i class="fa-brands fa-python text-ochre mr-1"></i> Abaqus_CDP_TCC.py
+              <i class="ph-bold ph-file-py text-ochre mr-1"></i> Abaqus_CDP_TCC.py
             </button>
             <button class="code-tab" data-tab="tab-pointcloud">
               <i class="ph-bold ph-cloud text-ochre mr-1"></i> Nuvem_Laser_Open3D.py
             </button>
             <button class="code-tab" data-tab="tab-ai">
-              <i class="ph-bold ph-microchip text-ochre mr-1"></i> Auditoria_NBR6118.py
+              <i class="ph-bold ph-cpu text-ochre mr-1"></i> Auditoria_NBR6118.py
             </button>
           </div>
 
-          <button id="copy-code-btn" class="btn-code-copy" title="Copiar Código">
-            <i class="fa-regular fa-copy"></i>
+          <button id="copy-code-btn" class="btn-code-copy" title="Copiar código">
+            <i class="ph-bold ph-copy"></i>
             <span>Copiar</span>
           </button>
         </div>
@@ -687,8 +707,8 @@ def auditar_durabilidade_nbr6118(dados_viga):
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">03 / Pesquisa &amp; Formação</span>
-        <h2 class="section-headline">Trajetória Acadêmica &amp; Científica</h2>
+        <span class="section-label">03 / Pesquisa e formação</span>
+        <h2 class="section-headline">Trajetória acadêmica e científica</h2>
       </div>
 
       <div class="max-w-4xl mx-auto space-y-6">
@@ -699,7 +719,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
           <h3 class="dossier-title">Análise Computacional de Vigas de Concreto Armado com Agregado Reciclado via Modelo CDP no ABAQUS</h3>
           <div class="dossier-meta">
             <span><strong>Instituição:</strong> UFG (Escola de Engenharia Civil e Ambiental)</span>
-            <span><strong>Foco:</strong> Mecânica das Estruturas &amp; Sustentabilidade</span>
+            <span><strong>Foco:</strong> Mecânica das estruturas e sustentabilidade</span>
           </div>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
             TCC sobre o comportamento não linear de vigas com agregado reciclado. O modelo <em>Concrete Damaged Plasticity (CDP)</em> no ABAQUS permitiu avaliar ruptura, fissuração e perda de rigidez.
@@ -718,7 +738,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
           <h3 class="dossier-title">Método dos Elementos Finitos (MEF) – Modos Incompatíveis em Elementos Hexaédricos 3D</h3>
           <div class="dossier-meta">
             <span><strong>Instituição:</strong> UFG</span>
-            <span><strong>Foco:</strong> Formulação Matemática &amp; Eliminação de Shear Locking</span>
+            <span><strong>Foco:</strong> Formulação matemática e eliminação de shear locking</span>
           </div>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
             Investigação de elementos hexaédricos 3D com modos incompatíveis. O estudo abordou formulações para reduzir rigidez artificial e shear locking em flexão.
@@ -733,11 +753,11 @@ def auditar_durabilidade_nbr6118(dados_viga):
 
         <!-- Dossier Item 3: IC Lavanderias Comunitárias -->
         <div class="dossier-item reveal">
-          <span class="dossier-index">PROJETO INTEGRADO 03 · INICIAÇÃO CIENTÍFICA &amp; EXTENSÃO SOCIAL</span>
+          <span class="dossier-index">PROJETO INTEGRADO 03 · INICIAÇÃO CIENTÍFICA E EXTENSÃO</span>
           <h3 class="dossier-title">Projeto Integrado de Lavanderias Comunitárias Sustentáveis</h3>
           <div class="dossier-meta">
-            <span><strong>Instituição:</strong> UFG (Arquitetura &amp; Engenharia Integrada)</span>
-            <span><strong>Foco:</strong> Projeto Hidrossanitário &amp; Eficiência Hídrica</span>
+            <span><strong>Instituição:</strong> UFG (arquitetura e engenharia integradas)</span>
+            <span><strong>Foco:</strong> Projeto hidrossanitário e eficiência hídrica</span>
           </div>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
             Projetos executivos para lavanderias comunitárias, com dimensionamento hidrossanitário e estratégias de reuso de água.
@@ -765,9 +785,9 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <span class="dossier-index">FORMAÇÃO 05 · CANADÁ (2014–2017)</span>
             <h4 class="font-heading font-bold text-ink text-base mt-1 mb-2">St. Michael's University School (SMUS)</h4>
             <p class="text-xs sm:text-sm text-ink-body leading-relaxed mb-3">
-              Ensino Médio internacional completo em Victoria, British Columbia, Canadá. Imersão bilíngue nativa, sólida base em ciências exatas e formação com visão global de engenharia.
+              Ensino médio completo em Victoria, British Columbia, no Canadá, com base sólida em ciências exatas. Inglês fluente.
             </p>
-            <span class="tech-badge highlight">Inglês Fluente (Canadá)</span>
+            <span class="tech-badge highlight">Inglês fluente</span>
           </div>
 
         </div>
@@ -784,8 +804,8 @@ def auditar_durabilidade_nbr6118(dados_viga):
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">04 / Aplicações Práticas</span>
-        <h2 class="section-headline">Cases de Engenharia</h2>
+        <span class="section-label">04 / Aplicações práticas</span>
+        <h2 class="section-headline">Cases de engenharia</h2>
       </div>
 
       <div class="max-w-4xl mx-auto space-y-10">
@@ -830,7 +850,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <div class="exp-log-item reveal">
           <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
             <h3 class="exp-log-company">Saneago (Saneamento de Goiás)</h3>
-            <span class="font-mono text-xs text-ink-muted">Departamento de Compras &amp; Suprimentos</span>
+            <span class="font-mono text-xs text-ink-muted">Compras e suprimentos</span>
           </div>
           <span class="exp-log-role">Case · Suprimentos e automação de planilhas</span>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
@@ -847,7 +867,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <div class="exp-log-item reveal">
           <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
             <h3 class="exp-log-company">Rio Vento Energia</h3>
-            <span class="font-mono text-xs text-ink-muted">Engenharia &amp; Projetos</span>
+            <span class="font-mono text-xs text-ink-muted">Engenharia e projetos</span>
           </div>
           <span class="exp-log-role">Case · Memórias de cálculo para energia</span>
           <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
@@ -873,7 +893,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
       
       <div class="section-header-editorial">
         <span class="section-label">06 / Comunicação</span>
-        <h2 class="section-headline">Iniciar Conversa &amp; Propostas</h2>
+        <h2 class="section-headline">Vamos conversar sobre o seu projeto</h2>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start max-w-5xl mx-auto">
@@ -894,24 +914,24 @@ def auditar_durabilidade_nbr6118(dados_viga):
                 <i class="ph-fill ph-whatsapp-logo"></i>
               </div>
               <div>
-                <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block">WhatsApp Direto</span>
+                <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block">WhatsApp</span>
                 <p class="font-heading font-bold text-ink text-base group-hover:text-ochre transition-colors">(62) 98114-3331</p>
               </div>
             </a>
 
             <div class="editorial-card flex items-center gap-4 !p-4 group">
               <div class="w-11 h-11 rounded bg-surfaceSubtle text-ink flex items-center justify-center text-xl shrink-0 border border-border-editorial">
-                <i class="fa-regular fa-envelope"></i>
+                <i class="ph-bold ph-envelope-simple"></i>
               </div>
               <div class="flex-grow">
-                <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block">E-mail Profissional</span>
+                <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block">E-mail</span>
                 <a href="mailto:biaginialmeida@gmail.com" class="font-heading font-bold text-ink text-sm sm:text-base hover:text-ochre transition-colors block break-all">biaginialmeida@gmail.com</a>
               </div>
             </div>
 
             <div class="editorial-card flex items-center gap-4 !p-4">
               <div class="w-11 h-11 rounded bg-surfaceSubtle text-ink flex items-center justify-center text-xl shrink-0 border border-border-editorial">
-                <i class="ph-bold ph-location-dot"></i>
+                <i class="ph-bold ph-map-pin"></i>
               </div>
               <div>
                 <span class="font-mono text-xs text-ochre uppercase font-bold tracking-wider block">Localização</span>
@@ -925,26 +945,26 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <!-- Right: Clean Message Dispatcher Form -->
         <div class="lg:col-span-7 reveal">
           <div class="editorial-card p-6 sm:p-8">
-            <h4 class="font-heading font-bold text-ink text-lg mb-1">Enviar Mensagem</h4>
+            <h4 class="font-heading font-bold text-ink text-lg mb-1">Enviar mensagem</h4>
             <p class="text-xs text-ink-muted mb-6">Preencha o formulário abaixo para enviar diretamente via WhatsApp ou E-mail.</p>
 
             <form id="contact-form" class="space-y-4">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label for="form-name" class="block font-mono text-xs uppercase font-bold text-ink mb-1">Seu Nome / Empresa *</label>
+                  <label for="form-name" class="block font-mono text-xs uppercase font-bold text-ink mb-1">Nome ou empresa *</label>
                   <input type="text" id="form-name" required placeholder="Ex: Eng. Carlos Martins" class="input-editorial">
                 </div>
                 <div>
-                  <label for="form-email" class="block font-mono text-xs uppercase font-bold text-ink mb-1">Seu E-mail *</label>
+                  <label for="form-email" class="block font-mono text-xs uppercase font-bold text-ink mb-1">E-mail *</label>
                   <input type="email" id="form-email" required placeholder="carlos@empresa.com" class="input-editorial">
                 </div>
               </div>
 
               <div>
-                <label for="form-subject" class="block font-mono text-xs uppercase font-bold text-ink mb-1">Assunto do Projeto *</label>
+                <label for="form-subject" class="block font-mono text-xs uppercase font-bold text-ink mb-1">Assunto *</label>
                 <select id="form-subject" class="input-editorial">
                   <option value="Projeto BIM Multidisciplinar (MEP/Estrutural)">Projeto BIM Multidisciplinar (MEP/Estrutural)</option>
-                  <option value="Cálculo Estrutural &amp; Simulações">Cálculo Estrutural &amp; Simulações</option>
+                  <option value="Cálculo estrutural e simulações">Cálculo estrutural e simulações</option>
                   <option value="Modelagem As-Built / Nuvem de Pontos">Modelagem As-Built / Nuvem de Pontos</option>
                   <option value="Automação com Python / Dynamo no Revit">Automação com Python / Dynamo no Revit</option>
                   <option value="Oportunidade Profissional / Vaga">Oportunidade Profissional / Vaga</option>
@@ -960,11 +980,11 @@ def auditar_durabilidade_nbr6118(dados_viga):
               <div class="flex flex-wrap items-center gap-3 pt-2">
                 <button type="button" id="btn-send-whatsapp" class="btn-primary-dark flex-1 justify-center py-3">
                   <i class="ph-fill ph-whatsapp-logo text-emerald-400 text-base"></i>
-                  <span>Enviar no WhatsApp</span>
+                  <span>Enviar pelo WhatsApp</span>
                 </button>
                 <button type="button" id="btn-send-email" class="btn-outline-editorial flex-1 justify-center py-3">
-                  <i class="fa-regular fa-envelope text-ochre"></i>
-                  <span>Enviar por E-mail</span>
+                  <i class="ph-bold ph-envelope-simple text-ochre"></i>
+                  <span>Enviar por e-mail</span>
                 </button>
               </div>
             </form>
@@ -979,7 +999,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
   <!-- Project Blueprint Lightbox Modal -->
   <div id="project-modal" class="modal-overlay hidden" aria-hidden="true" role="dialog">
     <div class="modal-container">
-      <button class="modal-close-btn" id="modal-close-btn" aria-label="Fechar Modal">
+      <button class="modal-close-btn" id="modal-close-btn" aria-label="Fechar">
         <i class="ph-bold ph-x"></i>
       </button>
       
@@ -993,7 +1013,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <h3 id="modal-title" class="font-heading font-bold text-ink text-2xl mb-4 leading-snug"></h3>
             <p id="modal-desc" class="text-ink-body text-sm leading-relaxed mb-6"></p>
             
-            <h4 class="font-mono text-xs uppercase font-bold text-ink tracking-wider mb-2">Destaques Executivos:</h4>
+            <h4 class="font-mono text-xs uppercase font-bold text-ink tracking-wider mb-2">Destaques</h4>
             <ul id="modal-highlights" class="space-y-2 text-xs sm:text-sm text-ink-body mb-6"></ul>
           </div>
 
@@ -1167,7 +1187,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-ink-muted">
         <div>
-          <span class="font-bold text-ink">Gabriel Biagini Almeida Reis</span> · Engenharia Civil &amp; BIM
+          <span class="font-bold text-ink">Gabriel Biagini Almeida Reis</span> · Engenharia Civil e BIM
         </div>
         <div>
           &copy; <span id="current-year">2026</span> · Todos os direitos reservados.
