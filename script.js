@@ -22,25 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const mobileLinks = document.querySelectorAll('.mobile-nav-link');
 
   if (mobileMenuBtn && mobileMenu) {
+    const closedClasses = ['opacity-0', 'pointer-events-none', '-translate-y-4'];
+    const setMenuOpen = (open) => {
+      closedClasses.forEach(cls => mobileMenu.classList.toggle(cls, !open));
+      mobileMenuIcon.classList.toggle('ph-list', !open);
+      mobileMenuIcon.classList.toggle('ph-x', open);
+      mobileMenuBtn.setAttribute('aria-expanded', String(open));
+      mobileMenuBtn.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+    };
+
     mobileMenuBtn.addEventListener('click', () => {
-      const isOpen = !mobileMenu.classList.contains('hidden');
-      if (isOpen) {
-        mobileMenu.classList.add('hidden');
-        mobileMenuIcon.classList.remove('fa-xmark');
-        mobileMenuIcon.classList.add('fa-bars');
-      } else {
-        mobileMenu.classList.remove('hidden');
-        mobileMenuIcon.classList.remove('fa-bars');
-        mobileMenuIcon.classList.add('fa-xmark');
-      }
+      setMenuOpen(mobileMenu.classList.contains('opacity-0'));
     });
 
     mobileLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        mobileMenu.classList.add('hidden');
-        mobileMenuIcon.classList.remove('fa-xmark');
-        mobileMenuIcon.classList.add('fa-bars');
-      });
+      link.addEventListener('click', () => setMenuOpen(false));
     });
   }
 
@@ -105,20 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   const projectDetails = {
     'modal-p1': {
-      title: 'Barrilete & Instalações Hidrossanitárias em Revit',
+      title: 'Barrilete e instalações hidrossanitárias em Revit',
       sub: 'AION BIM · Residencial / Comercial',
       img: 'assets/images/hidro/hidro-isometrico-3d.jpg',
       desc: 'Modelagem 3D isométrica de alta complexidade contendo barriletes, baterias de reservatórios superiores, prumadas de esgoto, ventilação e água fria devidamente compatibilizadas no Revit MEP.',
       highlights: [
         'Modelagem geométrica precisa de curvas, registros e barriletes superiores.',
         'Compatibilização espacial completa entre disciplinas MEP e Estrutural.',
-        'Geração de tabelas paramétricas com quantitativo exato de conexões e tubulações.',
+        'Tabelas paramétricas com quantitativo de conexões e tubulações.',
         'Pranchas isométricas detalhadas para orientar os instaladores em obra.'
       ],
       techs: ['Revit MEP', 'Isométricos 3D', 'NBR 5626', 'NBR 8160', 'Navisworks']
     },
     'modal-p2': {
-      title: 'Traçado Elétrico, Eletrodutos & Eletrocalhas',
+      title: 'Traçado elétrico, eletrodutos e eletrocalhas',
       sub: 'Edifício Comercial · Jardim Sul',
       img: 'assets/images/eletrico/eletrico-jardim-sul-ifc.jpg',
       desc: 'Modelagem espacial tridimensional em formato aberto IFC e Revit de todo o encaminhamento de eletrocalhas, pontos de iluminação, quadros de distribuição (QDC) e circuitos de força.',
@@ -126,12 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
         'Distribuição racional de circuitos com balanceamento de fases.',
         'Modelagem de leitos de cabos e eletrodutos rígidos/flexíveis.',
         'Detecção de interferências pré-obra (Clash Detection).',
-        'Exportação em padrão aberto IFC para interoperabilidade total.'
+        'Exportação em padrão aberto IFC para troca com outras disciplinas e softwares.'
       ],
       techs: ['IFC OpenBIM', 'Revit Electrical', 'Eletrocalhas', 'NBR 5410']
     },
     'modal-p3': {
-      title: 'Projeto Estrutural Completo em Concreto Armado',
+      title: 'Projeto estrutural completo em concreto armado',
       sub: 'Complexo Funerário & Crematório',
       img: 'assets/images/estrutural/estrutural-crematorio-01.jpg',
       desc: 'Conjunto completo de pranchas executivas contemplando fôrmas, locação de pilares/fundações, armaduras longitudinais e transversais de vigas contínuas e dimensionamento de lajes.',
@@ -144,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       techs: ['Concreto Armado', 'Eberick', 'AutoCAD', 'NBR 6118:2023', 'Detalhamento Estrutural']
     },
     'modal-p4': {
-      title: 'Planta de Locação, Estacas & Pilares',
+      title: 'Planta de locação, estacas e pilares',
       sub: 'Edificação Multiuso',
       img: 'assets/images/estrutural/estrutural-locacao-terreo.jpg',
       desc: 'Planta executiva de locação de infraestrutura, com marcação de eixos ortogonais, coordenadas de estaqueamento, cargas transmitidas às fundações e tabela de pilares.',
@@ -152,15 +148,15 @@ document.addEventListener('DOMContentLoaded', () => {
         'Amarração precisa de eixos de locação referenciados a marcos de topografia.',
         'Quadro de cargas e esforços característicos de fundação.',
         'Tabela de pilares com seções transversais e arranjo de estribos.',
-        'Normatização rigorosa para facilitar a leitura no canteiro de obras.'
+        'Padronização gráfica para facilitar a leitura no canteiro de obras.'
       ],
       techs: ['Locação', 'Fundações', 'Pilares', 'AutoCAD', 'Topografia']
     },
     'modal-p5': {
-      title: 'As-Built a partir de Nuvem de Pontos & Imagens 360°',
+      title: 'As-built a partir de nuvem de pontos e fotos 360°',
       sub: 'Complexo Industrial DAI / SIS',
       img: 'assets/images/asbuilt/asbuilt-hidrantes-revit.jpg',
-      desc: 'Reconstituição arquitetônica e de utilidades industriais a partir de escaneamento a laser 3D (LiDAR) e fotogrametria, vetorizando a situação real com precisão milimétrica.',
+      desc: 'Reconstituição arquitetônica e de utilidades industriais a partir de escaneamento a laser 3D (LiDAR) e fotogrametria, vetorizando a situação real com a precisão do levantamento a laser.',
       highlights: [
         'Processamento e limpeza de nuvens de pontos densas no CloudCompare.',
         'Vetorização tridimensional das estruturas existentes dentro do Revit.',
@@ -170,8 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
       techs: ['CloudCompare', 'Nuvem de Pontos (LiDAR)', 'Revit As-Built', 'Tours 360°']
     },
     'modal-p6': {
-      title: 'Levantamento Planialtimétrico & Terraplenagem',
-      sub: 'Propriedade Rural J&F · Haras Santa Luzia',
+      title: 'Levantamento planialtimétrico e terraplenagem',
+      sub: 'Propriedade Rural J&F · Haras Santa Luzia, Aruanã',
       img: 'assets/images/topografia/topo-haras-santa-luzia.jpg',
       desc: 'Planta topográfica de grande escala com curvas de nível equidistantes, cálculo volumétrico de corte e aterro para platôs, delimitação perimétrica e arruamento.',
       highlights: [
@@ -183,20 +179,20 @@ document.addEventListener('DOMContentLoaded', () => {
       techs: ['AutoCAD Civil 3D', 'Planialtimetria', 'Terraplenagem', 'Curvas de Nível']
     },
     'modal-p7': {
-      title: 'Vistas de Ambientes & Isométricos Sanitários',
+      title: 'Vistas de ambientes e isométricos sanitários',
       sub: 'Edifício Residencial Jardim Sul',
       img: 'assets/images/hidro/hidro-jardim-sul-vistas-3d.jpg',
       desc: 'Pranchas executivas contendo ampliações de banheiros, cozinhas e áreas de serviço com indicação precisa de registros de gaveta, ralos sifonados e diâmetros nominais.',
       highlights: [
         'Vistas explodidas e isométricas de banheiros tipo.',
         'Compatibilização com peças sanitárias e pontos elétricos adjacentes.',
-        'Tabela de conexões e tubos com quantitativos exatos por ambiente.',
-        'Conformidade total com a NBR 5626 e NBR 8160.'
+        'Tabela de conexões e tubos com quantitativos por ambiente.',
+        'Dimensionamento conforme a NBR 5626 e a NBR 8160.'
       ],
       techs: ['Revit MEP', 'Detalhamento Executivo', 'NBR 5626', 'NBR 8160']
     },
     'modal-p8': {
-      title: 'Demarcação de Gleba & Georreferenciamento',
+      title: 'Demarcação de gleba e georreferenciamento',
       sub: 'Chácara · Senador Canedo, GO',
       img: 'assets/images/topografia/topo-senador-canedo.jpg',
       desc: 'Planta de demarcação perimétrica, amarração em coordenadas geográficas UTM, cálculo de área e confrontações para fins de regularização fundiária.',
@@ -209,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
       techs: ['QGIS', 'Coordenadas UTM', 'Topografia', 'AutoCAD']
     },
     'modal-p9': {
-      title: 'Pranchas Executivas de Água Fria & Esgoto',
+      title: 'Pranchas executivas de água fria e esgoto',
       sub: 'Residencial Foizer Capri',
       img: 'assets/images/hidro/hidro-foizer-capri-01.jpg',
       desc: 'Documentação completa para aprovação e execução em canteiro, com esquemas verticais de colunas, prumadas e dimensionamento de reservatórios.',
@@ -352,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activeTabContent) {
         navigator.clipboard.writeText(activeTabContent.innerText).then(() => {
           const originalHTML = copyCodeBtn.innerHTML;
-          copyCodeBtn.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> <span>Copiado!</span>';
+          copyCodeBtn.innerHTML = '<i class="ph-bold ph-check text-emerald-400"></i> <span>Copiado!</span>';
           setTimeout(() => {
             copyCodeBtn.innerHTML = originalHTML;
           }, 2000);
