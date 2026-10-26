@@ -15,7 +15,14 @@ pnpm dev                  # servidor local em http://localhost:5173
 pnpm build                # gera dist/ (Vite + cópia de assets e do web-ifc.wasm)
 pnpm preview              # serve o dist/ gerado
 pnpm run convert:fragments  # reconverte os IFCs de exemplo (ver abaixo)
+npm run build:css         # regenera o tailwind.css (rode depois de mudar classes Tailwind ou a paleta)
 ```
+
+## Estilos e imagens do portfólio
+
+- **CSS:** `style.css` guarda os componentes do portfólio e `tailwind.css` os utilitários do Tailwind. O `tailwind.css` é gerado (não edite à mão) por `npm run build:css`, que lê `tailwind.config.cjs` e as classes usadas em `index.html`, `script.js` e `src/`. Sempre que usar uma classe Tailwind nova, rode o comando e faça commit do arquivo gerado.
+- **Imagens dos projetos:** cada prancha tem duas versões WebP em `assets/images/<disciplina>/`: `nome.webp` (completa, usada no modal) e `nome-sm.webp` (900 px, usada no card). Os JPGs originais continuam na pasta e podem ser apagados quando quiser.
+- **Novo projeto:** copie um card `project-plate` do `index.html` (troque o `data-modal`) e acrescente a entrada correspondente em `projectDetails` no `script.js`, com a lista `images` (a galeria do modal usa essa lista, com legenda por imagem).
 
 ## Estrutura do visualizador
 
