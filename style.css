@@ -14,7 +14,7 @@
   --ink-primary: #0B1320;
   --ink-secondary: #1E293B;
   --ink-body: #334155;
-  --ink-muted: #64748B;
+  --ink-muted: #556377;
   --ink-light: #94A3B8;
 
   /* Warm Ochre / Champagne Gold (Restrained Refined Accents) */
@@ -126,7 +126,7 @@ body {
 .font-mono { font-family: var(--font-mono); }
 
 .text-ink { color: var(--ink-primary); }
-.text-gold { color: var(--accent-gold); }
+.text-gold { color: var(--accent-gold-dark); }
 .text-muted { color: var(--ink-muted); }
 
 /* ==========================================================================
@@ -168,7 +168,7 @@ body {
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 600;
-  color: var(--accent-gold);
+  color: var(--accent-gold-dark);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -186,7 +186,7 @@ body {
 .nav-link .nav-num {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: var(--accent-gold);
+  color: var(--accent-gold-dark);
   margin-right: 0.25rem;
 }
 
@@ -327,7 +327,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent-gold);
+  color: var(--accent-gold-dark);
   display: block;
   margin-bottom: 0.5rem;
 }
@@ -374,7 +374,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--accent-gold);
+  color: var(--accent-gold-dark);
   margin-bottom: 0.2rem;
 }
 
@@ -474,7 +474,7 @@ body {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--accent-gold);
+  color: var(--accent-gold-dark);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -539,7 +539,7 @@ body {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--accent-gold);
+  color: var(--accent-gold-dark);
   margin-bottom: 0.75rem;
   display: block;
 }
@@ -633,7 +633,7 @@ body {
 .project-plate-sub {
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  color: var(--accent-gold);
+  color: var(--accent-gold-dark);
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0.25rem;
@@ -894,11 +894,7 @@ p {
 }
 
 .hero-gradient {
-  background: linear-gradient(to right, var(--ink-primary), var(--ink-light));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: var(--ink-primary);
 }
 
 /* ==========================================================================
@@ -935,3 +931,130 @@ html.lenis, html.lenis body { height: auto; }
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ==========================================================================
+   Galeria do modal de projetos
+   ========================================================================== */
+.project-count-tag {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(11, 19, 32, 0.88);
+  color: #FFFFFF;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 3px;
+}
+
+.modal-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-editorial);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.modal-nav-prev { left: 0.75rem; }
+.modal-nav-next { right: 0.75rem; }
+
+.modal-nav-btn:hover {
+  background: var(--ink-primary);
+  color: #FFFFFF;
+}
+
+.modal-gallery-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+#modal-counter {
+  font-weight: 700;
+  color: var(--ink-primary);
+  white-space: nowrap;
+}
+
+.modal-single .modal-nav-btn,
+.modal-single #modal-counter {
+  display: none;
+}
+
+/* ==========================================================================
+   Filtros de projeto: uma linha com rolagem lateral no celular
+   ========================================================================== */
+.filter-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding: 0.15rem 1rem;
+  scrollbar-width: none;
+}
+
+.filter-row::-webkit-scrollbar { display: none; }
+
+.project-filter-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .project-media-wrap { height: 220px; }
+}
+
+@media (min-width: 768px) {
+  .filter-row {
+    flex-wrap: wrap;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Botão do WhatsApp só aparece depois do topo da página */
+.floating-whatsapp.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+}
+
+/* ==========================================================================
+   Realce de sintaxe dos trechos de código
+   ========================================================================== */
+.tok-kw { color: #C5A059; font-weight: 600; }
+.tok-str { color: #86EFAC; }
+.tok-com { color: #94A3B8; font-style: italic; }
+.tok-num { color: #7DD3FC; }
+.tok-fn { color: #93C5FD; }
+.tok-bi { color: #C4B5FD; }
