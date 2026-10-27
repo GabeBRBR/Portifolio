@@ -80,7 +80,8 @@ export const DISCIPLINE_COLORS = {
   Estrutural: '#2a78d6',
   'Elétrica': '#6250d6',
   'Hidráulica': '#1baf7a',
-  'Sanitária': '#eb6834'
+  'Sanitária': '#eb6834',
+  'Hidrossanitário': '#1baf9a'
 };
 
 export const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));

@@ -8,7 +8,7 @@ import { ProjectNavigator } from './ProjectNavigator.js';
 import { TakeoffView, elementSheetRows } from './TakeoffView.js';
 import { OverviewView } from './OverviewView.js';
 
-const WORK_LABELS = { 'casa-terrea': 'Casa Térrea', galpao: 'Galpão Industrial' };
+const WORK_LABELS = { 'casa-terrea': 'Casa Térrea', galpao: 'Galpão Industrial', 'casa-popular': 'Casa Popular' };
 const CLIP_LABELS = [['minX', 'X mín.'], ['maxX', 'X máx.'], ['minY', 'Altura mín.'], ['maxY', 'Altura máx.'], ['minZ', 'Z mín.'], ['maxZ', 'Z máx.']];
 const FLOAT_PANELS = { color: 'bim-color-panel', explode: 'ifc-explode-panel', clip: 'ifc-clip-panel', measure: 'bim-measure-panel', views: 'bim-views-panel', settings: 'bim-settings-panel' };
 const MOBILE = window.matchMedia('(max-width: 900px)');
