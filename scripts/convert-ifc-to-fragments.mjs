@@ -37,8 +37,16 @@ const models = [
   ['casa-terrea', 'Hidráulica', 'assets/IFC/Casa Térrea/CASA-HID.ifc', 'casa-terrea-hidraulica'],
   ['casa-terrea', 'Sanitária', 'assets/IFC/Casa Térrea/CASA-ESG.ifc', 'casa-terrea-sanitaria'],
   ['galpao', 'Arquitetura', 'assets/IFC/Galpão/ARQ.ifc', 'galpao-arquitetura'],
-  ['galpao', 'Estrutural', 'assets/IFC/Galpão/EST.ifc', 'galpao-estrutural']
+  ['galpao', 'Estrutural', 'assets/IFC/Galpão/EST.ifc', 'galpao-estrutural'],
+  ['casa-popular', 'Arquitetura', 'assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO.ifc', 'casa-popular-arquitetura'],
+  ['casa-popular', 'Estrutural', 'assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO-AION-ESTRUTURAL-CREAGO.ifc', 'casa-popular-estrutural'],
+  ['casa-popular', 'Elétrica', 'assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO-AION-ELÉTRICO-CREA-R00.ifc', 'casa-popular-eletrica'],
+  ['casa-popular', 'Hidrossanitário', 'assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO-AION-HIDROSSANITÁRIO-CREA-R00.ifc', 'casa-popular-hidrossanitario']
 ];
+// Optional filter: `pnpm run convert:fragments casa-popular` converts only that
+// work and keeps the other works' entries already present in models.json.
+const onlyWork = process.argv[2] || null;
+const MAX_COLLIDER_BYTES = 8 * 1024 * 1024;
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 const relative = (target) => path.relative(root, target).replaceAll(path.sep, '/');
@@ -139,9 +147,12 @@ await webIfc.Init();
 // Revit exports routinely contain breps web-ifc cannot triangulate; those
 // elements are still indexed, so the per-element warnings are only noise here.
 webIfc.SetLogLevel?.(LogLevel.LOG_LEVEL_OFF);
+const manifestPath = path.join(outputRoot, 'models.json');
 const manifest = { version: 3, generatedAt: new Date().toISOString(), models: [] };
+if (onlyWork) manifest.models = JSON.parse(await readFile(manifestPath, 'utf8')).models;
 
 for (const [work, discipline, sourcePath, id] of models) {
+  if (onlyWork && work !== onlyWork) continue;
   const absoluteSource = path.join(root, sourcePath);
   const source = await readFile(absoluteSource);
   const importer = new IfcImporter();
@@ -165,15 +176,21 @@ for (const [work, discipline, sourcePath, id] of models) {
   // of the collider while preserving generic-model floors from Revit.
   if (discipline === 'Arquitetura' || discipline === 'Estrutural') {
     const generated = createCollider(webIfc, source, false);
-    const colliderDestination = path.join(outputRoot, work, `${id}.collider`);
-    await writeFile(colliderDestination, generated.bytes);
-    collider = relative(colliderDestination);
-    colliderHash = sha256(generated.bytes);
-    colliderBytes = generated.bytes.byteLength;
-    colliderStats = {
-      floorTriangles: generated.floors.indices.length / 3,
-      obstacleTriangles: generated.obstacles.indices.length / 3
-    };
+    if (generated.bytes.byteLength > MAX_COLLIDER_BYTES) {
+      // Very detailed exports (e.g. rebar-level structure) would ship tens of MB
+      // to the browser; walking falls back to the other disciplines' colliders.
+      console.warn(`  colisão de ${discipline} descartada: ${Math.round(generated.bytes.byteLength / 1048576)} MB excede o limite de ${MAX_COLLIDER_BYTES / 1048576} MB`);
+    } else {
+      const colliderDestination = path.join(outputRoot, work, `${id}.collider`);
+      await writeFile(colliderDestination, generated.bytes);
+      collider = relative(colliderDestination);
+      colliderHash = sha256(generated.bytes);
+      colliderBytes = generated.bytes.byteLength;
+      colliderStats = {
+        floorTriangles: generated.floors.indices.length / 3,
+        obstacleTriangles: generated.obstacles.indices.length / 3
+      };
+    }
   }
   // BIM index: class, type, storey, materials, systems and quantities of
   // every element, consumed by the navigator, element sheet and takeoffs.
@@ -182,7 +199,7 @@ for (const [work, discipline, sourcePath, id] of models) {
   const bimIndexDestination = path.join(outputRoot, work, `${id}.bim.json`);
   await writeFile(bimIndexDestination, bimIndexBytes);
   const outputInfo = await stat(destination);
-  manifest.models.push({
+  const entry = {
     id,
     work,
     discipline,
@@ -203,9 +220,12 @@ for (const [work, discipline, sourcePath, id] of models) {
     bimElements: bimIndex.elements.length,
     sourceBytes: source.byteLength,
     fragmentBytes: outputInfo.size
-  });
+  };
+  const existing = manifest.models.findIndex((model) => model.id === id);
+  if (existing >= 0) manifest.models[existing] = entry;
+  else manifest.models.push(entry);
   console.log(`${discipline}: ${relative(destination)} (${Math.round(outputInfo.size / 1024)} KB), colisão ${Math.round(colliderBytes / 1024)} KB, índice BIM ${bimIndex.elements.length} elementos (${Math.round(bimIndexBytes.byteLength / 1024)} KB)`);
 }
 
-await writeFile(path.join(outputRoot, 'models.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-console.log(`Manifesto: ${relative(path.join(outputRoot, 'models.json'))}`);
+await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+console.log(`Manifesto: ${relative(manifestPath)}`);

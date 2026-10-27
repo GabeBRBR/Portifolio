@@ -203,7 +203,7 @@ export class ViewerEngine {
   async loadWork(workKey) {
     this.benchmark.startedAt = performance.now();
     this.benchmark.firstUsableMs = null;
-    const workName = workKey === 'galpao' ? 'Galpão Industrial' : 'Casa Térrea';
+    const workName = { galpao: 'Galpão Industrial', 'casa-popular': 'Casa Popular' }[workKey] || 'Casa Térrea';
     this.setLoading(true, `Carregando ${workName}…`, 0);
     const response = await fetch(`${FRAGMENTS_MANIFEST}?t=${Date.now()}`);
     if (!response.ok) throw new Error(`manifesto Fragments não encontrado (${response.status})`);
@@ -606,6 +606,7 @@ export class ViewerEngine {
 
   getProjectLabel() {
     if (this.loadedWork === 'galpao') return 'Galpão Industrial';
+    if (this.loadedWork === 'casa-popular') return 'Casa Popular';
     if (this.loadedWork === 'casa-terrea') return 'Casa Térrea';
     return 'Projeto local';
   }

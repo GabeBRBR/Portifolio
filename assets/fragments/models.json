@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "generatedAt": "2026-10-12T19:48:29.435Z",
+  "generatedAt": "2026-10-27T02:09:32.626Z",
   "models": [
     {
       "id": "casa-terrea-arquitetura",
@@ -153,6 +153,89 @@
       "bimElements": 503,
       "sourceBytes": 3867247,
       "fragmentBytes": 203132
+    },
+    {
+      "id": "casa-popular-arquitetura",
+      "work": "casa-popular",
+      "discipline": "Arquitetura",
+      "source": "assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO.ifc",
+      "sourceHash": "3ca1bf8f6d1046b6bb06f24b37107ec1fb8ad495b0824fefe0ba985bb2f0c9f7",
+      "fragment": "assets/fragments/casa-popular/casa-popular-arquitetura.frag",
+      "fragmentHash": "cd50015e6bd979c7de297ddeff30fbfe43ce155e43fd4db2c52f271fc83e6207",
+      "collider": "assets/fragments/casa-popular/casa-popular-arquitetura.collider",
+      "colliderCoordinateSpace": "model-local",
+      "colliderHash": "db2bd0cf96fc84e5ae2082a7bea52267f5af0e08b92307cb6f9126ddb486e746",
+      "colliderBytes": 1314888,
+      "colliderStats": {
+        "floorTriangles": 12652,
+        "obstacleTriangles": 23465
+      },
+      "bimIndex": "assets/fragments/casa-popular/casa-popular-arquitetura.bim.json",
+      "bimIndexHash": "6c93c24e82e79330acd68d0db66312f8c594e8ad47c5334b0c01476b7760313a",
+      "bimIndexBytes": 140046,
+      "bimElements": 246,
+      "sourceBytes": 9795861,
+      "fragmentBytes": 1416548
+    },
+    {
+      "id": "casa-popular-estrutural",
+      "work": "casa-popular",
+      "discipline": "Estrutural",
+      "source": "assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO-AION-ESTRUTURAL-CREAGO.ifc",
+      "sourceHash": "477715f031d84bde4070344065f6987dd4e78b3176062e8f902450e84c098d01",
+      "fragment": "assets/fragments/casa-popular/casa-popular-estrutural.frag",
+      "fragmentHash": "a59e846027793f2bd8ac65ec4a647a4b9f1a5a6fc94a7ae618c69e375391e8e7",
+      "collider": null,
+      "colliderCoordinateSpace": "model-local",
+      "colliderHash": null,
+      "colliderBytes": 0,
+      "colliderStats": null,
+      "bimIndex": "assets/fragments/casa-popular/casa-popular-estrutural.bim.json",
+      "bimIndexHash": "a8a2d4fef6990b23e5b8acf45849a38b8419439788f00e4a3e8909f4543fbb5a",
+      "bimIndexBytes": 668080,
+      "bimElements": 1411,
+      "sourceBytes": 14286499,
+      "fragmentBytes": 1278552
+    },
+    {
+      "id": "casa-popular-eletrica",
+      "work": "casa-popular",
+      "discipline": "Elétrica",
+      "source": "assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO-AION-ELÉTRICO-CREA-R00.ifc",
+      "sourceHash": "9447c0b0109b4a96d33e2eb4d7b769bbbc48deea8d159338b2dc6fa9f5ff6298",
+      "fragment": "assets/fragments/casa-popular/casa-popular-eletrica.frag",
+      "fragmentHash": "07ea88dc1ee7d6d07d295e7a195596a1105a3d70c57cb1504429f45423de7f64",
+      "collider": null,
+      "colliderCoordinateSpace": "model-local",
+      "colliderHash": null,
+      "colliderBytes": 0,
+      "colliderStats": null,
+      "bimIndex": "assets/fragments/casa-popular/casa-popular-eletrica.bim.json",
+      "bimIndexHash": "d2ddb61774177dd456e104c5f13e90fb1b3c74713ad7cacbbfad53d14fae141c",
+      "bimIndexBytes": 255538,
+      "bimElements": 395,
+      "sourceBytes": 4833270,
+      "fragmentBytes": 722907
+    },
+    {
+      "id": "casa-popular-hidrossanitario",
+      "work": "casa-popular",
+      "discipline": "Hidrossanitário",
+      "source": "assets/IFC/Casa Popular/AION-ARQUITETURA-CREAGO-AION-HIDROSSANITÁRIO-CREA-R00.ifc",
+      "sourceHash": "9221b65a8315b91d1631e7b4de15b36561662f9c8f7ca0c56e30c6c91cfbf731",
+      "fragment": "assets/fragments/casa-popular/casa-popular-hidrossanitario.frag",
+      "fragmentHash": "65acccaad11d2fb6bc72dfc95044c40cdf6f3698f518d9f3e0df5da55b014b3b",
+      "collider": null,
+      "colliderCoordinateSpace": "model-local",
+      "colliderHash": null,
+      "colliderBytes": 0,
+      "colliderStats": null,
+      "bimIndex": "assets/fragments/casa-popular/casa-popular-hidrossanitario.bim.json",
+      "bimIndexHash": "61271758e64bd0d27103ee60a815aa982fa6ba11e972c58eeca3b87baf2018d3",
+      "bimIndexBytes": 202349,
+      "bimElements": 340,
+      "sourceBytes": 10913249,
+      "fragmentBytes": 1812443
     }
   ]
 }
