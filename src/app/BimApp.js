@@ -367,6 +367,7 @@ export class BimApp {
       if (!this.engine.getClipBox()) this.engine.resetClipBox();
       this.renderClipControls();
     }
+    if (action === 'capture') return this.captureImage();
     if (action === 'views') this.renderViews();
     if (action === 'measure') {
       const opening = document.getElementById(FLOAT_PANELS.measure).classList.contains('hidden');
@@ -527,6 +528,14 @@ export class BimApp {
       this.setLoading(false);
       this.showStatus(`Não foi possível abrir o IFC: ${error.message}`);
     }
+  }
+
+  async captureImage() {
+    const blob = await this.engine.captureImage();
+    if (!blob) return this.showStatus('Não foi possível capturar a imagem agora.');
+    const project = this.projectLabel().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+    downloadBlob(blob, `${project || 'projeto'}-vista-${new Date().toISOString().slice(0, 10)}.png`);
+    this.showStatus('Imagem PNG salva.');
   }
 
   exportSheets(sheets, name, format = 'xlsx') {

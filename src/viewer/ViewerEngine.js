@@ -1703,6 +1703,48 @@ export class ViewerEngine {
     this.updateWalk(delta);
   }
 
+  /**
+   * PNG of the current view. The WebGL buffer is only readable in the same task
+   * as the render call, so the frame is re-rendered and copied right away; the
+   * measurement labels (HTML) are painted on top so the picture matches the screen.
+   */
+  async captureImage() {
+    if (!this.world?.renderer) return null;
+    const renderer = this.world.renderer.three;
+    const source = renderer.domElement;
+    renderer.render(this.world.scene.three, this.world.camera.three);
+    const output = document.createElement('canvas');
+    output.width = source.width;
+    output.height = source.height;
+    const context = output.getContext('2d');
+    context.fillStyle = `#${new THREE.Color(this.background).getHexString()}`;
+    context.fillRect(0, 0, output.width, output.height);
+    context.drawImage(source, 0, 0);
+    const frame = source.getBoundingClientRect();
+    const scale = output.width / frame.width;
+    this.container.querySelectorAll('.bim-measure-label').forEach((label) => {
+      if (label.style.display === 'none' || label.style.visibility === 'hidden') return;
+      const box = label.getBoundingClientRect();
+      const lines = [...label.children].map((child) => child.textContent);
+      const x = (box.left - frame.left) * scale;
+      const y = (box.top - frame.top) * scale;
+      context.fillStyle = 'rgba(20, 32, 46, 0.92)';
+      context.beginPath();
+      context.roundRect(x, y, box.width * scale, box.height * scale, 6 * scale);
+      context.fill();
+      context.textAlign = 'center';
+      context.fillStyle = '#ffd36b';
+      context.font = `700 ${14 * scale}px sans-serif`;
+      context.fillText(lines[0] || '', x + (box.width * scale) / 2, y + 17 * scale);
+      if (lines[1]) {
+        context.fillStyle = '#ffffff';
+        context.font = `${10.5 * scale}px sans-serif`;
+        context.fillText(lines[1], x + (box.width * scale) / 2, y + 31 * scale);
+      }
+    });
+    return new Promise((resolve) => output.toBlob(resolve, 'image/png'));
+  }
+
   /** Ready-made camera positions around the visible models (BIM north is -Z in the scene). */
   async setStandardView(name) {
     if (!this.world) return;

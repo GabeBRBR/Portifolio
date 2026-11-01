@@ -460,3 +460,5 @@ details.bim-props > summary small { margin-left: .4rem; color: var(--bim-muted);
 .bim-snap-marker[data-shape="mid"]::before { border: 0; background: #d99a00; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .bim-snap-marker[data-shape="perp"]::before { border-width: 0 0 3px 3px; background: transparent; left: -8px; top: -8px; }
 .bim-snap-marker::after { content: attr(data-label); position: absolute; left: 12px; top: 8px; padding: 1px 6px; border-radius: 4px; background: rgba(20, 32, 46, .92); color: #fff; font-size: 11px; white-space: nowrap; }
+
+.bim-tool--icon { min-width: 44px; }
