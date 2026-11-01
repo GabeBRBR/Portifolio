@@ -95,6 +95,7 @@ export class OverviewView {
         ${wallTypes.length ? this.barChart('Paredes por tipo', 'm² de área líquida', wallTypes, (value) => formatNumber(value, 2)) : ''}
         ${diameters.length ? this.barChart('Tubos e eletrodutos por diâmetro', 'm de comprimento', diameters, (value) => formatNumber(value, 1)) : ''}
         ${spaces.length ? this.spacesTable(spaces) : this.noSpacesCard()}
+        ${this.locationCard(index.site())}
         ${this.qualityCard(checks, total)}
       </div>`;
   }
@@ -114,6 +115,29 @@ export class OverviewView {
           <span class="bim-bars__track"><span class="bim-bars__fill${item.other ? ' bim-bars__fill--other' : ''}" style="width:${Math.max(1.5, (item.value / max) * 100).toFixed(2)}%"></span></span>
           <span class="bim-bars__value">${format(item.value)}</span>
         </button></li>`).join('')}</ul>
+    </section>`;
+  }
+
+  locationCard(site) {
+    if (!site) return '';
+    const dms = (value, positive, negative) => {
+      const abs = Math.abs(value);
+      const degrees = Math.floor(abs);
+      const minutes = Math.floor((abs - degrees) * 60);
+      const seconds = ((abs - degrees) * 60 - minutes) * 60;
+      return `${degrees}°${String(minutes).padStart(2, '0')}'${formatNumber(seconds, 1)}" ${value >= 0 ? positive : negative}`;
+    };
+    const latitude = site.lat.toFixed(6);
+    const longitude = site.lon.toFixed(6);
+    return `<section class="bim-card bim-card--wide">
+      <h3>Localização</h3>
+      <p class="bim-card__unit">posição geográfica gravada no IFC (Revit costuma usar a cidade do projeto, não o endereço do terreno)</p>
+      <dl class="bim-facts">
+        <div><dt>Latitude</dt><dd>${escapeHtml(dms(site.lat, 'N', 'S'))} <small>(${latitude})</small></dd></div>
+        <div><dt>Longitude</dt><dd>${escapeHtml(dms(site.lon, 'L', 'O'))} <small>(${longitude})</small></dd></div>
+        ${Number.isFinite(site.elevation) && site.elevation !== 0 ? `<div><dt>Altitude</dt><dd>${formatNumber(site.elevation, 1)} m</dd></div>` : ''}
+      </dl>
+      <p class="bim-note"><a href="https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=14/${latitude}/${longitude}" target="_blank" rel="noopener noreferrer">Ver no OpenStreetMap</a> · <a href="https://www.google.com/maps?q=${latitude},${longitude}" target="_blank" rel="noopener noreferrer">Ver no Google Maps</a></p>
     </section>`;
   }
 

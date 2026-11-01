@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "generatedAt": "2026-11-01T21:32:21.788Z",
+  "generatedAt": "2026-11-01T23:39:50.072Z",
   "models": [
     {
       "id": "casa-terrea-arquitetura",
@@ -19,8 +19,8 @@
         "obstacleTriangles": 32318
       },
       "bimIndex": "assets/fragments/casa-terrea/casa-terrea-arquitetura.bim.json",
-      "bimIndexHash": "fc0bc0655c063dbac6c2194a60de81c2f95b1a689779fded95552b255c3077f9",
-      "bimIndexBytes": 279135,
+      "bimIndexHash": "b83970ff59bfc275ac062b4d4798926d6ea62609ab7e0ff7d5d88016a497c273",
+      "bimIndexBytes": 279190,
       "bimElements": 674,
       "sourceBytes": 16096012,
       "fragmentBytes": 945570
@@ -42,8 +42,8 @@
         "obstacleTriangles": 3176
       },
       "bimIndex": "assets/fragments/casa-terrea/casa-terrea-estrutural.bim.json",
-      "bimIndexHash": "93ec74b4efd5aa9621ac3877bab7b9e19d66de3c81c3167cd848721bdfc077e9",
-      "bimIndexBytes": 79752,
+      "bimIndexHash": "d5339c3365fbdfa4b8ebcb37add3356350c8893c6a2f925f5bb6666d2c62e6b8",
+      "bimIndexBytes": 79807,
       "bimElements": 198,
       "sourceBytes": 336766,
       "fragmentBytes": 76348
@@ -62,8 +62,8 @@
       "colliderBytes": 0,
       "colliderStats": null,
       "bimIndex": "assets/fragments/casa-terrea/casa-terrea-eletrica.bim.json",
-      "bimIndexHash": "452591b297361e0706df97c9d0c4f5e31e37aa226a3c28bf9328dbbd674aa406",
-      "bimIndexBytes": 733906,
+      "bimIndexHash": "63a8bf178401be69cc3b2a072293fda493c1ecf43014046c41a48276919e4947",
+      "bimIndexBytes": 733961,
       "bimElements": 1645,
       "sourceBytes": 12623391,
       "fragmentBytes": 832742
@@ -82,8 +82,8 @@
       "colliderBytes": 0,
       "colliderStats": null,
       "bimIndex": "assets/fragments/casa-terrea/casa-terrea-hidraulica.bim.json",
-      "bimIndexHash": "473a406bec74e61ccb0101c813add8cb3be2038d9a7aeed3d7fd7ad4bb097596",
-      "bimIndexBytes": 281348,
+      "bimIndexHash": "007b48efdfef571b517887e09f12e778797344644671243ea569424e8603efb5",
+      "bimIndexBytes": 281403,
       "bimElements": 598,
       "sourceBytes": 10488564,
       "fragmentBytes": 760701
@@ -102,8 +102,8 @@
       "colliderBytes": 0,
       "colliderStats": null,
       "bimIndex": "assets/fragments/casa-terrea/casa-terrea-sanitaria.bim.json",
-      "bimIndexHash": "0fa4e2a8f1caec4968b84f0bfbebf6ec365e9b4b5618ce86f70288dafa10d6e8",
-      "bimIndexBytes": 229122,
+      "bimIndexHash": "b48f1d15f042ab129341406e020db30a3a1877c8587ac7f643fc620eb5d3e414",
+      "bimIndexBytes": 229177,
       "bimElements": 482,
       "sourceBytes": 13557352,
       "fragmentBytes": 742913
@@ -125,8 +125,8 @@
         "obstacleTriangles": 2060
       },
       "bimIndex": "assets/fragments/galpao/galpao-arquitetura.bim.json",
-      "bimIndexHash": "a7ddd29950c4423edf377326b1f234a2d377a5f8ef7651bd8eb112dad117002d",
-      "bimIndexBytes": 59581,
+      "bimIndexHash": "c6343743e2f7889a0a5ec9925280b7f3bff1d419bfa7ca07b50d87d46f57f295",
+      "bimIndexBytes": 59636,
       "bimElements": 139,
       "sourceBytes": 6966824,
       "fragmentBytes": 556173
@@ -148,8 +148,8 @@
         "obstacleTriangles": 65758
       },
       "bimIndex": "assets/fragments/galpao/galpao-estrutural.bim.json",
-      "bimIndexHash": "7e972aad569d06ff544491f9c2de1450963b7b36bb8a3a527ac90622f21b9fef",
-      "bimIndexBytes": 211822,
+      "bimIndexHash": "7e63e5f2d0a1a6843bb65a7e6d6043bd5cc91b43654523a7ae0388c6ac767c8a",
+      "bimIndexBytes": 211877,
       "bimElements": 503,
       "sourceBytes": 3943748,
       "fragmentBytes": 203132
@@ -171,8 +171,8 @@
         "obstacleTriangles": 23465
       },
       "bimIndex": "assets/fragments/casa-popular/casa-popular-arquitetura.bim.json",
-      "bimIndexHash": "ecd1ee00e72daa116a762d63e8e68b0ca1d84aa91ea45a426b6a53be48a8adc5",
-      "bimIndexBytes": 141894,
+      "bimIndexHash": "7f69c3c9d64cd70fd8ded5d457f3413e0a73651169dc173a773f66bc21d1ad25",
+      "bimIndexBytes": 141949,
       "bimElements": 246,
       "sourceBytes": 9795861,
       "fragmentBytes": 1416550
@@ -191,8 +191,8 @@
       "colliderBytes": 0,
       "colliderStats": null,
       "bimIndex": "assets/fragments/casa-popular/casa-popular-estrutural.bim.json",
-      "bimIndexHash": "8584dcc4780803c0a87df638b99e81a6350b1d739f5bfc11d346bf750b298d43",
-      "bimIndexBytes": 848831,
+      "bimIndexHash": "14b0889ddaf679c0883fc73bb1cbc29c1c23047b639e25d395cd37dc3110a7ba",
+      "bimIndexBytes": 848886,
       "bimElements": 1411,
       "sourceBytes": 14286499,
       "fragmentBytes": 1278552
@@ -211,8 +211,8 @@
       "colliderBytes": 0,
       "colliderStats": null,
       "bimIndex": "assets/fragments/casa-popular/casa-popular-eletrica.bim.json",
-      "bimIndexHash": "95d5c985e1956aa249ccc6d070a53b89b36d6eafa2d1f735e5bb2b5ed4766909",
-      "bimIndexBytes": 295363,
+      "bimIndexHash": "36cbfa9ee210abf53286d952756e1d15270a38d28584c2bb51196b3586215e20",
+      "bimIndexBytes": 295413,
       "bimElements": 395,
       "sourceBytes": 4833270,
       "fragmentBytes": 722909
@@ -231,8 +231,8 @@
       "colliderBytes": 0,
       "colliderStats": null,
       "bimIndex": "assets/fragments/casa-popular/casa-popular-hidrossanitario.bim.json",
-      "bimIndexHash": "2b874ade6619deb258980d85b7cf6ed04d9f33236989fe2617250b18fab9dfe3",
-      "bimIndexBytes": 245747,
+      "bimIndexHash": "f72ed7c1cc2be94c79be258863ff4c898c497bcc8f879c055edc089ea40a34a6",
+      "bimIndexBytes": 245804,
       "bimElements": 340,
       "sourceBytes": 10913249,
       "fragmentBytes": 1812439

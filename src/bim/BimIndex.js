@@ -191,6 +191,13 @@ export class BimIndex {
     return map;
   }
 
+  /** Geographic position of the project: the architecture model's site, else the first model that has one. */
+  site() {
+    const withSite = [...this.models.values()].filter((entry) => entry.index?.site);
+    const preferred = withSite.find((entry) => /arquitet/i.test(entry.record?.discipline || '')) || withSite[0];
+    return preferred?.index.site || null;
+  }
+
   /** Storeys of the federation, merged by name, ordered by elevation. */
   storeys() {
     const merged = new Map();

@@ -45,7 +45,10 @@ const models = [
 ];
 // Optional filter: `pnpm run convert:fragments casa-popular` converts only that
 // work and keeps the other works' entries already present in models.json.
-const onlyWork = process.argv[2] || null;
+// `--index-only` rewrites just the BIM indexes (and their manifest hashes), keeping
+// the Fragments and colliders already built: `npm run convert:fragments -- --index-only`.
+const indexOnly = process.argv.includes('--index-only');
+const onlyWork = process.argv.slice(2).find((arg) => !arg.startsWith('--')) || null;
 const MAX_COLLIDER_BYTES = 8 * 1024 * 1024;
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
@@ -149,12 +152,22 @@ await webIfc.Init();
 webIfc.SetLogLevel?.(LogLevel.LOG_LEVEL_OFF);
 const manifestPath = path.join(outputRoot, 'models.json');
 const manifest = { version: 3, generatedAt: new Date().toISOString(), models: [] };
-if (onlyWork) manifest.models = JSON.parse(await readFile(manifestPath, 'utf8')).models;
+if (onlyWork || indexOnly) manifest.models = JSON.parse(await readFile(manifestPath, 'utf8')).models;
 
 for (const [work, discipline, sourcePath, id] of models) {
   if (onlyWork && work !== onlyWork) continue;
   const absoluteSource = path.join(root, sourcePath);
   const source = await readFile(absoluteSource);
+  if (indexOnly) {
+    const bimIndex = createBimIndex(webIfc, source);
+    const bimIndexBytes = Buffer.from(JSON.stringify(bimIndex));
+    const bimIndexDestination = path.join(outputRoot, work, `${id}.bim.json`);
+    await writeFile(bimIndexDestination, bimIndexBytes);
+    const current = manifest.models.find((model) => model.id === id);
+    if (current) Object.assign(current, { bimIndexHash: sha256(bimIndexBytes), bimIndexBytes: bimIndexBytes.byteLength, bimElements: bimIndex.elements.length });
+    console.log(`${discipline}: índice BIM ${bimIndex.elements.length} elementos (${Math.round(bimIndexBytes.byteLength / 1024)} KB)${bimIndex.site ? `, local ${bimIndex.site.lat}, ${bimIndex.site.lon}` : ''}`);
+    continue;
+  }
   const importer = new IfcImporter();
   importer.wasm = { path: `${wasmDirectory}${path.sep}`, absolute: true };
   // Preserve IFC survey coordinates without normalizing each model independently.

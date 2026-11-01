@@ -1,6 +1,6 @@
 import {
   IFCBUILDINGSTOREY, IFCRELFILLSELEMENT, IFCRELVOIDSELEMENT, IFCRELAGGREGATES, IFCRELASSIGNSTOGROUP, IFCRELASSOCIATESMATERIAL,
-  IFCRELCONTAINEDINSPATIALSTRUCTURE, IFCRELDEFINESBYPROPERTIES, IFCRELDEFINESBYTYPE, IFCRELNESTS, IFCSPACE, IFCUNITASSIGNMENT
+  IFCRELCONTAINEDINSPATIALSTRUCTURE, IFCRELDEFINESBYPROPERTIES, IFCRELDEFINESBYTYPE, IFCRELNESTS, IFCSITE, IFCSPACE, IFCUNITASSIGNMENT
 } from 'web-ifc';
 import { BIM_INDEX_VERSION } from './index-version.js';
 import { addPlacedGeometry, classFamily, createMetricsAccumulator, deriveQuantities, finalizeMetrics } from './geometry-metrics.js';
@@ -38,7 +38,8 @@ const T = {
   IFCRELFILLSELEMENT,
   IFCRELVOIDSELEMENT,
   IFCBUILDINGSTOREY,
-  IFCUNITASSIGNMENT
+  IFCUNITASSIGNMENT,
+  IFCSITE
 };
 
 const SI_PREFIX = { EXA: 1e18, PETA: 1e15, TERA: 1e12, GIGA: 1e9, MEGA: 1e6, KILO: 1e3, HECTO: 1e2, DECA: 1e1, DECI: 1e-1, CENTI: 1e-2, MILLI: 1e-3, MICRO: 1e-6, NANO: 1e-9 };
@@ -113,6 +114,33 @@ function typeName(api, modelID, id) {
   } catch {
     return '';
   }
+}
+
+/** IfcCompoundPlaneAngleMeasure (deg, min, sec, millionths of a second) to decimal degrees. */
+function compoundAngle(value) {
+  const list = Array.isArray(value) ? value : value?.value;
+  const parts = (Array.isArray(list) ? list : []).map((part) => Number(plain(part)));
+  if (parts.length < 3 || parts.some((part) => !Number.isFinite(part))) return null;
+  const [degrees, minutes, seconds, millionths = 0] = parts;
+  const sign = parts.slice(0, 4).some((part) => part < 0) ? -1 : 1;
+  return sign * (Math.abs(degrees) + Math.abs(minutes) / 60 + (Math.abs(seconds) + Math.abs(millionths) / 1e6) / 3600);
+}
+
+/** Geographic position of the project site, when the exporter wrote one. */
+function readSite(api, modelID, units) {
+  for (const id of lineIds(api, modelID, T.IFCSITE)) {
+    const line = safeLine(api, modelID, id);
+    const lat = compoundAngle(line?.RefLatitude);
+    const lon = compoundAngle(line?.RefLongitude);
+    if (lat === null || lon === null || (lat === 0 && lon === 0)) continue;
+    const elevation = Number(line.RefElevation?._representationValue ?? plain(line.RefElevation));
+    return {
+      lat: Math.round(lat * 1e6) / 1e6,
+      lon: Math.round(lon * 1e6) / 1e6,
+      ...(Number.isFinite(elevation) ? { elevation: Math.round(elevation * units.length * 1000) / 1000 } : {})
+    };
+  }
+  return null;
 }
 
 function readUnitScales(api, modelID) {
@@ -442,6 +470,7 @@ export function buildBimIndex(api, modelID, { onProgress } = {}) {
     version: BIM_INDEX_VERSION,
     schema,
     units: { length: 'm', area: 'm²', volume: 'm³', sourceLengthScale: units.length },
+    site: readSite(api, modelID, units),
     storeys: storeyLines.map(({ id, guid, name, elevation }) => ({ id, guid, name, elevation })),
     elements
   };

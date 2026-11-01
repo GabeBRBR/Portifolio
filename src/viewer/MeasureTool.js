@@ -11,7 +11,10 @@ const EDGE_SNAP_PX = { mid: 14, perp: 32 };
 const meters = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const degrees = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
+const coordinate = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
 const HINTS = {
+  point: ['Clique em um ponto para ler suas coordenadas (copiadas automaticamente). Encaixes: ponto final, ponto médio, aresta e face.'],
   length: [
     'Clique no ponto A. Encaixes: ponto final, ponto médio, perpendicular, aresta e face.',
     'Clique no ponto B para concluir. Esc cancela este ponto.'
@@ -119,7 +122,7 @@ export class MeasureTool {
 
   /** Points needed to finish the current measurement; area is open-ended. */
   get needed() {
-    return this.mode === 'length' ? 2 : this.mode === 'angle' ? 3 : Infinity;
+    return this.mode === 'point' ? 1 : this.mode === 'length' ? 2 : this.mode === 'angle' ? 3 : Infinity;
   }
 
   async pick(event) {
@@ -202,6 +205,7 @@ export class MeasureTool {
     const near = this.hover && Math.hypot(this.hover.x - cursor.x, this.hover.y - cursor.y) < 4;
     const hit = near ? this.hover : await this.pick(event);
     if (!hit || !this.enabled) return;
+    if (this.mode === 'point') this.copyCoordinates(hit.point);
     this.points.push(hit.point.clone());
     this.pendingDots.push(this.makeDot(hit.point));
     if (this.points.length === 1) this.previewLabel = this.makeLabel();
@@ -214,6 +218,12 @@ export class MeasureTool {
     this.hint();
     this.updatePreview();
     this.world.renderer.needsUpdate = true;
+  }
+
+  /** Puts "X; Y; Z" (BIM axes, metres, point as decimal comma) on the clipboard; silent when the browser refuses. */
+  copyCoordinates(point) {
+    const text = [point.x, -point.z, point.y].map((value) => coordinate.format(value)).join('; ');
+    navigator.clipboard?.writeText(text).catch(() => {});
   }
 
   finish() {
@@ -237,7 +247,7 @@ export class MeasureTool {
 
   commit(mode, points) {
     const pts = points.map((point) => point.clone());
-    const objects = [this.makePolyline(mode === 'area' ? [...pts, pts[0]] : pts, false)];
+    const objects = pts.length > 1 ? [this.makePolyline(mode === 'area' ? [...pts, pts[0]] : pts, false)] : [];
     pts.forEach((point) => objects.push(this.makeDot(point)));
     if (mode === 'area') {
       const fill = this.makeFill(pts);
@@ -339,7 +349,10 @@ export class MeasureTool {
   }
 
   writeLabel(label, mode, points) {
-    if (mode === 'length') {
+    if (mode === 'point') {
+      const [p] = points;
+      label.innerHTML = `<b>X ${coordinate.format(p.x)} · Y ${coordinate.format(-p.z)}</b><small>Z (cota) ${coordinate.format(p.y)} m · copiado</small>`;
+    } else if (mode === 'length') {
       const [a, b] = points;
       label.innerHTML = `<b>${meters.format(a.distanceTo(b))} m</b><small>ΔX ${meters.format(Math.abs(b.x - a.x))} · ΔY ${meters.format(Math.abs(b.z - a.z))} · ΔZ ${meters.format(Math.abs(b.y - a.y))}</small>`;
     } else if (mode === 'angle') {
@@ -367,7 +380,10 @@ export class MeasureTool {
     }
     this.marker.hidden = false;
     this.marker.dataset.shape = this.hover.shape;
-    this.marker.dataset.label = SNAP_NAMES[this.hover.shape] || '';
+    const p = this.hover.point;
+    this.marker.dataset.label = this.mode === 'point'
+      ? `${SNAP_NAMES[this.hover.shape] || ''}: X ${coordinate.format(p.x)} · Y ${coordinate.format(-p.z)} · Z ${coordinate.format(p.y)}`
+      : SNAP_NAMES[this.hover.shape] || '';
     this.marker.style.transform = `translate(${this.hover.x}px, ${this.hover.y}px)`;
   }
 
@@ -384,7 +400,8 @@ export class MeasureTool {
     this.previewLine.geometry.computeBoundingSphere();
     this.previewLine.computeLineDistances();
     const live = this.livePoints();
-    const ready = this.mode === 'length' || (this.mode === 'angle' && live.length === 3) || (this.mode === 'area' && live.length >= 3);
+    const ready = this.mode === 'point' ||
+      this.mode === 'length' || (this.mode === 'angle' && live.length === 3) || (this.mode === 'area' && live.length >= 3);
     this.previewLabel.style.visibility = ready ? '' : 'hidden';
     if (ready) this.writeLabel(this.previewLabel, this.mode, live);
     this.world.renderer.needsUpdate = true;
