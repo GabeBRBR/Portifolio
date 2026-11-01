@@ -3,7 +3,10 @@ import { SnappingClass } from '@thatopen/fragments';
 
 const COLOR = '#d99a00';
 const CLICK_SLOP_PX = 5;
-const SNAP_SHAPES = { [SnappingClass.POINT]: 'point', [SnappingClass.LINE]: 'line', [SnappingClass.FACE]: 'face' };
+const SNAP_SHAPES = { [SnappingClass.POINT]: 'end', [SnappingClass.LINE]: 'line', [SnappingClass.FACE]: 'face' };
+const SNAP_NAMES = { end: 'Ponto final', mid: 'Ponto médio', perp: 'Perpendicular', line: 'Aresta', face: 'Face' };
+// Screen distance (px) within which an edge hit is pulled to its midpoint or perpendicular foot.
+const EDGE_SNAP_PX = { mid: 14, perp: 32 };
 const meters = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
@@ -77,7 +80,7 @@ export class DistanceMeasure {
   hint() {
     this.onHint?.(this.start
       ? 'Clique no ponto B para concluir. Esc cancela este ponto.'
-      : 'Clique no ponto A. O marcador mostra vértice (quadrado), aresta (losango) ou face (círculo).');
+      : 'Clique no ponto A. Encaixes: ponto final, ponto médio, perpendicular, aresta e face.');
   }
 
   async pick(event) {
@@ -91,7 +94,39 @@ export class DistanceMeasure {
       new Promise((resolve) => setTimeout(() => resolve(null), 600))
     ]).catch(() => null);
     if (!hit?.point) return null;
-    return { point: hit.point.clone(), shape: SNAP_SHAPES[hit.snappingClass] || 'face', x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const result = { point: hit.point.clone(), shape: SNAP_SHAPES[hit.snappingClass] || 'face', x: event.clientX - rect.left, y: event.clientY - rect.top };
+    if (result.shape === 'line' && hit.snappedEdgeP1 && hit.snappedEdgeP2) this.refineEdgeSnap(result, hit.snappedEdgeP1, hit.snappedEdgeP2, rect);
+    return result;
+  }
+
+  toScreen(point, rect) {
+    const projected = point.clone().project(this.world.camera.three);
+    return { x: ((projected.x + 1) / 2) * rect.width, y: ((1 - projected.y) / 2) * rect.height };
+  }
+
+  /** On an edge: midpoint and the perpendicular foot from point A win over a plain edge snap when the cursor is close to them. */
+  refineEdgeSnap(result, p1, p2, rect) {
+    const a = new THREE.Vector3(p1.x, p1.y, p1.z);
+    const b = new THREE.Vector3(p2.x, p2.y, p2.z);
+    const candidates = [{ shape: 'mid', point: a.clone().add(b).multiplyScalar(0.5) }];
+    if (this.start) {
+      const edge = b.clone().sub(a);
+      const t = edge.lengthSq() ? this.start.clone().sub(a).dot(edge) / edge.lengthSq() : -1;
+      if (t > 0.001 && t < 0.999) candidates.push({ shape: 'perp', point: a.clone().addScaledVector(edge, t) });
+    }
+    let best = null;
+    candidates.forEach((candidate) => {
+      const screen = this.toScreen(candidate.point, rect);
+      const distance = Math.hypot(screen.x - result.x, screen.y - result.y);
+      // Midpoint wins ties: it is the more specific intent when both are near.
+      if (distance <= EDGE_SNAP_PX[candidate.shape] && (!best || distance < best.distance - 4 || (candidate.shape === 'mid' && distance <= best.distance + 4))) best = { ...candidate, distance, screen };
+    });
+    if (best) {
+      result.point = best.point;
+      result.shape = best.shape;
+      result.x = best.screen.x;
+      result.y = best.screen.y;
+    }
   }
 
   async handleMove(event) {
@@ -228,6 +263,7 @@ export class DistanceMeasure {
     }
     this.marker.hidden = false;
     this.marker.dataset.shape = this.hover.shape;
+    this.marker.dataset.label = SNAP_NAMES[this.hover.shape] || '';
     this.marker.style.transform = `translate(${this.hover.x}px, ${this.hover.y}px)`;
   }
 

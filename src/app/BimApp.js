@@ -433,7 +433,7 @@ export class BimApp {
     this.root.querySelectorAll('[data-measure]').forEach((button) => button.setAttribute('aria-checked', String(button.dataset.measure === mode)));
     this.root.querySelector('[data-action="measure"]')?.classList.toggle('active', Boolean(mode));
     const help = mode === 'length'
-      ? 'Clique no ponto A. O marcador mostra vértice (quadrado), aresta (losango) ou face (círculo).'
+      ? 'Clique no ponto A. Encaixes: ponto final, ponto médio, perpendicular, aresta e face.'
       : mode === 'area'
         ? 'Medição de área: duplo clique em cada vértice e Enter para fechar. Esc cancela.'
         : '';
