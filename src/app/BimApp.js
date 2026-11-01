@@ -434,9 +434,9 @@ export class BimApp {
     this.root.querySelector('[data-action="measure"]')?.classList.toggle('active', Boolean(mode));
     const help = mode === 'length'
       ? 'Clique no ponto A. Encaixes: ponto final, ponto médio, perpendicular, aresta e face.'
-      : mode === 'area'
-        ? 'Medição de área: duplo clique em cada vértice e Enter para fechar. Esc cancela.'
-        : '';
+      : mode === 'angle'
+        ? 'Clique no primeiro ponto do ângulo.'
+        : mode === 'area' ? 'Clique em cada vértice do polígono.' : '';
     this.ui.measureHelp.textContent = help;
     this.ui.measureHelp.classList.toggle('hidden', !help);
   }

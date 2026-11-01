@@ -8,7 +8,7 @@ import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 import { FragmentCache } from './storage/FragmentCache.js';
 import { BimIndex } from '../bim/BimIndex.js';
 import { BimIndexService } from '../bim/BimIndexService.js';
-import { DistanceMeasure } from './DistanceMeasure.js';
+import { MeasureTool } from './MeasureTool.js';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 const MAX_LOCAL_MODELS = 3;
@@ -230,6 +230,7 @@ export class ViewerEngine {
     if (this.loadedWork) {
       if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
       this.clearExplodedView();
+      this.clearMeasurements();
       await this.resetPresentation();
       this.bimIndex.clear();
       for (const modelId of [...this.fragments.list.keys()]) {
@@ -2160,43 +2161,15 @@ export class ViewerEngine {
 
   ensureMeasurements() {
     if (this.measurements) return this.measurements;
-    const formatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-    // Distance uses the in-house click-click tool (snap + live preview);
-    // only the polygon area still relies on the library tool.
-    const length = new DistanceMeasure({
+    // One in-house tool for distance, angle and area: click-click with snap and live preview.
+    this.measurements = new MeasureTool({
       world: this.world,
       raycaster: this.sceneRaycaster,
       container: this.container,
       onChange: (count) => this.onMeasureChange?.(count),
       onHint: (text) => this.onMeasureHint?.(text)
     });
-    const area = this.components.get(OBCF.AreaMeasurement);
-    [area].forEach((tool) => {
-      tool.world = this.world;
-      tool.color = new THREE.Color('#b8860b');
-      tool.enabled = false;
-      tool.visible = true;
-    });
-    try { area.units = 'm2'; } catch { /* units are optional in older builds */ }
-    if ('valueFormatter' in OBCF.Measurement) OBCF.Measurement.valueFormatter = (value) => formatter.format(value);
-    const canvas = this.world.renderer.three.domElement;
-    canvas.addEventListener('dblclick', () => {
-      if (this.measureMode === 'area') void area.create();
-    });
-    window.addEventListener('keydown', (event) => {
-      const tool = this.measureMode === 'area' ? area : null;
-      if (!tool || event.target?.closest?.('input, textarea, select')) return;
-      if (event.code === 'Enter') tool.endCreation?.();
-      else if (event.code === 'Escape') tool.cancelCreation?.();
-      else if (event.code === 'Delete' || event.code === 'Backspace') tool.delete?.();
-    });
-    this.measurements = { length, area };
     return this.measurements;
-  }
-
-  activeMeasureTool() {
-    if (!this.measureMode || !this.measurements) return null;
-    return this.measurements[this.measureMode] || null;
   }
 
   /** @param {'length'|'area'|null} mode */
@@ -2204,11 +2177,10 @@ export class ViewerEngine {
     if (!this.components) return;
     // Measuring is an orbit-only tool: leaving a walk first keeps the camera where it is.
     if (mode && this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
-    const tools = mode || this.measurements ? this.ensureMeasurements() : null;
+    const tool = mode || this.measurements ? this.ensureMeasurements() : null;
     this.measureMode = mode || null;
-    if (tools) {
-      if (mode === 'length') tools.length.enable(); else tools.length.disable();
-      tools.area.enabled = mode === 'area';
+    if (tool) {
+      if (mode) tool.enable(mode); else tool.disable();
     }
     // The selection click would compete with picking measurement points.
     if (this.highlighter) this.highlighter.enabled = !mode;
@@ -2217,8 +2189,7 @@ export class ViewerEngine {
 
   clearMeasurements() {
     if (!this.measurements) return;
-    try { this.measurements.length.clear(); } catch (error) { console.warn('Falha ao limpar medições:', error); }
-    try { this.measurements.area.list.clear(); } catch (error) { console.warn('Falha ao limpar medições:', error); }
+    try { this.measurements.clear(); } catch (error) { console.warn('Falha ao limpar medições:', error); }
     this.world.renderer.needsUpdate = true;
   }
 
