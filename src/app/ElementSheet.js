@@ -1,5 +1,5 @@
 import { BimIndex } from '../bim/BimIndex.js';
-import { DISCIPLINE_COLORS, escapeHtml, fold, formatCount, formatNumber, formatQuantity, QUANTITY_BY_KEY } from '../bim/labels.js';
+import { DISCIPLINE_COLORS, escapeHtml, fold, foldKey, formatCount, formatNumber, formatQuantity, QUANTITY_BY_KEY } from '../bim/labels.js';
 
 /** Quantities shown first for each kind of element, in reading order. */
 const HEADLINE = {
@@ -117,7 +117,7 @@ export class ElementSheet {
     if (props.IsExternal === false) flags.push('Interno');
     const highlighted = [];
     const seenLabels = new Set();
-    const folded = Object.entries(props).map(([key, value]) => [fold(key), value]);
+    const folded = Object.entries(props).map(([key, value]) => [foldKey(key), value]);
     HIGHLIGHT_PROPERTIES.forEach(([key, label]) => {
       const entry = folded.find(([name]) => name === key);
       if (!entry || isEmptyValue(entry[1]) || seenLabels.has(label)) return;

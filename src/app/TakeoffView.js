@@ -1,5 +1,5 @@
 import { BimIndex, DIMENSIONS } from '../bim/BimIndex.js';
-import { escapeHtml, formatCount, formatQuantity } from '../bim/labels.js';
+import { escapeHtml, foldKey, formatCount, formatQuantity } from '../bim/labels.js';
 
 const GROUPABLE = ['classLabel', 'type', 'storey', 'material', 'discipline', 'system', 'diameter'];
 const COLUMNS = [
@@ -9,17 +9,38 @@ const COLUMNS = [
   { key: 'volume', label: 'Volume', unit: 'm³' }
 ];
 
+const ELEMENT_WIDTHS = [24, 14, 26, 12, 22, 22, 24, 30, 36, 14, 34, 22, 14, 12, 12, 12, 12, 12, 14, 30, 18, 18, 10, 10, 16, 12, 12];
+
+/** Value of an IFC property kept in the index, looked up by its folded name (no accents or punctuation). */
+export function propertyOf(row, ...names) {
+  const wanted = new Set(names);
+  for (const [key, value] of Object.entries(row.props || {})) {
+    if (wanted.has(foldKey(key)) && value !== '' && value !== null && value !== undefined) return value;
+  }
+  return null;
+}
+
+const sinapiOf = (row) => {
+  const input = propertyOf(row, 'inscodigosinapi');
+  if (input) return { code: String(input), kind: 'Insumo' };
+  const composition = propertyOf(row, 'compcodigosinapi');
+  return composition ? { code: String(composition), kind: 'Composição' } : null;
+};
+
 /** Rows for spreadsheet export: one line per element with every quantity. */
 export function elementSheetRows(rows) {
   const header = ['GlobalId', 'Disciplina', 'Pavimento', 'Elevação do pavimento (m)', 'Categoria', 'Classe IFC', 'Família', 'Tipo', 'Nome', 'Marca', 'Materiais', 'Sistema',
-    'Comprimento (m)', 'Área (m²)', 'Volume (m³)', 'Altura (m)', 'Largura (m)', 'Espessura (m)', 'Ø equivalente (mm)', 'Origem das quantidades'];
+    'Comprimento (m)', 'Área (m²)', 'Volume (m³)', 'Altura (m)', 'Largura (m)', 'Espessura (m)', 'Ø equivalente (mm)', 'Origem das quantidades',
+    'Fabricante', 'Modelo', 'Circuito', 'Quadro', 'Código SINAPI', 'Bitola da barra (mm)', 'Transmitância térmica U (W/m²K)'];
   const round = (value, digits) => (value === undefined || value === null ? null : Math.round(value * 10 ** digits) / 10 ** digits);
   return [header, ...rows.map((row) => [
     row.guid, row.discipline, row.storey, row.storeyElevation, row.classLabel, row.cls, row.typeFamily, row.typeName, row.name, row.tag,
     row.materials.join(' + '), row.systems.join(', '),
     round(row.q.length, 3), round(row.q.area, 3), round(row.q.volume, 4), round(row.q.height, 3), round(row.q.width, 3), round(row.q.thickness, 3),
     row.q.diameter ? Math.round(row.q.diameter * 1000) : null,
-    row.ifcq.size ? `IFC: ${[...row.ifcq].join(', ')}; demais medidas da geometria` : 'Geometria 3D'
+    row.ifcq.size ? `IFC: ${[...row.ifcq].join(', ')}; demais medidas da geometria` : 'Geometria 3D',
+    propertyOf(row, 'fabricante', 'manufacturer'), propertyOf(row, 'modelo'), propertyOf(row, 'numerodocircuito'), propertyOf(row, 'painel'),
+    sinapiOf(row)?.code ?? null, propertyOf(row, 'diametrodabarra'), propertyOf(row, 'thermaltransmittance')
   ])];
 }
 
@@ -64,6 +85,7 @@ export class TakeoffView {
         <div class="bim-page-head__actions">
           <button type="button" class="bim-button" data-export="xlsx"><i class="ph ph-file-xls"></i>Exportar Excel</button>
           <button type="button" class="bim-button bim-button--quiet" data-export="csv"><i class="ph ph-file-csv"></i>CSV</button>
+          ${index.rows.some((row) => sinapiOf(row)) ? '<button type="button" class="bim-button bim-button--quiet" data-export="sinapi" title="Insumos e composições SINAPI com quantidades, para orçamento"><i class="ph ph-currency-circle-dollar"></i>Lista SINAPI</button>' : ''}
         </div>
       </header>
       <div class="bim-filters" role="group" aria-label="Agrupamento e filtros">
@@ -149,7 +171,41 @@ export class TakeoffView {
     await this.actions.select(this.rowMap.get(row.dataset.row) || [], { zoom: true });
   }
 
+  /** SINAPI list for budgeting: one line per code and unit (metres for pipes, units otherwise). */
+  sinapiSheets() {
+    const groups = new Map();
+    this.filtered.forEach((row) => {
+      const sinapi = sinapiOf(row);
+      if (!sinapi) return;
+      const metres = row.family === 'segment' && row.q.length > 0;
+      const unit = metres ? 'm' : 'un';
+      const key = `${sinapi.code}|${unit}`;
+      const entry = groups.get(key) || { ...sinapi, unit, quantity: 0, elements: 0, names: new Map(), disciplines: new Set(), systems: new Set() };
+      entry.quantity += metres ? row.q.length : 1;
+      entry.elements += 1;
+      const label = row.typeName || row.name || '';
+      entry.names.set(label, (entry.names.get(label) || 0) + 1);
+      entry.disciplines.add(row.discipline);
+      row.systems.forEach((system) => entry.systems.add(system));
+      groups.set(key, entry);
+    });
+    if (!groups.size) return null;
+    const top = (names) => [...names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+    const lines = [...groups.values()].sort((a, b) => a.code.localeCompare(b.code, 'pt-BR', { numeric: true }));
+    const summary = [['Código SINAPI', 'Tipo', 'Descrição (tipo do elemento)', 'Unidade', 'Quantidade', 'Nº de elementos', 'Disciplina', 'Sistemas'],
+      ...lines.map((entry) => [entry.code, entry.kind, top(entry.names), entry.unit, Math.round(entry.quantity * 1000) / 1000, entry.elements, [...entry.disciplines].join(', '), [...entry.systems].join(', ')])];
+    return [
+      { name: 'SINAPI', rows: summary, widths: [16, 14, 48, 9, 12, 14, 18, 40] },
+      { name: 'Elementos', rows: elementSheetRows(this.filtered.filter((row) => sinapiOf(row))), widths: ELEMENT_WIDTHS }
+    ];
+  }
+
   export(format) {
+    if (format === 'sinapi') {
+      const sheets = this.sinapiSheets();
+      if (!sheets) return this.actions.status('Nenhum elemento com código SINAPI nos filtros atuais.');
+      return this.actions.exportSheets(sheets, 'lista-sinapi', 'xlsx');
+    }
     const group = this.state.group;
     const subgroup = this.state.subgroup && this.state.subgroup !== group ? this.state.subgroup : null;
     const header = [DIMENSIONS[group].label, ...(subgroup ? [DIMENSIONS[subgroup].label] : []), 'Quantidade (un)', 'Comprimento (m)', 'Área (m²)', 'Volume (m³)'];
@@ -162,7 +218,7 @@ export class TakeoffView {
     });
     this.actions.exportSheets([
       { name: 'Resumo', rows: summary, widths: [34, ...(subgroup ? [34] : []), 14, 16, 14, 14] },
-      { name: 'Elementos', rows: elementSheetRows(this.filtered), widths: [24, 14, 26, 12, 22, 22, 24, 30, 36, 14, 34, 22, 14, 12, 12, 12, 12, 12, 14, 30] }
+      { name: 'Elementos', rows: elementSheetRows(this.filtered), widths: ELEMENT_WIDTHS }
     ], `quantitativos-${group}`, format);
   }
 }

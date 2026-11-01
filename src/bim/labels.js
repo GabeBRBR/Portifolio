@@ -87,3 +87,5 @@ export const DISCIPLINE_COLORS = {
 export const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 
 export const fold = (text) => String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR');
+/** Property-name key: no accents, case, spaces or punctuation ("Número do circuito" -> "numerodocircuito"). */
+export const foldKey = (text) => fold(text).replace(/[^a-z0-9]/g, "");
