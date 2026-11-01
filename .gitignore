@@ -28,3 +28,6 @@ dist/
 
 # Pacote temporário de dependências usado para testes fora do Windows
 _deps.tgz
+
+# Configuracao local do Claude Code
+.claude/

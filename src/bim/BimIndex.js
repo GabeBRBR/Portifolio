@@ -5,6 +5,26 @@ const NO_STOREY = 'Sem pavimento';
 const NO_MATERIAL = 'Sem material';
 const NO_SYSTEM = 'Sem sistema';
 
+/** Revit prefixes system names with "z" to sort them last; numbered electrical systems are circuits. */
+const cleanSystemName = (name) => String(name || '').replace(/^z(?=[A-ZÀ-Ý])/, '').trim();
+const systemLabel = (name, discipline) => {
+  const clean = cleanSystemName(name);
+  if (!clean) return null;
+  return /^\d+$/.test(clean) && /el[eé]tr/i.test(discipline || '') ? `Circuito ${clean}` : clean;
+};
+const SYSTEM_CLASSES = {
+  ELECTRICAL: 'Circuitos elétricos', DOMESTICCOLDWATER: 'Água fria', DOMESTICHOTWATER: 'Água quente',
+  SEWAGE: 'Esgoto', WASTEWATER: 'Esgoto', RAINWATER: 'Pluvial', VENTILATION: 'Ventilação', AIRCONDITIONING: 'Ar-condicionado',
+  FIREPROTECTION: 'Combate a incêndio', LIGHTING: 'Iluminação', COMMUNICATION: 'Comunicação'
+};
+const systemClass = (name, discipline) => {
+  const clean = systemLabel(name, discipline);
+  if (!clean) return null;
+  const known = SYSTEM_CLASSES[clean.toUpperCase()];
+  if (known) return known;
+  return /^Circuito \d+$/.test(clean) ? 'Circuitos elétricos' : clean.replace(/\s+\d+$/, '');
+};
+
 /** Dimensions available for grouping, filtering and colouring. */
 export const DIMENSIONS = {
   discipline: { label: 'Disciplina', value: (row) => row.discipline },
@@ -71,16 +91,23 @@ export class BimIndex {
         storeyElevation: storey?.elevation ?? null,
         materials,
         material: materials.length ? materials.join(' + ') : NO_MATERIAL,
-        systems: element.systems || [],
-        system: element.systems?.[0] || NO_SYSTEM,
-        systemType: element.systemTypes?.[0] || element.systems?.[0]?.replace(/\s+\d+$/, '') || NO_SYSTEM,
+        systems: (element.systems || []).map((name) => systemLabel(name, record.discipline)),
+        system: systemLabel(element.systems?.[0], record.discipline) || NO_SYSTEM,
+        systemType: systemClass(element.systemTypes?.[0] || element.systems?.[0], record.discipline) || NO_SYSTEM,
         q: element.q || {},
         ifcq: new Set(element.ifcq || []),
         props: element.p || {},
         box: element.box || null
       };
       row.search = fold([row.name, row.type, row.classLabel, row.cls, row.guid, row.tag, row.storey, row.material, row.system, row.discipline].filter(Boolean).join(' '));
+      row.storeyRaw = row.storey;
+      row.hostExpressId = element.host ?? null;
       rows.push(row);
+    });
+    // Door/window -> wall: resolve the host's row key once all rows exist.
+    const byExpress = new Map(rows.map((row) => [row.expressId, row]));
+    rows.forEach((row) => {
+      row.hostKey = row.hostExpressId !== null && byExpress.has(row.hostExpressId) ? byExpress.get(row.hostExpressId).key : null;
     });
     this.removeModel(modelId, { silent: true });
     this.models.set(modelId, { modelId, record, index, rows });
@@ -97,8 +124,36 @@ export class BimIndex {
     this.rebuild();
   }
 
+  /**
+   * Disciplines name the same floor differently ("TÉRREO", "Planta Baixa 3
+   * Quartos", "PB - TÉRREO"). Storeys at the same elevation (within 5 cm) are
+   * one floor: it takes the architecture's name, or else the most common one.
+   */
+  unifyStoreys() {
+    const groups = new Map();
+    const known = (row) => row.storeyRaw !== NO_STOREY && Number.isFinite(row.storeyElevation);
+    this.rows.forEach((row) => {
+      if (!known(row)) return;
+      const key = Math.round(row.storeyElevation * 20);
+      const group = groups.get(key) || { names: new Map(), arch: null };
+      group.names.set(row.storeyRaw, (group.names.get(row.storeyRaw) || 0) + 1);
+      if (!group.arch && /arquitet/i.test(row.discipline)) group.arch = row.storeyRaw;
+      groups.set(key, group);
+    });
+    const tidy = (name) => (name === name.toUpperCase() && /[A-ZÀ-Ý]/.test(name) ? name.charAt(0) + name.slice(1).toLowerCase() : name);
+    const resolved = new Map();
+    groups.forEach((group, key) => {
+      const common = [...group.names.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      resolved.set(key, tidy(group.arch || common));
+    });
+    this.rows.forEach((row) => {
+      row.storey = known(row) ? resolved.get(Math.round(row.storeyElevation * 20)) ?? row.storeyRaw : row.storeyRaw;
+    });
+  }
+
   rebuild(silent = false) {
     this.rows = [...this.models.values()].flatMap((entry) => entry.rows);
+    this.unifyStoreys();
     this.byKey = new Map(this.rows.map((row) => [row.key, row]));
     if (!silent) this.emit();
   }

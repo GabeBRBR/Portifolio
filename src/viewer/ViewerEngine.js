@@ -8,6 +8,7 @@ import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 import { FragmentCache } from './storage/FragmentCache.js';
 import { BimIndex } from '../bim/BimIndex.js';
 import { BimIndexService } from '../bim/BimIndexService.js';
+import { DistanceMeasure } from './DistanceMeasure.js';
 
 const FRAGMENTS_MANIFEST = 'assets/fragments/models.json';
 const MAX_LOCAL_MODELS = 3;
@@ -165,7 +166,17 @@ export class ViewerEngine {
     this.highlighter = this.components.get(OBCF.Highlighter);
     this.highlighter.setup({
       world: this.world,
-      selectMaterialDefinition: { color: new THREE.Color('#2474c6'), opacity: 0.8, transparent: false, preserveOriginalMaterial: true },
+      selectMaterialDefinition: {
+        color: new THREE.Color('#1f6fe0'),
+        opacity: 1,
+        transparent: false,
+        renderedFaces: RenderedFaces.TWO,
+        priority: 10,
+        // Without this list the library keeps the element's own colour and the
+        // selection never turns blue.
+        preserveOriginalMaterial: true,
+        _explicitProps: ['color', 'opacity', 'transparent']
+      },
       zoomToSelection: false
     });
     // Ctrl+click adds to the selection; the element sheet then sums quantities.
@@ -200,7 +211,13 @@ export class ViewerEngine {
     this.animateWalk();
   }
 
-  async loadWork(workKey) {
+  /** Loads are serialised: two overlapping loads would otherwise merge both works into one scene. */
+  loadWork(workKey) {
+    this.loadChain = (this.loadChain || Promise.resolve()).catch(() => {}).then(() => this.loadWorkNow(workKey));
+    return this.loadChain;
+  }
+
+  async loadWorkNow(workKey) {
     this.benchmark.startedAt = performance.now();
     this.benchmark.firstUsableMs = null;
     const workName = { galpao: 'Galpão Industrial', 'casa-popular': 'Casa Popular' }[workKey] || 'Casa Térrea';
@@ -1324,7 +1341,38 @@ export class ViewerEngine {
     if (this.walk.mode === 'walk' && !this.walkControls.isLocked) {
       this.walk.mouseReleased = false;
       this.walkControls.lock(true);
+      return;
     }
+    if (this.walk.mode === 'walk') await this.selectAtCrosshair(event);
+  }
+
+  /**
+   * While the pointer is locked the cursor does not exist, so a click selects
+   * whatever sits under the centre-screen crosshair. Ctrl adds to the selection.
+   */
+  async selectAtCrosshair(event) {
+    if (!this.highlighter || this.explodeDistance) return;
+    const hit = await Promise.race([
+      this.sceneRaycaster.castRay({ items: [], position: new THREE.Vector2(0, 0) }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 800))
+    ]).catch(() => null);
+    const modelId = hit?.fragments?.modelId;
+    const localId = hit?.localId;
+    if (modelId === undefined || localId === undefined || localId === null) {
+      if (!event.ctrlKey) await this.clearSelection();
+      return;
+    }
+    // The Highlighter stays disabled in walk mode so its own click handler
+    // (which reads the frozen mouse position) cannot fire; enable it only for
+    // this explicit, crosshair-based selection.
+    this.highlighter.enabled = true;
+    try {
+      await this.highlighter.highlightByID('select', { [modelId]: new Set([localId]) }, !event.ctrlKey, false);
+    } finally {
+      if (this.walk.mode === 'walk') this.highlighter.enabled = false;
+    }
+    this.emitSelection();
+    this.requestFrames();
   }
 
   onWalkUnlock() {
@@ -1652,6 +1700,35 @@ export class ViewerEngine {
     this.walk.lastFrame = now;
     this.updateAdaptiveQuality(now);
     this.updateWalk(delta);
+  }
+
+  /** Ready-made camera positions around the visible models (BIM north is -Z in the scene). */
+  async setStandardView(name) {
+    if (!this.world) return;
+    if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    const bounds = new THREE.Box3();
+    this.fragments?.list.forEach((model, modelId) => {
+      if (this.modelRecords.get(modelId)?.visible && model.box && !model.box.isEmpty()) bounds.union(model.box);
+    });
+    if (bounds.isEmpty() && this.collisionBounds && !this.collisionBounds.isEmpty()) bounds.copy(this.collisionBounds);
+    if (bounds.isEmpty()) return;
+    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+    const c = sphere.center;
+    const d = Math.max(sphere.radius, 1) * 2.4;
+    const offsets = {
+      plan: [0.001, 1, 0.001],
+      front: [0, 0.15, 1],
+      back: [0, 0.15, -1],
+      right: [1, 0.15, 0],
+      left: [-1, 0.15, 0],
+      iso: [0.8, 0.7, 0.9]
+    };
+    const o = offsets[name];
+    if (!o) return;
+    const direction = new THREE.Vector3(...o).normalize().multiplyScalar(d);
+    await this.world.camera.controls.setLookAt(c.x + direction.x, c.y + direction.y, c.z + direction.z, c.x, c.y, c.z, true);
+    this.fragments.core.update(true);
+    this.world.renderer.needsUpdate = true;
   }
 
   async fit({ animate = false } = {}) {
@@ -2084,23 +2161,30 @@ export class ViewerEngine {
   ensureMeasurements() {
     if (this.measurements) return this.measurements;
     const formatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-    const length = this.components.get(OBCF.LengthMeasurement);
+    // Distance uses the in-house click-click tool (snap + live preview);
+    // only the polygon area still relies on the library tool.
+    const length = new DistanceMeasure({
+      world: this.world,
+      raycaster: this.sceneRaycaster,
+      container: this.container,
+      onChange: (count) => this.onMeasureChange?.(count),
+      onHint: (text) => this.onMeasureHint?.(text)
+    });
     const area = this.components.get(OBCF.AreaMeasurement);
-    [length, area].forEach((tool) => {
+    [area].forEach((tool) => {
       tool.world = this.world;
       tool.color = new THREE.Color('#b8860b');
       tool.enabled = false;
       tool.visible = true;
     });
-    try { length.units = 'm'; area.units = 'm2'; } catch { /* units are optional in older builds */ }
+    try { area.units = 'm2'; } catch { /* units are optional in older builds */ }
     if ('valueFormatter' in OBCF.Measurement) OBCF.Measurement.valueFormatter = (value) => formatter.format(value);
     const canvas = this.world.renderer.three.domElement;
     canvas.addEventListener('dblclick', () => {
-      const tool = this.activeMeasureTool();
-      if (tool) void tool.create();
+      if (this.measureMode === 'area') void area.create();
     });
     window.addEventListener('keydown', (event) => {
-      const tool = this.activeMeasureTool();
+      const tool = this.measureMode === 'area' ? area : null;
       if (!tool || event.target?.closest?.('input, textarea, select')) return;
       if (event.code === 'Enter') tool.endCreation?.();
       else if (event.code === 'Escape') tool.cancelCreation?.();
@@ -2116,13 +2200,14 @@ export class ViewerEngine {
   }
 
   /** @param {'length'|'area'|null} mode */
-  setMeasureMode(mode) {
+  async setMeasureMode(mode) {
     if (!this.components) return;
-    if (mode && this.walk.mode !== 'orbit') return;
+    // Measuring is an orbit-only tool: leaving a walk first keeps the camera where it is.
+    if (mode && this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
     const tools = mode || this.measurements ? this.ensureMeasurements() : null;
     this.measureMode = mode || null;
     if (tools) {
-      tools.length.enabled = mode === 'length';
+      if (mode === 'length') tools.length.enable(); else tools.length.disable();
       tools.area.enabled = mode === 'area';
     }
     // The selection click would compete with picking measurement points.
@@ -2132,9 +2217,8 @@ export class ViewerEngine {
 
   clearMeasurements() {
     if (!this.measurements) return;
-    Object.values(this.measurements).forEach((tool) => {
-      try { tool.list.clear(); } catch (error) { console.warn('Falha ao limpar medições:', error); }
-    });
+    try { this.measurements.length.clear(); } catch (error) { console.warn('Falha ao limpar medições:', error); }
+    try { this.measurements.area.list.clear(); } catch (error) { console.warn('Falha ao limpar medições:', error); }
     this.world.renderer.needsUpdate = true;
   }
 

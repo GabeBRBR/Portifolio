@@ -75,6 +75,10 @@ export class BimApp {
     this.overview = new OverviewView(byId('bim-overview'), { engine: this.engine, actions });
     this.engine.bimIndex.onChange(() => this.onIndexChange());
     this.sheet.render([]);
+    this.engine.onMeasureHint = (text) => {
+      this.ui.measureHelp.textContent = text;
+      this.ui.measureHelp.classList.toggle('hidden', !text);
+    };
     this.bindUi();
   }
 
@@ -183,6 +187,7 @@ export class BimApp {
 
     // Measurement
     this.root.querySelectorAll('[data-measure]').forEach((button) => button.addEventListener('click', () => this.setMeasureMode(button.dataset.measure)));
+    this.root.querySelectorAll('[data-std-view]').forEach((button) => button.addEventListener('click', () => void this.engine.setStandardView(button.dataset.stdView)));
     byId('bim-measure-clear').addEventListener('click', () => this.engine.clearMeasurements());
     byId('bim-measure-stop').addEventListener('click', () => { this.setMeasureMode(null); this.closePanels(); });
 
@@ -424,11 +429,11 @@ export class BimApp {
   }
 
   setMeasureMode(mode) {
-    this.engine.setMeasureMode(mode);
+    void this.engine.setMeasureMode(mode);
     this.root.querySelectorAll('[data-measure]').forEach((button) => button.setAttribute('aria-checked', String(button.dataset.measure === mode)));
     this.root.querySelector('[data-action="measure"]')?.classList.toggle('active', Boolean(mode));
     const help = mode === 'length'
-      ? 'Medição de distância: dê duplo clique no ponto inicial e no final. Esc cancela.'
+      ? 'Clique no ponto A. O marcador mostra vértice (quadrado), aresta (losango) ou face (círculo).'
       : mode === 'area'
         ? 'Medição de área: duplo clique em cada vértice e Enter para fechar. Esc cancela.'
         : '';

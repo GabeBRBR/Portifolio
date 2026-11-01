@@ -21,6 +21,36 @@ const HEADLINE = {
 const MULTI_LIST_LIMIT = 60;
 
 /**
+ * Discipline data worth reading at a glance, by folded IFC property name.
+ * Anything not listed stays under "Ver todas as propriedades".
+ */
+const HIGHLIGHT_PROPERTIES = [
+  ['numerodocircuito', 'Circuito'],
+  ['painel', 'Quadro'],
+  ['secaodocondutoradotado', 'Seção do condutor'],
+  ['nomedosistema', 'Sistema'],
+  ['classificacaodosistema', 'Classe do sistema'],
+  ['inscodigosinapi', 'Código SINAPI (insumo)'],
+  ['compcodigosinapi', 'Código SINAPI (composição)'],
+  ['diametrodabarra', 'Bitola (Ø)'],
+  ['marcadatabela', 'Marca da barra'],
+  ['numerodovergalhao', 'Nº do vergalhão'],
+  ['comprimentototal', 'Comprimento total'],
+  ['thermaltransmittance', 'Transmitância térmica (U)'],
+  ['fabricante', 'Fabricante'],
+  ['manufacturer', 'Fabricante'],
+  ['modelo', 'Modelo']
+];
+
+/** Attributes that carry no meaning for a reader of the model. */
+const NOISE_ATTRIBUTES = new Set(['GlobalId', 'OwnerHistory', 'ObjectPlacement', 'Representation', 'RepresentationMaps', 'Tag', 'Name', 'ObjectType', 'PredefinedType', 'ElementType', 'LongName', 'Description']);
+const isEmptyValue = (value) => {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string') return !value.trim() || value.trim() === '-' || value.trim() === '$';
+  return false;
+};
+
+/**
  * Right-hand panel: data of the selected element(s). One element shows its
  * identity, headline quantities, relations and full IFC property sets; several
  * elements show their summed quantities and composition.
@@ -85,6 +115,17 @@ export class ElementSheet {
     if (props.LoadBearing === true) flags.push('Estrutural');
     if (props.IsExternal === true) flags.push('Externo');
     if (props.IsExternal === false) flags.push('Interno');
+    const highlighted = [];
+    const seenLabels = new Set();
+    const folded = Object.entries(props).map(([key, value]) => [fold(key), value]);
+    HIGHLIGHT_PROPERTIES.forEach(([key, label]) => {
+      const entry = folded.find(([name]) => name === key);
+      if (!entry || isEmptyValue(entry[1]) || seenLabels.has(label)) return;
+      if (label === 'Sistema' && row.systems.length) return;
+      seenLabels.add(label);
+      highlighted.push([label, escapeHtml(this.formatValue(entry[1]))]);
+    });
+    const host = row.hostKey ? this.engine.bimIndex.byKey.get(row.hostKey) : null;
     const facts = [
       ['Pavimento', storeyText],
       ['Tipo', escapeHtml(row.typeName) + (row.typeFamily ? `<small>${escapeHtml(row.typeFamily)}</small>` : '')],
@@ -92,9 +133,9 @@ export class ElementSheet {
       row.systems.length ? ['Sistema', row.systems.map((system) => escapeHtml(system)).join('<br>')] : null,
       props.Reference && props.Reference !== row.typeName ? ['Referência', escapeHtml(props.Reference)] : null,
       flags.length ? ['Função', flags.join(', ')] : null,
-      ['Classe IFC', `${escapeHtml(row.cls)}${row.ptype ? ` <small>${escapeHtml(row.ptype)}</small>` : ''}`],
-      row.tag ? ['Marca (Tag)', escapeHtml(row.tag)] : null,
-      ['GlobalId', `<code>${escapeHtml(row.guid || '—')}</code>`]
+      host ? ['Instalado em', `<button type="button" class="bim-link-button" data-key="${escapeHtml(host.key)}">${escapeHtml(host.name || host.typeName)}</button>`] : null,
+      ...highlighted,
+      row.tag ? ['Marca', escapeHtml(row.tag)] : null
     ].filter(Boolean);
     const anyGeometric = [...Object.keys(row.q)].some((key) => !row.ifcq.has(key));
     this.root.innerHTML = `
@@ -112,14 +153,21 @@ export class ElementSheet {
       ${anyGeometric ? '<p class="bim-sheet__source-note">“medido” = calculado a partir da geometria 3D. Exporte o IFC com quantidades base para usar os valores do Revit.</p>' : ''}
       <dl class="bim-facts">${facts.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>
       <button type="button" class="bim-link-button bim-sheet__copy" data-act="copy-guid"><i class="ph ph-copy"></i> Copiar GlobalId</button>
-      <section class="bim-props" aria-label="Propriedades IFC">
+      <details class="bim-props" data-role="props-all">
+        <summary>Ver todas as propriedades <small>${escapeHtml(row.cls)}</small></summary>
         <div class="bim-props__head">
-          <h3>Propriedades IFC</h3>
           <input type="search" data-role="prop-search" placeholder="Filtrar propriedades" aria-label="Filtrar propriedades" value="${escapeHtml(this.propertyQuery)}">
         </div>
         <div class="bim-props__body" data-role="props"><p class="bim-muted">Carregando propriedades…</p></div>
-      </section>`;
-    void this.loadProperties(row, this.renderToken);
+      </details>`;
+    const details = this.root.querySelector('[data-role="props-all"]');
+    const token = this.renderToken;
+    details.addEventListener('toggle', () => {
+      if (details.open && !details.dataset.loaded) {
+        details.dataset.loaded = '1';
+        void this.loadProperties(row, token);
+      }
+    });
   }
 
   async loadProperties(row, token) {
@@ -131,9 +179,10 @@ export class ElementSheet {
         target().innerHTML = '<p class="bim-muted">Sem propriedades adicionais.</p>';
         return;
       }
-      const groups = [{ title: 'Atributos', rows: data.attributes }, ...data.sets];
+      const clean = (rows, skip = null) => Object.fromEntries(Object.entries(rows).filter(([key, value]) => !isEmptyValue(value) && !(skip && skip.has(key))));
+      const groups = [{ title: 'Atributos', rows: clean(data.attributes, NOISE_ATTRIBUTES) }, ...data.sets.map((set) => ({ ...set, rows: clean(set.rows) }))];
       target().innerHTML = groups.filter((group) => Object.keys(group.rows).length).map((group, index) => `
-        <details class="bim-props__group" ${index < 2 ? 'open' : ''}>
+        <details class="bim-props__group" ${index < 1 ? 'open' : ''}>
           <summary>${escapeHtml(group.title)} <span>${Object.keys(group.rows).length}</span></summary>
           <dl>${Object.entries(group.rows).map(([key, value]) => `<div class="bim-props__row"><dt>${escapeHtml(key)}</dt><dd>${escapeHtml(this.formatValue(value))}</dd></div>`).join('')}</dl>
         </details>`).join('') || '<p class="bim-muted">Sem propriedades adicionais.</p>';

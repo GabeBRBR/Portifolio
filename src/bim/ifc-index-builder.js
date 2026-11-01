@@ -1,5 +1,5 @@
 import {
-  IFCBUILDINGSTOREY, IFCRELAGGREGATES, IFCRELASSIGNSTOGROUP, IFCRELASSOCIATESMATERIAL,
+  IFCBUILDINGSTOREY, IFCRELFILLSELEMENT, IFCRELVOIDSELEMENT, IFCRELAGGREGATES, IFCRELASSIGNSTOGROUP, IFCRELASSOCIATESMATERIAL,
   IFCRELCONTAINEDINSPATIALSTRUCTURE, IFCRELDEFINESBYPROPERTIES, IFCRELDEFINESBYTYPE, IFCRELNESTS, IFCSPACE, IFCUNITASSIGNMENT
 } from 'web-ifc';
 import { BIM_INDEX_VERSION } from './index-version.js';
@@ -35,6 +35,8 @@ const T = {
   IFCRELDEFINESBYPROPERTIES,
   IFCRELASSOCIATESMATERIAL,
   IFCRELASSIGNSTOGROUP,
+  IFCRELFILLSELEMENT,
+  IFCRELVOIDSELEMENT,
   IFCBUILDINGSTOREY,
   IFCUNITASSIGNMENT
 };
@@ -42,7 +44,16 @@ const T = {
 const SI_PREFIX = { EXA: 1e18, PETA: 1e15, TERA: 1e12, GIGA: 1e9, MEGA: 1e6, KILO: 1e3, HECTO: 1e2, DECA: 1e1, DECI: 1e-1, CENTI: 1e-2, MILLI: 1e-3, MICRO: 1e-6, NANO: 1e-9 };
 const CONVERSION_UNITS = { FOOT: 0.3048, FEET: 0.3048, INCH: 0.0254, YARD: 0.9144, MILE: 1609.344 };
 
-const KEPT_PROPERTIES = new Set(['reference', 'isexternal', 'loadbearing', 'firerating', 'acousticrating', 'thermaltransmittance', 'status', 'nominaldiameter', 'outsidediameter', 'manufacturer']);
+// Folded property names (lower case, no accents or punctuation) kept in the index.
+// Standard Pset_* names come first; the rest are the Revit/BIM-library names
+// that carry the data a reader asks for: circuits, SINAPI codes, rebar marks...
+const KEPT_PROPERTIES = new Set([
+  'reference', 'isexternal', 'loadbearing', 'firerating', 'acousticrating', 'thermaltransmittance', 'status',
+  'nominaldiameter', 'outsidediameter', 'manufacturer', 'fabricante', 'modelo',
+  'numerodocircuito', 'painel', 'secaodocondutoradotado',
+  'inscodigosinapi', 'compcodigosinapi', 'nomedosistema', 'classificacaodosistema',
+  'diametrodabarra', 'comprimentototal', 'marcadatabela', 'numerodovergalhao', 'quantidadeporconjuntodevergalhoes'
+]);
 
 const QUANTITY_ALIASES = [
   ['volume', ['netvolume', 'volume', 'grossvolume']],
@@ -214,6 +225,22 @@ export function buildBimIndex(api, modelID, { onProgress } = {}) {
     return result;
   };
 
+  // Openings: opening -> host element, and filler (door/window) -> opening.
+  const hostOfOpening = new Map();
+  for (const id of lineIds(api, modelID, T.IFCRELVOIDSELEMENT)) {
+    const rel = safeLine(api, modelID, id);
+    const host = refId(rel?.RelatingBuildingElement);
+    const opening = refId(rel?.RelatedOpeningElement);
+    if (host !== null && opening !== null) hostOfOpening.set(opening, host);
+  }
+  const hostOf = new Map();
+  for (const id of lineIds(api, modelID, T.IFCRELFILLSELEMENT)) {
+    const rel = safeLine(api, modelID, id);
+    const opening = refId(rel?.RelatingOpeningElement);
+    const filler = refId(rel?.RelatedBuildingElement);
+    if (filler !== null && hostOfOpening.has(opening)) hostOf.set(filler, hostOfOpening.get(opening));
+  }
+
   // 3. Types.
   const typeOf = new Map();
   for (const id of lineIds(api, modelID, T.IFCRELDEFINESBYTYPE)) {
@@ -223,6 +250,7 @@ export function buildBimIndex(api, modelID, { onProgress } = {}) {
     refList(rel.RelatedObjects).forEach((element) => typeOf.set(element, typeId));
   }
   const typeNames = new Map();
+  const typePropsOf = new Map();
   const getTypeName = (typeId) => {
     if (!typeNames.has(typeId)) {
       const line = safeLine(api, modelID, typeId);
@@ -325,6 +353,15 @@ export function buildBimIndex(api, modelID, { onProgress } = {}) {
     definitionCache.set(defId, result);
     return result;
   };
+  // Property sets attached directly to a type object (HasPropertySets), e.g.
+  // ThermalTransmittance on door and window types.
+  for (const typeId of new Set(typeOf.values())) {
+    const typeLine = safeLine(api, modelID, typeId);
+    for (const defId of refList(typeLine?.HasPropertySets)) {
+      const definition = readDefinition(defId);
+      if (Object.keys(definition.props).length) typePropsOf.set(typeId, { ...(typePropsOf.get(typeId) || {}), ...definition.props });
+    }
+  }
   for (const id of lineIds(api, modelID, T.IFCRELDEFINESBYPROPERTIES)) {
     const rel = safeLine(api, modelID, id);
     const defIds = Array.isArray(rel?.RelatingPropertyDefinition) ? refList(rel.RelatingPropertyDefinition) : [refId(rel?.RelatingPropertyDefinition)].filter((value) => value !== null);
@@ -355,7 +392,7 @@ export function buildBimIndex(api, modelID, { onProgress } = {}) {
     if (!cls || cls === 'IFCOPENINGELEMENT' || cls === 'IFCANNOTATION') continue;
     const typeId = typeOf.get(id);
     const typeLabel = (typeId !== undefined ? getTypeName(typeId) : null) || plain(line.ObjectType) || null;
-    const props = { ...(typeId !== undefined ? propsOf.get(typeId) : null), ...(propsOf.get(id) || {}) };
+    const props = { ...(typeId !== undefined ? typePropsOf.get(typeId) : null), ...(typeId !== undefined ? propsOf.get(typeId) : null), ...(propsOf.get(id) || {}) };
     const ifcQuantities = { ...(typeId !== undefined ? quantitiesOf.get(typeId) : null), ...(quantitiesOf.get(id) || {}) };
     const metrics = finalizeMetrics(acc);
     // A Length property on a segment (Pset_*SegmentCommon / Revit) is the
@@ -392,6 +429,7 @@ export function buildBimIndex(api, modelID, { onProgress } = {}) {
       if (systemTypes.length) element.systemTypes = systemTypes;
     }
     if (ifcKeys.length) element.ifcq = ifcKeys;
+    if (hostOf.has(id)) element.host = hostOf.get(id);
     const predefined = plain(line.PredefinedType);
     if (predefined && predefined !== 'NOTDEFINED' && predefined !== 'USERDEFINED') element.ptype = predefined;
     if (Object.keys(props).length) element.p = props;

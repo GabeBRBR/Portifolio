@@ -94,7 +94,7 @@ export class OverviewView {
         ${volumeByStorey.length ? this.barChart('Volume por pavimento', 'm³', volumeByStorey, (value) => formatNumber(value, 2), { keepOrder: true }) : ''}
         ${wallTypes.length ? this.barChart('Paredes por tipo', 'm² de área líquida', wallTypes, (value) => formatNumber(value, 2)) : ''}
         ${diameters.length ? this.barChart('Tubos e eletrodutos por diâmetro', 'm de comprimento', diameters, (value) => formatNumber(value, 1)) : ''}
-        ${spaces.length ? this.spacesTable(spaces) : ''}
+        ${spaces.length ? this.spacesTable(spaces) : this.noSpacesCard()}
         ${this.qualityCard(checks, total)}
       </div>`;
   }
@@ -114,6 +114,13 @@ export class OverviewView {
           <span class="bim-bars__track"><span class="bim-bars__fill${item.other ? ' bim-bars__fill--other' : ''}" style="width:${Math.max(1.5, (item.value / max) * 100).toFixed(2)}%"></span></span>
           <span class="bim-bars__value">${format(item.value)}</span>
         </button></li>`).join('')}</ul>
+    </section>`;
+  }
+
+  noSpacesCard() {
+    return `<section class="bim-card bim-card--wide">
+      <h3>Ambientes</h3>
+      <p class="bim-card__unit">Este modelo não tem ambientes (IfcSpace), então não há área por cômodo. Exporte do Revit com os ambientes (Rooms) incluídos que eles aparecem aqui, com área e pé-direito.</p>
     </section>`;
   }
 
