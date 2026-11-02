@@ -60,6 +60,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 3. Project Filter System
   // =========================================================================
+  const projectsGrid = document.getElementById('projects-grid');
+  const projectsMore = document.getElementById('projects-more');
+  const projectsMoreBtn = document.getElementById('projects-more-btn');
+  let projectsExpanded = false;
+
+  // "persist" guarda a escolha do usuário; um filtro só expande temporariamente
+  function setProjectsExpanded(expanded, persist = true) {
+    if (!projectsGrid) return;
+    if (persist) projectsExpanded = expanded;
+    projectsGrid.classList.toggle('projects-collapsed', !expanded);
+    if (projectsMore) projectsMore.classList.toggle('hidden', expanded);
+    if (projectsMoreBtn) projectsMoreBtn.setAttribute('aria-expanded', String(expanded));
+    if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
+  }
+
+  if (projectsMoreBtn) projectsMoreBtn.addEventListener('click', () => setProjectsExpanded(true));
+
   const filterBtns = document.querySelectorAll('.project-filter-btn, .filter-btn');
   const projectCards = document.querySelectorAll('.project-plate, .project-card');
 
@@ -69,6 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
 
       const filterValue = btn.getAttribute('data-filter');
+
+      // Com um filtro ativo, mostra todos os projetos da categoria; em "Todos", volta à lista curta
+      if (filterValue !== 'all') setProjectsExpanded(true, false);
+      else setProjectsExpanded(projectsExpanded, false);
 
       projectCards.forEach(card => {
         const category = card.getAttribute('data-category');

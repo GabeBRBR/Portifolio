@@ -605,8 +605,8 @@ body {
   transition: transform var(--transition-smooth);
 }
 
-.project-plate:hover .project-media {
-  transform: scale(1.04);
+@media (hover: hover) and (pointer: fine) {
+  .project-plate:hover .project-media { transform: scale(1.04); }
 }
 
 .project-code-tag {
@@ -1058,3 +1058,166 @@ html.lenis, html.lenis body { height: auto; }
 .tok-num { color: #7DD3FC; }
 .tok-fn { color: #93C5FD; }
 .tok-bi { color: #C4B5FD; }
+
+
+/* ==========================================================================
+   Melhorias de design (faixa de números, seção escura, habilidades, projetos)
+   ========================================================================== */
+
+/* Marca "Atual" ao lado da AION BIM */
+.exp-now {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #166534;
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+}
+
+/* Faixa de números logo abaixo do hero */
+.stats-strip {
+  position: relative;
+  z-index: 1;
+  padding: 0 0 1rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  background: var(--ink-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.stat {
+  padding: 1.5rem 1.25rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat dt {
+  font-family: var(--font-mono);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-gold-light);
+  margin-bottom: 0.5rem;
+}
+
+.stat dd {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #CBD5E1;
+}
+
+@media (min-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+  .stat { border-bottom: none; padding: 1.75rem 1.5rem; }
+  .stat:last-child { border-right: none; }
+}
+
+/* Seção escura das automações */
+.section-dark {
+  position: relative;
+  z-index: 1;
+  background-color: #0B1320;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+  border-top: 1px solid #1E293B;
+  border-bottom: 1px solid #1E293B;
+}
+
+.section-dark .section-header-editorial { border-top-color: #1E293B; }
+.section-dark .section-label { color: var(--accent-gold-light); }
+.section-dark .section-headline { color: #F8FAFC; }
+.dark-lead { color: #CBD5E1; font-size: 1rem; }
+.dark-note { font-family: var(--font-mono); font-size: 0.75rem; color: #94A3B8; }
+
+.section-dark .code-workbench {
+  background: #0F1B2E;
+  border-color: #22324A;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+/* Lista de habilidades com nível */
+.skill-list { list-style: none; display: grid; grid-template-columns: 1fr; }
+
+.skill-list li {
+  display: grid;
+  grid-template-columns: 1fr auto 6.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+}
+
+.skill-list li:last-child { border-bottom: none; }
+
+.skill-list em {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-style: normal;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+.skill-dots { display: inline-flex; gap: 4px; }
+
+.skill-dots i {
+  width: 18px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-editorial);
+}
+
+.skill-dots i.on { background: var(--accent-gold); }
+
+/* Projetos: lista curta por padrão, com botão para ver todos */
+.projects-collapsed .project-plate.is-extra { display: none; }
+
+.projects-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+.projects-more.hidden { display: none !important; }
+
+/* Indica, também no toque, que o cartão abre os detalhes */
+.project-plate[data-modal] .project-plate-body::after {
+  content: "Ver detalhes  \2192";
+  display: block;
+  margin-top: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-gold-dark);
+  transition: transform var(--transition-normal);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .project-plate[data-modal]:hover .project-plate-body::after { transform: translateX(4px); }
+}
+
+.exp-log-item { transition: border-color var(--transition-normal); }
+.exp-log-item:hover { border-left-color: var(--accent-gold); }
+
+@media (min-width: 640px) {
+  .skill-list { column-gap: 2rem; grid-template-columns: 1fr 1fr; }
+  .skill-list li { grid-template-columns: 1fr auto; }
+  .skill-list em { display: none; }
+}
