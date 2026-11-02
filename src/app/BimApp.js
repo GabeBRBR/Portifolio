@@ -7,11 +7,15 @@ import { ElementSheet } from './ElementSheet.js';
 import { ProjectNavigator } from './ProjectNavigator.js';
 import { TakeoffView, elementSheetRows } from './TakeoffView.js';
 import { OverviewView } from './OverviewView.js';
+import { ContextMenu } from './ContextMenu.js';
+import { ClipHandles } from './ClipHandles.js';
 
 const WORK_LABELS = { 'casa-terrea': 'Casa Térrea', galpao: 'Galpão Industrial', 'casa-popular': 'Casa Popular' };
 const CLIP_LABELS = [['minX', 'X mín.'], ['maxX', 'X máx.'], ['minY', 'Altura mín.'], ['maxY', 'Altura máx.'], ['minZ', 'Z mín.'], ['maxZ', 'Z máx.']];
 const FLOAT_PANELS = { color: 'bim-color-panel', explode: 'ifc-explode-panel', clip: 'ifc-clip-panel', measure: 'bim-measure-panel', coords: 'bim-coords-panel', views: 'bim-views-panel', settings: 'bim-settings-panel' };
 const MOBILE = window.matchMedia('(max-width: 900px)');
+const PANELS_KEY = 'bim-panels-v1';
+const PANEL_ATTRIBUTES = { navigator: 'data-nav-collapsed', sheet: 'data-sheet-collapsed' };
 
 const storage = {
   get(key, fallback = null) {
@@ -59,16 +63,35 @@ export class BimApp {
 
     this.engine = new ViewerEngine({
       container: byId('ifc-canvas-container'),
+      viewCubeContainer: byId('bim-viewcube'),
       walkHelp: byId('ifc-walk-help'),
       walkCrosshair: byId('ifc-walk-crosshair'),
       setLoading: (...args) => this.setLoading(...args),
       showStatus: (message) => this.showStatus(message),
       onSelectionChange: (map) => this.onSelectionChange(map),
+      onHoverChange: (info) => this.onHoverChange(info),
+      onCameraUpdate: () => this.clipHandles?.refresh(),
       onModelsChange: (models) => this.onModelsChange(models),
       onModeChange: (mode) => this.onModeChange(mode)
     });
 
     const actions = this.createActions();
+    this.actions = actions;
+    this.contextMenu = new ContextMenu(byId('bim-context-menu'));
+    this.clipHandles = new ClipHandles({
+      container: byId('ifc-canvas-container'),
+      engine: this.engine,
+      isActive: () => !byId('ifc-clip-panel').classList.contains('hidden'),
+      onChange: () => this.renderClipControls()
+    });
+    this.ui.hoverTip = byId('bim-hover-tip');
+    this.ui.shortcuts = byId('bim-shortcuts');
+    byId('ifc-canvas-container').addEventListener('contextmenu', (event) => { void this.openContextMenu(event); });
+    window.addEventListener('keydown', (event) => this.onKeyDown(event));
+    this.root.addEventListener('keydown', (event) => this.trapFocus(event));
+    this.root.querySelector('[role="tablist"]')?.addEventListener('keydown', (event) => this.moveTabFocus(event));
+    byId('bim-shortcuts-btn').addEventListener('click', () => this.toggleShortcuts());
+    this.root.querySelector('[data-shortcuts-close]')?.addEventListener('click', () => this.toggleShortcuts(false));
     this.navigator = new ProjectNavigator(byId('bim-navigator'), { engine: this.engine, actions });
     this.sheet = new ElementSheet(byId('bim-sheet'), { engine: this.engine, actions });
     this.takeoff = new TakeoffView(byId('bim-takeoff'), { engine: this.engine, actions });
@@ -142,6 +165,8 @@ export class BimApp {
       if (button.classList.contains('bim-tab')) button.addEventListener('click', () => this.switchTab(button.dataset.tab));
     });
     this.root.querySelectorAll('[data-drawer]').forEach((button) => button.addEventListener('click', () => this.toggleDrawer(button.dataset.drawer)));
+    this.root.querySelectorAll('[data-panel-toggle]').forEach((button) => button.addEventListener('click', () => this.togglePanelCollapsed(button.dataset.panelToggle)));
+    this.restorePanels();
     this.ui.projectSelect.addEventListener('change', (event) => {
       const value = event.target.value;
       if (value !== 'local') void this.open(value);
@@ -166,7 +191,7 @@ export class BimApp {
       this.ui.explodeValue.textContent = `${distance.toFixed(1).replace('.', ',')} m`;
       void this.engine.setExplodeDistance(distance);
     });
-    byId('ifc-reset-clip').addEventListener('click', () => { this.engine.resetClipBox(); this.renderClipControls(); });
+    byId('ifc-reset-clip').addEventListener('click', () => { this.engine.resetClipBox(); this.renderClipControls(); this.clipHandles.refresh(); });
     this.ui.background.value = storage.get('bim-background-v2', null) || localStorage.getItem('ifc-background') || '#f2f1ec';
     this.ui.background.addEventListener('input', (event) => this.setBackground(event.target.value));
     this.root.querySelectorAll('[data-color]').forEach((button) => button.addEventListener('click', () => this.setBackground(button.dataset.color)));
@@ -294,6 +319,115 @@ export class BimApp {
   }
 
   // ---------------------------------------------------------------------------
+  // Hover, context menu and keyboard
+  // ---------------------------------------------------------------------------
+
+  onHoverChange(info) {
+    const tip = this.ui.hoverTip;
+    if (!info || this.contextMenu.isOpen) {
+      tip.classList.add('hidden');
+      return;
+    }
+    const { row } = info;
+    const stage = tip.offsetParent?.getBoundingClientRect();
+    const details = [row.classLabel, row.typeName, row.storey].filter(Boolean).join(' · ');
+    tip.innerHTML = `<strong>${escapeHtml(row.name || row.classLabel)}</strong><span>${escapeHtml(details)}</span>`;
+    tip.style.left = `${info.clientX - (stage?.left || 0) + 14}px`;
+    tip.style.top = `${info.clientY - (stage?.top || 0) + 14}px`;
+    tip.classList.remove('hidden');
+  }
+
+  async openContextMenu(event) {
+    event.preventDefault();
+    if (this.engine.walk.mode !== 'orbit' || this.engine.explodeDistance || this.engine.measureMode) return;
+    this.engine.clearHover();
+    const row = await this.engine.pickAt(event.clientX, event.clientY);
+    this.contextMenu.open(event.clientX, event.clientY, this.contextMenuItems(row), { title: row ? (row.name || row.classLabel) : '' });
+  }
+
+  contextMenuItems(row) {
+    const items = [];
+    if (row) {
+      const rows = [row];
+      items.push(
+        { label: 'Propriedades', icon: 'ph-identification-card', action: () => { this.setPanelCollapsed('sheet', false); void this.selectRows(rows); } },
+        { label: 'Isolar', icon: 'ph-selection', action: () => this.actions.isolate(rows) },
+        { label: 'Ocultar', icon: 'ph-eye-slash', action: () => this.actions.hide(rows) },
+        { label: 'Enquadrar', icon: 'ph-frame-corners', action: () => this.engine.fitToMap(BimIndex.toMap(rows)) },
+        { label: 'Copiar GlobalId', icon: 'ph-copy', disabled: !row.guid, action: () => this.copyGuid(row.guid) },
+        { divider: true }
+      );
+    }
+    items.push(
+      { label: 'Enquadrar tudo', icon: 'ph-corners-out', action: () => this.engine.fit({ animate: true }) },
+      { label: 'Mostrar tudo', icon: 'ph-eye', action: () => this.actions.showAll() }
+    );
+    return items;
+  }
+
+  async copyGuid(guid) {
+    try {
+      await navigator.clipboard.writeText(guid);
+      this.showStatus('GlobalId copiado.');
+    } catch {
+      this.showStatus(`GlobalId: ${guid}`);
+    }
+  }
+
+  toggleShortcuts(open = this.ui.shortcuts.classList.contains('hidden')) {
+    this.ui.shortcuts.classList.toggle('hidden', !open);
+  }
+
+  /** Tab stays inside the viewer while it is open, as a modal dialog should. */
+  trapFocus(event) {
+    if (event.key !== 'Tab') return;
+    const focusable = [...this.root.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter((element) => !element.disabled && element.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const outside = !this.root.contains(document.activeElement);
+    if (event.shiftKey && (document.activeElement === first || outside)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || outside)) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  /** Arrow keys move between the Modelo, Quantitativos and Visão geral tabs. */
+  moveTabFocus(event) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    const tabs = [...this.root.querySelectorAll('.bim-tab')];
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0) return;
+    const step = event.key === 'ArrowRight' ? 1 : tabs.length - 1;
+    const next = tabs[(index + step) % tabs.length];
+    event.preventDefault();
+    next.focus();
+    next.click();
+  }
+
+  /** Keys act only on the open viewer, never while walking (WASD) or typing in a field. */
+  onKeyDown(event) {
+    if (this.root.classList.contains('hidden') || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.target.closest?.('input, select, textarea, [contenteditable="true"]') || this.engine.walk.mode !== 'orbit') return;
+    const key = event.key.toLowerCase();
+    const selected = this.selectionRows;
+    let handled = true;
+    if (event.key === '?') this.toggleShortcuts();
+    else if (key === 'f') void this.engine.fit({ animate: true });
+    else if (key === 'i' && selected.length) void this.actions.isolate(selected);
+    else if (key === 'h' && selected.length) void this.actions.hide(selected);
+    else if (key === 'u') void this.actions.showAll();
+    else if (key === 'escape' && !this.ui.shortcuts.classList.contains('hidden')) this.toggleShortcuts(false);
+    else if (key === 'escape' && selected.length) void this.engine.clearSelection();
+    else handled = false;
+    if (handled) event.preventDefault();
+  }
+
+  // ---------------------------------------------------------------------------
   // Tabs and drawers
   // ---------------------------------------------------------------------------
 
@@ -317,6 +451,25 @@ export class BimApp {
   toggleDrawer(name) {
     if (this.workspace.dataset.drawer === name) this.workspace.removeAttribute('data-drawer');
     else this.workspace.dataset.drawer = name;
+  }
+
+  // Desktop panels can be collapsed to give the model the full width. It is a
+  // visitor preference, so it is kept in this browser only.
+  restorePanels() {
+    const saved = storage.get(PANELS_KEY, {});
+    Object.keys(PANEL_ATTRIBUTES).forEach((name) => this.setPanelCollapsed(name, Boolean(saved[name])));
+  }
+
+  togglePanelCollapsed(name) {
+    this.setPanelCollapsed(name, !this.workspace.hasAttribute(PANEL_ATTRIBUTES[name]));
+  }
+
+  setPanelCollapsed(name, collapsed) {
+    if (collapsed) this.workspace.setAttribute(PANEL_ATTRIBUTES[name], '');
+    else this.workspace.removeAttribute(PANEL_ATTRIBUTES[name]);
+    this.root.querySelector(`[data-panel-toggle="${name}"]`)?.setAttribute('aria-pressed', String(!collapsed));
+    storage.set(PANELS_KEY, Object.fromEntries(Object.entries(PANEL_ATTRIBUTES).map(([key, attribute]) => [key, this.workspace.hasAttribute(attribute)])));
+    if (this.engine.world) this.engine.world.renderer.needsUpdate = true;
   }
 
   // ---------------------------------------------------------------------------
@@ -401,6 +554,7 @@ export class BimApp {
     this.root.querySelectorAll('[data-action]').forEach((button) => {
       if (FLOAT_PANELS[button.dataset.action]) button.classList.toggle('active', opening && button.dataset.action === name || this.measureToolActive(button.dataset.action));
     });
+    this.clipHandles?.refresh();
   }
 
   closePanels() {
@@ -408,6 +562,7 @@ export class BimApp {
     this.root.querySelectorAll('[data-action]').forEach((button) => {
       if (FLOAT_PANELS[button.dataset.action]) button.classList.toggle('active', this.measureToolActive(button.dataset.action));
     });
+    this.clipHandles?.refresh();
   }
 
   /** The measure button owns length/angle/area; the coordinates button owns the point mode. */
