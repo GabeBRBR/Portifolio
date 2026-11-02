@@ -7,8 +7,9 @@ const CLOSE_PX = 12;
 const SNAP_SHAPES = { [SnappingClass.POINT]: 'end', [SnappingClass.LINE]: 'line', [SnappingClass.FACE]: 'face' };
 const SNAP_NAMES = { end: 'Ponto final', mid: 'Ponto médio', perp: 'Perpendicular', line: 'Aresta', face: 'Face' };
 // Screen distance (px) within which an edge hit is pulled to its midpoint or perpendicular foot.
-const SNAP_RADIUS_PX = { end: 18, mid: 18, perp: 26, line: 8 };
-const SNAP_WEIGHT = { end: 0.7, mid: 0.8, perp: 0.9, line: 1.2 };
+// CAD-style aperture: inside it, snaps win by priority (end > mid > perp > edge), never by distance.
+const SNAP_RADIUS_PX = { end: 16, mid: 16, perp: 16, line: 9 };
+const SNAP_PRIORITY = ['end', 'mid', 'perp', 'line'];
 const meters = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const degrees = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -133,12 +134,12 @@ export class MeasureTool {
       -((event.clientY - rect.top) / rect.height) * 2 + 1
     );
     const hit = await Promise.race([
-      this.raycaster.castRay({ items: [], position, snappingClasses: [SnappingClass.POINT, SnappingClass.LINE, SnappingClass.FACE] }),
+      this.raycaster.castRay({ items: [], position, snappingClasses: [SnappingClass.FACE] }),
       new Promise((resolve) => setTimeout(() => resolve(null), 600))
     ]).catch(() => null);
     if (!hit?.point) return null;
     const result = { point: hit.point.clone(), shape: SNAP_SHAPES[hit.snappingClass] || 'face', x: event.clientX - rect.left, y: event.clientY - rect.top };
-    if (result.shape !== 'end') this.refineSnap(result, hit, rect);
+    this.refineSnap(result, hit, rect);
     return result;
   }
 
@@ -187,8 +188,8 @@ export class MeasureTool {
       const screen = this.toScreen(candidate.point, rect);
       const distance = Math.hypot(screen.x - result.x, screen.y - result.y);
       if (distance > SNAP_RADIUS_PX[candidate.shape]) return;
-      const score = distance * SNAP_WEIGHT[candidate.shape];
-      if (!best || score < best.score) best = { ...candidate, score, screen };
+      const rank = SNAP_PRIORITY.indexOf(candidate.shape);
+      if (!best || rank < best.rank || (rank === best.rank && distance < best.distance)) best = { ...candidate, rank, distance, screen };
     });
     if (!best) return;
     result.point = best.point;
