@@ -34,7 +34,7 @@ export class ContextMenu {
     }).join('');
     this.element.classList.remove('hidden');
     // Keep the menu inside the stage: flip it when it would overflow the right or bottom edge.
-    const bounds = this.element.offsetParent?.getBoundingClientRect();
+    const bounds = this.element.parentElement?.getBoundingClientRect();
     const width = this.element.offsetWidth;
     const height = this.element.offsetHeight;
     const left = bounds ? Math.min(x - bounds.left, bounds.width - width - 8) : x;

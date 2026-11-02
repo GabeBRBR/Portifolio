@@ -4,7 +4,7 @@ const HOVER_STYLE = 'hover';
 const HOVER_COLOR = '#f0c463';
 // The highlight and the info card wait until the pointer rests on an element.
 // Picking while the pointer moves made the viewer stutter.
-const HOVER_DELAY_MS = 1500;
+const HOVER_DELAY_MS = 500;
 
 /**
  * Hover feedback in the 3D view: after the pointer rests on an element for

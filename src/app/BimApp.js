@@ -86,7 +86,18 @@ export class BimApp {
     });
     this.ui.hoverTip = byId('bim-hover-tip');
     this.ui.shortcuts = byId('bim-shortcuts');
-    byId('ifc-canvas-container').addEventListener('contextmenu', (event) => { void this.openContextMenu(event); });
+    const viewport = byId('ifc-canvas-container');
+    // A right-button drag orbits the camera; the menu opens only for a click that did not move.
+    viewport.addEventListener('pointerdown', (event) => { this.rightDrag = event.button === 2 ? { x: event.clientX, y: event.clientY, moved: false } : null; });
+    viewport.addEventListener('pointermove', (event) => {
+      if (this.rightDrag && Math.hypot(event.clientX - this.rightDrag.x, event.clientY - this.rightDrag.y) > 4) this.rightDrag.moved = true;
+    });
+    viewport.addEventListener('contextmenu', (event) => {
+      const dragged = this.rightDrag?.moved;
+      this.rightDrag = null;
+      if (dragged) event.preventDefault();
+      else void this.openContextMenu(event);
+    });
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
     this.root.addEventListener('keydown', (event) => this.trapFocus(event));
     this.root.querySelector('[role="tablist"]')?.addEventListener('keydown', (event) => this.moveTabFocus(event));
@@ -332,7 +343,8 @@ export class BimApp {
       return;
     }
     const { row } = info;
-    const stage = tip.offsetParent?.getBoundingClientRect();
+    // The card is a child of the stage; offsetParent is null while the card is hidden.
+    const stage = tip.parentElement.getBoundingClientRect();
     const details = [row.classLabel, row.typeName, row.storey].filter(Boolean).join(' · ');
     tip.innerHTML = `<strong>${escapeHtml(row.name || row.classLabel)}</strong><span>${escapeHtml(details)}</span>`;
     tip.style.left = `${info.clientX - (stage?.left || 0) + 14}px`;
