@@ -174,6 +174,7 @@ export class CollisionMethods {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`colisor de caminhada não encontrado (${response.status})`);
     const buffer = await response.arrayBuffer();
+    if (buffer.byteLength < 24) throw new Error('arquivo de colisor truncado ou corrompido');
     const view = new DataView(buffer);
     if (view.getUint32(0, true) !== 0x49464343 || view.getUint32(4, true) !== 1) {
       throw new Error('formato de colisor incompatível');
@@ -183,6 +184,9 @@ export class CollisionMethods {
     const obstaclePositions = view.getUint32(16, true);
     const obstacleIndices = view.getUint32(20, true);
     let offset = 24;
+    if (offset + (floorPositions + floorIndices + obstaclePositions + obstacleIndices) * 4 > buffer.byteLength) {
+      throw new Error('arquivo de colisor truncado ou corrompido');
+    }
     const floors = {
       positions: new Float32Array(buffer, offset, floorPositions),
       indices: new Uint32Array(buffer, offset += floorPositions * 4, floorIndices)

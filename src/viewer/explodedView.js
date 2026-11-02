@@ -52,7 +52,10 @@ export class ExplodedViewMethods {
       for (const record of records) {
         const model = this.fragments?.list.get(record.id);
         if (!model) continue;
-        const itemIds = await model.getItemsIdsWithGeometry();
+        // Items hidden in the normal view (spaces, hidden or isolated-away
+        // elements) must not come back as solids in the exploded view.
+        const hiddenIds = new Set(await model.getItemsByVisibility(false));
+        const itemIds = (await model.getItemsIdsWithGeometry()).filter((id) => !hiddenIds.has(id));
         const [meshGroups, materialSet] = await Promise.all([
           model.getItemsGeometry(itemIds),
           this.getExplosionMaterials(model)
@@ -149,6 +152,14 @@ export class ExplodedViewMethods {
     }
     this.explodedGroup = null;
     this.explodedElements = [];
+  }
+
+  /** Rebuilds the exploded view after the visible models or elements changed; the cached one is stale. */
+  async refreshExplodedView() {
+    if (!this.explodedGroup && !this.explosionBuildPromise) return;
+    const distance = this.explodeDistance;
+    this.clearExplodedView();
+    if (distance) await this.setExplodeDistance(distance);
   }
 
   async setExplodeDistance(distance) {

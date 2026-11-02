@@ -88,16 +88,20 @@ export class BimApp {
     this.ui.shortcuts = byId('bim-shortcuts');
     const viewport = byId('ifc-canvas-container');
     // A right-button drag orbits the camera; the menu opens only for a click that did not move.
+    // Windows fires `contextmenu` on button release, macOS/Linux on press, before
+    // any drag exists. So the menu is opened from the release (pointerup) for a
+    // click that did not move, and the native `contextmenu` event is only suppressed.
     viewport.addEventListener('pointerdown', (event) => { this.rightDrag = event.button === 2 ? { x: event.clientX, y: event.clientY, moved: false } : null; });
     viewport.addEventListener('pointermove', (event) => {
       if (this.rightDrag && Math.hypot(event.clientX - this.rightDrag.x, event.clientY - this.rightDrag.y) > 4) this.rightDrag.moved = true;
     });
-    viewport.addEventListener('contextmenu', (event) => {
-      const dragged = this.rightDrag?.moved;
+    viewport.addEventListener('pointerup', (event) => {
+      const drag = this.rightDrag;
+      if (event.button !== 2 || !drag) return;
       this.rightDrag = null;
-      if (dragged) event.preventDefault();
-      else void this.openContextMenu(event);
+      if (!drag.moved) void this.openContextMenu(event);
     });
+    viewport.addEventListener('contextmenu', (event) => event.preventDefault());
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
     this.root.addEventListener('keydown', (event) => this.trapFocus(event));
     this.root.querySelector('[role="tablist"]')?.addEventListener('keydown', (event) => this.moveTabFocus(event));
@@ -203,7 +207,9 @@ export class BimApp {
       void this.engine.setExplodeDistance(distance);
     });
     byId('ifc-reset-clip').addEventListener('click', () => { this.engine.resetClipBox(); this.renderClipControls(); this.clipHandles.refresh(); });
-    this.ui.background.value = storage.get('bim-background-v2', null) || localStorage.getItem('ifc-background') || '#f2f1ec';
+    let legacyBackground = null;
+    try { legacyBackground = localStorage.getItem('ifc-background'); } catch { /* storage blocked */ }
+    this.ui.background.value = storage.get('bim-background-v2', null) || legacyBackground || '#f2f1ec';
     this.ui.background.addEventListener('input', (event) => this.setBackground(event.target.value));
     this.root.querySelectorAll('[data-color]').forEach((button) => button.addEventListener('click', () => this.setBackground(button.dataset.color)));
     this.ui.quality.value = this.engine.getQualityProfile();

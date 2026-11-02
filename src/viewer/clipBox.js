@@ -51,12 +51,8 @@ export class ClipBoxMethods {
 
   applyClipBox() {
     if (!this.clipBox || !this.world?.renderer) return;
-    if (this.clipPlanes.length !== 6) {
-      this.clipPlanes = [
-        new THREE.Plane(new THREE.Vector3(1, 0, 0)), new THREE.Plane(new THREE.Vector3(-1, 0, 0)),
-        new THREE.Plane(new THREE.Vector3(0, 1, 0)), new THREE.Plane(new THREE.Vector3(0, -1, 0)),
-        new THREE.Plane(new THREE.Vector3(0, 0, 1)), new THREE.Plane(new THREE.Vector3(0, 0, -1))
-      ];
+    if (!this.clipPlanesRegistered) {
+      this.clipPlanesRegistered = true;
       this.world.renderer.three.localClippingEnabled = true;
       this.clipPlanes.forEach((plane) => this.world.renderer.setPlane(true, plane, false));
     }

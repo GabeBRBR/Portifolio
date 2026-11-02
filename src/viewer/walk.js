@@ -249,7 +249,11 @@ export class WalkMethods {
         : [this.floorCollider, this.obstacleCollider];
     const colliders = targets.filter(Boolean);
     if (!colliders.length) return null;
-    const raycaster = new THREE.Raycaster(origin, direction, 0, far);
+    // One shared raycaster: this runs several times per physics step.
+    const raycaster = (this.collisionRaycaster ??= new THREE.Raycaster());
+    raycaster.set(origin, direction);
+    raycaster.near = 0;
+    raycaster.far = far;
     raycaster.firstHitOnly = true;
     return raycaster.intersectObjects(colliders, false)[0] || null;
   }
@@ -408,7 +412,9 @@ export class WalkMethods {
     right.set(-forward.z, 0, forward.x);
     move.copy(forward).multiplyScalar(forwardInput).addScaledVector(right, sideInput);
     if (move.lengthSq()) {
-      move.normalize().multiplyScalar(speed * delta);
+      move.normalize();
+      const heading = this.walkVectors.heading.copy(move);
+      move.multiplyScalar(speed * delta);
       next.copy(this.walk.feet).add(move);
       const step = this.floorBelow(next, this.walk.stepHeight + 0.08, this.walk.stepHeight + 0.14);
       const stepY = step?.point.y;
@@ -418,7 +424,7 @@ export class WalkMethods {
       const canStep = this.walk.grounded && stepY !== undefined
         && stepY > this.walk.feet.y + 0.04
         && stepY <= this.walk.feet.y + this.walk.stepHeight;
-      if (!this.hitsWall(this.walk.feet, move.clone().normalize(), move.length()) || canStep) {
+      if (!this.hitsWall(this.walk.feet, heading, move.length()) || canStep) {
         this.walk.feet.x = next.x;
         this.walk.feet.z = next.z;
         if (canStep) {
@@ -483,6 +489,8 @@ export class WalkMethods {
     const now = performance.now();
     const delta = Math.min(0.1, (now - this.walk.lastFrame) / 1000);
     this.walk.lastFrame = now;
+    // Nothing to measure or move while the viewer is closed.
+    if (this.world && !this.world.enabled) return;
     this.updateAdaptiveQuality(now);
     this.updateWalk(delta);
   }

@@ -1,6 +1,7 @@
 const DATABASE_NAME = 'portfolio-ifc-fragments';
 const DATABASE_VERSION = 1;
 const STORE_NAME = 'models';
+const MAX_CACHED_FRAGMENTS = 6;
 
 const requestResult = (request) => new Promise((resolve, reject) => {
   request.onsuccess = () => resolve(request.result);
@@ -32,6 +33,31 @@ export class FragmentCache {
       transaction.oncomplete = resolve;
       transaction.onerror = () => reject(transaction.error || new Error('Falha ao concluir o cache local.'));
       transaction.onabort = () => reject(transaction.error || new Error('Cache local cancelado.'));
+    });
+  }
+
+  /** Keeps only the newest `maxFragments` cached Fragments so the origin's quota is not filled over time. */
+  async prune(maxFragments = MAX_CACHED_FRAGMENTS) {
+    const database = await this.open();
+    const transaction = database.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const entries = [];
+    await new Promise((resolve, reject) => {
+      const cursorRequest = store.openCursor();
+      cursorRequest.onerror = () => reject(cursorRequest.error || new Error('Falha ao ler o cache local.'));
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor) return resolve();
+        const { hash, buffer, createdAt } = cursor.value;
+        if (buffer) entries.push({ hash, createdAt: createdAt || 0 });
+        cursor.continue();
+      };
+    });
+    entries.sort((a, b) => b.createdAt - a.createdAt).slice(maxFragments).forEach(({ hash }) => store.delete(hash));
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error('Falha ao limpar o cache local.'));
+      transaction.onabort = () => reject(transaction.error || new Error('Limpeza do cache cancelada.'));
     });
   }
 

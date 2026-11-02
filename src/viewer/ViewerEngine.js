@@ -30,6 +30,16 @@ const QUALITY_PROFILES = Object.freeze({
 // deliberately publishes that filename under a stable Vite-base-aware path.
 const WEB_IFC_WASM_DIRECTORY = `${import.meta.env.BASE_URL}assets/wasm/`;
 
+// localStorage throws when site data is blocked (private mode, policies).
+const safeStorage = {
+  get(key) {
+    try { return localStorage.getItem(key); } catch { return null; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* preference is not persisted */ }
+  }
+};
+
 const XRAY_STYLE = 'xray';
 const COLOR_STYLE_PREFIX = 'color:';
 const PLAN_STYLE_PREFIX = 'plan:';
@@ -77,12 +87,20 @@ export class ViewerEngine {
     this.modelRecords = new Map();
     this.fragmentCache = new FragmentCache();
     this.ifcLoader = null;
-    this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
+    this.background = safeStorage.get('ifc-background') || '#f7f5f0';
     this.explodeDistance = 0;
     this.explodeUniform = { value: 0 };
     if (import.meta.env.DEV) window.__bimEngine = this;
     this.clipBox = null;
-    this.clipPlanes = [];
+    // Created once: exploded-view materials keep a reference to this array, so
+    // it must never be replaced. A huge constant keeps every plane inert until
+    // the section box is first used.
+    this.clipPlanes = [
+      new THREE.Plane(new THREE.Vector3(1, 0, 0), 1e9), new THREE.Plane(new THREE.Vector3(-1, 0, 0), 1e9),
+      new THREE.Plane(new THREE.Vector3(0, 1, 0), 1e9), new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e9),
+      new THREE.Plane(new THREE.Vector3(0, 0, 1), 1e9), new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e9)
+    ];
+    this.clipPlanesRegistered = false;
     this.explodedGroup = null;
     this.explodedElements = [];
     this.explodedLevels = 0;
@@ -92,7 +110,7 @@ export class ViewerEngine {
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
     this.collisionBounds = new THREE.Box3();
-    const savedProfile = localStorage.getItem(QUALITY_STORAGE_KEY);
+    const savedProfile = safeStorage.get(QUALITY_STORAGE_KEY);
     this.quality = {
       profile: QUALITY_PROFILES[savedProfile] ? savedProfile : 'balanced',
       adaptiveStep: 0, averageFrameMs: 16.7, lastFrameAt: performance.now(), frameTimes: [],
@@ -119,7 +137,7 @@ export class ViewerEngine {
     };
     this.walkVectors = {
       down: new THREE.Vector3(0, -1, 0), up: new THREE.Vector3(0, 1, 0),
-      forward: new THREE.Vector3(), right: new THREE.Vector3(), move: new THREE.Vector3(),
+      forward: new THREE.Vector3(), right: new THREE.Vector3(), move: new THREE.Vector3(), heading: new THREE.Vector3(),
       next: new THREE.Vector3(), origin: new THREE.Vector3(), normal: new THREE.Vector3(),
       cameraPosition: new THREE.Vector3(), capsuleStart: new THREE.Vector3(),
       capsuleCorrection: new THREE.Vector3(), trianglePoint: new THREE.Vector3(),
@@ -218,6 +236,7 @@ export class ViewerEngine {
     new ResizeObserver(() => {
       this.world.renderer?.resize?.();
       this.world.camera?.updateAspect?.();
+      this.viewCube?.resize();
       this.world.renderer.needsUpdate = true;
     }).observe(this.container);
     this.fragments.list.onItemSet.add(({ value: model }) => {
@@ -261,30 +280,7 @@ export class ViewerEngine {
     const models = manifest.models.filter((model) => model.work === workKey);
     if (!models.length) throw new Error(`nenhum modelo otimizado encontrado para ${workName}`);
     if (this.loadedWork) {
-      if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
-      this.clearExplodedView();
-      this.clearMeasurements();
-      await this.resetPresentation();
-      this.bimIndex.clear();
-      for (const modelId of [...this.fragments.list.keys()]) {
-        await this.fragments.core.disposeModel(modelId);
-        this.fragments.core.models.list.delete(modelId);
-      }
-      this.fragments.core.baseCoordinates = null;
-      this.fragments.baseCoordinationModel = "";
-      this.fragments.baseCoordinationMatrix = new THREE.Matrix4();
-      this.modelRecords.clear();
-      this.disposeColliderMesh(this.floorCollider);
-      this.disposeColliderMesh(this.obstacleCollider);
-      this.floorCollider = null;
-      this.obstacleCollider = null;
-      this.collisionBounds.makeEmpty();
-      this.walk.hasSafeFeet = false;
-      this.walk.feet.set(0, 0, 0);
-      this.walk.spawnFeet.set(0, 0, 0);
-      this.walk.lastFloorY = null;
-      this.lastCollisionContact = null;
-      this.collisionAlignmentDebug = '';
+      await this.unloadAllModels();
     }
     for (let index = 0; index < models.length; index += 1) {
       const model = models[index];
@@ -307,12 +303,22 @@ export class ViewerEngine {
         const colliderUrl = model.collider
           ? (model.colliderHash ? `${model.collider}?v=${model.colliderHash}` : model.collider)
           : null;
-        const colliderData = colliderUrl
-          ? await this.loadCollider(colliderUrl, colliderCoordinateSpace)
-          : null;
+        // A missing or corrupt collider only disables walking for this model;
+        // it must not leave the loaded fragment without a record or index.
+        let colliderData = null;
+        if (colliderUrl) {
+          try {
+            colliderData = await this.loadCollider(colliderUrl, colliderCoordinateSpace);
+          } catch (error) {
+            console.warn(`Colisor de ${model.discipline} indisponível:`, error);
+            this.showStatus(`${model.discipline}: colisor indisponível (${error.message}). A caminhada não considerará este modelo.`);
+          }
+        }
         this.modelRecords.set(model.id, { ...model, visible: true, colliderData });
         if (loadedModel) await this.attachIndex(model.id, () => this.indexService.loadHosted(model));
       } catch (error) {
+        // Do not keep half-loaded geometry that has no record.
+        if (!this.modelRecords.has(model.id)) await this.unloadModel(model.id);
         this.showStatus(`Não foi possível carregar ${model.discipline}: ${error.message}`);
       }
     }
@@ -347,7 +353,10 @@ export class ViewerEngine {
     }
     this.setLoading(false);
     this.notifyModels();
-    if (imported) await this.fit();
+    if (imported) {
+      await this.refreshExplodedView();
+      await this.fit();
+    }
     if (failures.length) {
       const prefix = imported ? `${imported} IFC(s) aberto(s). ` : 'Nenhum IFC foi aberto. ';
       this.showStatus(`${prefix}${failures.join(' · ')}.`);
@@ -361,7 +370,7 @@ export class ViewerEngine {
   setBackground(color) {
     if (!color) return;
     this.background = color;
-    localStorage.setItem('ifc-background', color);
+    safeStorage.set('ifc-background', color);
     if (this.world?.scene?.three) this.world.scene.three.background = new THREE.Color(color);
     if (this.world?.renderer) this.world.renderer.needsUpdate = true;
   }
@@ -371,7 +380,7 @@ export class ViewerEngine {
     this.quality.profile = profile;
     this.quality.adaptiveStep = 0;
     this.quality.lastAdjustmentAt = performance.now();
-    localStorage.setItem(QUALITY_STORAGE_KEY, profile);
+    safeStorage.set(QUALITY_STORAGE_KEY, profile);
     this.applyQuality(true);
     this.showStatus(`Qualidade ${QUALITY_PROFILES[profile].label} selecionada. A proteção automática continua disponível durante movimentos pesados.`);
   }
@@ -447,15 +456,26 @@ export class ViewerEngine {
     return 'Projeto local';
   }
 
-  async startNewProject() {
+  /** Disposes one Fragments model and drops it from the manager's list (disposeModel alone leaves the entry). */
+  async unloadModel(modelId) {
+    if (!this.fragments?.list.has(modelId)) return;
+    try {
+      await this.fragments.core.disposeModel(modelId);
+    } catch (error) {
+      console.warn('Falha ao descarregar o modelo:', error);
+    }
+    this.fragments.core.models.list.delete(modelId);
+    this.geometryIdCache?.delete(modelId);
+  }
+
+  /** Back to an empty scene: walk, presentation, models, colliders and index. */
+  async unloadAllModels() {
     if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
     this.clearExplodedView();
+    this.clearMeasurements();
     await this.resetPresentation();
     this.bimIndex.clear();
-    for (const modelId of [...this.fragments.list.keys()]) {
-      await this.fragments.core.disposeModel(modelId);
-      this.fragments.core.models.list.delete(modelId);
-    }
+    for (const modelId of [...this.fragments.list.keys()]) await this.unloadModel(modelId);
     this.fragments.core.baseCoordinates = null;
     this.fragments.baseCoordinationModel = '';
     this.fragments.baseCoordinationMatrix = new THREE.Matrix4();
@@ -464,6 +484,7 @@ export class ViewerEngine {
     this.disposeColliderMesh(this.obstacleCollider);
     this.floorCollider = null;
     this.obstacleCollider = null;
+    this.collisionProxy = false;
     this.collisionBounds.makeEmpty();
     this.walk.hasSafeFeet = false;
     this.walk.feet.set(0, 0, 0);
@@ -471,6 +492,10 @@ export class ViewerEngine {
     this.walk.lastFloorY = null;
     this.lastCollisionContact = null;
     this.collisionAlignmentDebug = '';
+  }
+
+  async startNewProject() {
+    await this.unloadAllModels();
     this.loadedWork = null;
     this.notifyModels();
     this.fragments.core.update(true);
@@ -528,6 +553,19 @@ export class ViewerEngine {
     }
 
     if (!model || !this.fragments.list.has(modelId)) throw new Error('o conversor não registrou um modelo visualizável');
+    try {
+      await this.registerLocalModel({ model, modelId, file, index, total, hash, cached, fragmentBytes, indexJob });
+    } catch (error) {
+      // Roll back: geometry in the scene without a record could not be removed by the user.
+      this.modelRecords.delete(modelId);
+      this.bimIndex.removeModel(modelId);
+      await this.unloadModel(modelId);
+      this.buildCollisionProxy();
+      throw error;
+    }
+  }
+
+  async registerLocalModel({ model, modelId, file, index, total, hash, cached, fragmentBytes, indexJob }) {
     model.useCamera(this.world.camera.three);
     this.world.scene.three.add(model.object);
     model.object.visible = true;
@@ -588,6 +626,7 @@ export class ViewerEngine {
   async cacheFragment(hash, file, buffer) {
     try {
       await this.fragmentCache.put({ hash, buffer, name: file.name, sourceBytes: file.size, fragmentBytes: buffer.byteLength, createdAt: Date.now() });
+      await this.fragmentCache.prune();
     } catch (error) {
       console.warn('Não foi possível salvar o Fragment no cache local:', error);
     }
@@ -616,7 +655,7 @@ export class ViewerEngine {
       [/(^|[^A-Z])(EST|STR|ESTR)/, 'Estrutural'],
       [/(^|[^A-Z])(ELE|ELET|ELT)/, 'Elétrica'],
       [/(^|[^A-Z])(HID|HYD|AGUA|AF)([^A-Z]|$)/, 'Hidráulica'],
-      [/(^|[^A-Z])(ESG|SAN|PLU)/, 'Sanitária']
+      [/(^|[^A-Z])(ESG|SAN|PLU)([^A-Z]|$)/, 'Sanitária']
     ];
     return rules.find(([pattern]) => pattern.test(upper))?.[1] || stem;
   }
@@ -631,6 +670,7 @@ export class ViewerEngine {
     model.object.visible = visible;
     this.buildCollisionProxy();
     if (!visible) await this.clearSelection();
+    await this.refreshExplodedView();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
     this.notifyModels();
@@ -645,6 +685,7 @@ export class ViewerEngine {
     });
     await this.clearSelection();
     this.buildCollisionProxy();
+    await this.refreshExplodedView();
     this.fragments.core.update(true);
     this.world.renderer.needsUpdate = true;
     this.notifyModels();
@@ -663,7 +704,7 @@ export class ViewerEngine {
       });
     }
     await this.clearSelection();
-    await this.fragments.core.disposeModel(modelId);
+    await this.unloadModel(modelId);
     this.modelRecords.delete(modelId);
     this.bimIndex.removeModel(modelId);
     this.buildCollisionProxy();
@@ -979,6 +1020,7 @@ export class ViewerEngine {
   // ---------------------------------------------------------------------------
 
   async afterVisibilityChange() {
+    await this.refreshExplodedView();
     await this.fragments.core.update(true);
     this.requestFrames();
   }
@@ -1055,7 +1097,14 @@ export class ViewerEngine {
     const map = {};
     for (const [modelId, model] of this.fragments.list) {
       if (!this.modelRecords.get(modelId)?.visible) continue;
-      const ids = await model.getItemsIdsWithGeometry();
+      // The list of items with geometry never changes for a loaded model; asking
+      // the worker again on every selection change is wasted work.
+      this.geometryIdCache ??= new Map();
+      let ids = this.geometryIdCache.get(modelId);
+      if (!ids) {
+        ids = await model.getItemsIdsWithGeometry();
+        this.geometryIdCache.set(modelId, ids);
+      }
       const selected = this.selection[modelId];
       const ghosted = selected ? ids.filter((id) => !selected.has(id)) : ids;
       if (ghosted.length) map[modelId] = new Set(ghosted);
@@ -1173,7 +1222,6 @@ export class ViewerEngine {
       world: this.world,
       raycaster: this.sceneRaycaster,
       container: this.container,
-      onChange: (count) => this.onMeasureChange?.(count),
       onHint: (text) => this.onMeasureHint?.(text)
     });
     return this.measurements;

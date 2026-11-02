@@ -142,7 +142,9 @@ export function createXlsx(sheets) {
 export function createCsv(rows) {
   const cell = (value) => {
     if (value === null || value === undefined) return '';
-    const text = typeof value === 'number' ? String(value).replace('.', ',') : String(value);
+    let text = typeof value === 'number' ? String(value).replace('.', ',') : String(value);
+    // Names come from IFC files: stop Excel from running a cell as a formula.
+    if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
     return /[";\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   const body = rows.map((row) => row.map(cell).join(';')).join('\r\n');
