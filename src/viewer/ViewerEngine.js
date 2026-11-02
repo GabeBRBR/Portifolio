@@ -62,6 +62,7 @@ export class ViewerEngine {
     this.background = localStorage.getItem('ifc-background') || '#f7f5f0';
     this.explodeDistance = 0;
     this.explodeUniform = { value: 0 };
+    if (import.meta.env.DEV) window.__bimEngine = this;
     this.clipBox = null;
     this.clipPlanes = [];
     this.explodedGroup = null;
@@ -150,6 +151,13 @@ export class ViewerEngine {
     this.walkControls.pointerSpeed = 0.85;
     this.walkControls.addEventListener('unlock', () => this.onWalkUnlock());
     this.world.renderer.three.domElement.addEventListener('click', (event) => this.onWalkCanvasClick(event));
+    // While measuring in first person the right button gives the mouse back to the walk.
+    this.world.renderer.three.domElement.addEventListener('contextmenu', (event) => {
+      if (this.walk.mode !== 'walk' || !this.measureMode || this.walkControls.isLocked) return;
+      event.preventDefault();
+      this.walk.mouseReleased = false;
+      this.walkControls.lock(true);
+    });
     this.world.renderer.three.domElement.addEventListener('wheel', (event) => this.onWalkWheel(event), { passive: false });
     window.addEventListener('keydown', (event) => this.onWalkKey(event, true));
     window.addEventListener('keyup', (event) => this.onWalkKey(event, false));
@@ -397,31 +405,25 @@ export class ViewerEngine {
     this.world.renderer.needsUpdate = true;
   }
 
-  async getExplosionMaterials(model, itemIds) {
-    const materials = new Map();
-    const definitions = await model.getItemsMaterialDefinition(itemIds);
-    definitions.forEach(({ definition, localIds }) => {
-      const material = new THREE.MeshStandardMaterial({
-        color: definition.color || new THREE.Color('#b7b1a6'),
-        transparent: Boolean(definition.transparent) || (definition.opacity ?? 1) < 0.999,
-        opacity: definition.opacity ?? 1,
-        depthTest: definition.depthTest ?? true,
-        depthWrite: definition.depthWrite ?? true,
+  /** Returns sampleId -> material, using the same per-sample colours the Fragments renderer draws. */
+  async getExplosionMaterials(model) {
+    const [samples, rawMaterials] = await Promise.all([model.getSamples(), model.getMaterials()]);
+    const byMaterial = new Map();
+    rawMaterials.forEach((raw, id) => {
+      byMaterial.set(id, new THREE.MeshLambertMaterial({
+        color: new THREE.Color().setRGB(raw.r / 255, raw.g / 255, raw.b / 255, THREE.SRGBColorSpace),
+        transparent: raw.a < 254,
+        opacity: raw.a / 255,
+        depthWrite: raw.a >= 254,
         side: THREE.DoubleSide,
-        roughness: 0.74,
-        metalness: 0.05,
         clippingPlanes: this.clipPlanes
-      });
-      localIds.forEach((localId) => materials.set(localId, material));
+      }));
     });
-    return materials;
+    const bySample = new Map();
+    samples.forEach((sample, id) => { const material = byMaterial.get(sample.material); if (material) bySample.set(id, material); });
+    return bySample;
   }
 
-  /**
-   * Explosion by storey: element geometry is baked into world space and merged
-   * per storey and material, so a level is a handful of meshes (not thousands)
-   * and the slider only moves those groups vertically.
-   */
   /** Clone of a material whose vertices move along aExplode * uExplode in the vertex shader. */
   explodeMaterial(source) {
     const material = source.clone();
@@ -452,14 +454,13 @@ export class ViewerEngine {
         const itemIds = await model.getItemsIdsWithGeometry();
         const [meshGroups, materialSet] = await Promise.all([
           model.getItemsGeometry(itemIds),
-          this.getExplosionMaterials(model, itemIds)
+          this.getExplosionMaterials(model)
         ]);
         model.object.updateWorldMatrix(true, true);
-        const fallback = new THREE.MeshStandardMaterial({ color: '#b7b1a6', roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
+        const fallback = new THREE.MeshLambertMaterial({ color: '#b7b1a6', side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
         for (let itemIndex = 0; itemIndex < meshGroups.length; itemIndex += 1) {
           const meshes = meshGroups[itemIndex];
           if (!meshes?.length) continue;
-          const material = materialSet.get(itemIds[itemIndex]) || fallback;
           const parts = [];
           const box = new THREE.Box3();
           for (const meshData of meshes) {
@@ -475,50 +476,37 @@ export class ViewerEngine {
             geometry.applyMatrix4(new THREE.Matrix4().multiplyMatrices(model.object.matrixWorld, transform));
             geometry.computeBoundingBox();
             box.union(geometry.boundingBox);
-            parts.push(geometry);
+            parts.push({ geometry, material: materialSet.get(meshData.sampleId) || fallback });
           }
           if (!parts.length || box.isEmpty()) continue;
-          const row = this.bimIndex.get(record.id, itemIds[itemIndex]);
           const center = box.getCenter(new THREE.Vector3());
-          items.push({ storey: row && row.storey !== 'Sem pavimento' ? row.storey : null, y: center.y, center, material, parts });
+          items.push({ center, parts });
         }
         completed += 1;
         this.setLoading(true, 'Preparando explosão por pavimento…', Math.round((completed / records.length) * 100));
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
       if (version !== this.explosionBuildVersion) {
-        items.forEach((item) => item.parts.forEach((geometry) => geometry.dispose()));
+        items.forEach((item) => item.parts.forEach((part) => part.geometry.dispose()));
         return [];
       }
-      // Level height = median element height of the storey; loose elements join the nearest level.
-      const byStorey = new Map();
-      items.forEach((item) => { if (item.storey) (byStorey.get(item.storey) || byStorey.set(item.storey, []).get(item.storey)).push(item.y); });
-      const levels = [...byStorey].map(([name, ys]) => ({ name, y: ys.sort((p, q) => p - q)[Math.floor(ys.length / 2)] })).sort((p, q) => p.y - q.y);
-      if (!levels.length) levels.push({ name: 'Modelo', y: 0 });
-      // Reference levels closer than 60 cm (viga, barrilete…) share one explosion step.
-      let step = 0;
-      levels.forEach((level, index) => {
-        if (index && level.y - levels[index - 1].y > 0.6) step += 1;
-        level.step = step;
-      });
-      const levelOf = (item) => item.storey
-        ? levels.find((level) => level.name === item.storey).step
-        : levels.reduce((best, level) => (Math.abs(level.y - item.y) < Math.abs(best.y - item.y) ? level : best), levels[0]).step;
-      // Every element gets its own explosion vector, applied on the GPU: floors
-      // stack upward, and each element also drifts outward from the model centre.
-      const modelCenter = items.reduce((sum, item) => sum.add(item.center), new THREE.Vector3()).multiplyScalar(1 / Math.max(1, items.length));
-      const radius = Math.max(0.001, ...items.map((item) => Math.hypot(item.center.x - modelCenter.x, item.center.z - modelCenter.z)));
+      // Like a CAD viewer: every element flies away from the model centre along
+      // its own vector (each axis scaled by the model's half-extent), on the GPU.
+      const bounds = new THREE.Box3();
+      items.forEach((item) => bounds.expandByPoint(item.center));
+      const modelCenter = bounds.getCenter(new THREE.Vector3());
+      const half = bounds.getSize(new THREE.Vector3()).multiplyScalar(0.5).max(new THREE.Vector3(0.001, 0.001, 0.001));
       const buckets = new Map();
       items.forEach((item) => {
-        const direction = new THREE.Vector3((item.center.x - modelCenter.x) / radius, levelOf(item), (item.center.z - modelCenter.z) / radius);
-        item.parts.forEach((geometry) => {
+        const direction = item.center.clone().sub(modelCenter).divide(half);
+        item.parts.forEach(({ geometry, material }) => {
           const count = geometry.getAttribute('position').count;
           const vectors = new Float32Array(count * 3);
           for (let i = 0; i < count; i += 1) direction.toArray(vectors, i * 3);
           geometry.setAttribute('aExplode', new THREE.BufferAttribute(vectors, 3));
+          const bucket = buckets.get(material.uuid) || buckets.set(material.uuid, { material, geometries: [] }).get(material.uuid);
+          bucket.geometries.push(geometry);
         });
-        const bucket = buckets.get(item.material.uuid) || buckets.set(item.material.uuid, { material: item.material, geometries: [] }).get(item.material.uuid);
-        bucket.geometries.push(...item.parts);
       });
       const group = new THREE.Group();
       group.name = 'Explosão por elemento';
@@ -536,7 +524,7 @@ export class ViewerEngine {
       group.visible = false;
       this.explodedGroup = group;
       this.explodedElements = elements;
-      this.explodedLevels = step + 1;
+      this.explodedLevels = 0;
       return elements;
     })();
     try {
@@ -587,7 +575,7 @@ export class ViewerEngine {
       const wasVisible = this.explodedGroup.visible;
       this.explodedGroup.visible = true;
       this.world.renderer.needsUpdate = true;
-      if (!wasVisible) this.showStatus(`Explosão por ${elements.length} grupos de elementos ativa. Retorne a 0,0 m para reativar seleção e caminhada.`);
+      if (!wasVisible) this.showStatus(`Vista explodida ativa. Retorne a 0,0 m para reativar seleção e caminhada.`);
     } catch (error) {
       console.error('Falha ao preparar a explosão IFC:', error);
       this.explodeDistance = 0;
@@ -1392,6 +1380,7 @@ export class ViewerEngine {
       }
       return;
     }
+    if (this.walk.mode === 'walk' && this.measureMode) return;
     if (this.walk.mode === 'walk' && !this.walkControls.isLocked) {
       this.walk.mouseReleased = false;
       this.walkControls.lock(true);
@@ -2270,8 +2259,10 @@ export class ViewerEngine {
   /** @param {'length'|'area'|null} mode */
   async setMeasureMode(mode) {
     if (!this.components) return;
-    // Measuring is an orbit-only tool: leaving a walk first keeps the camera where it is.
-    if (mode && this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
+    // Measuring works while walking once the mouse is released (Esc); only the
+    // spawn-placement step still competes for the click and is left first.
+    if (mode && this.walk.mode === 'placement') await this.exitWalk({ fit: false });
+    if (mode && this.walk.mode === 'walk' && this.walkControls?.isLocked) this.walkControls.unlock();
     const tool = mode || this.measurements ? this.ensureMeasurements() : null;
     this.measureMode = mode || null;
     if (tool) {
