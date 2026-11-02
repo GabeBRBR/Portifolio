@@ -58,289 +58,90 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', updateActiveNavLink, { passive: true });
 
   // =========================================================================
-  // 3. Project Filter System
+  // 3. Vitrine de projetos (gerada de assets/vitrine/projetos.json)
   // =========================================================================
-  const projectsGrid = document.getElementById('projects-grid');
-  const projectsMore = document.getElementById('projects-more');
-  const projectsMoreBtn = document.getElementById('projects-more-btn');
-  let projectsExpanded = false;
+  const vitrineRoot = document.getElementById('vitrine-root');
+  const viewerBlock = document.getElementById('vitrine-viewer');
+  const filterBtns = document.querySelectorAll('.project-filter-btn');
+  const projectDetails = {};
+  const escapeText = (text) => String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // "persist" guarda a escolha do usuário; um filtro só expande temporariamente
-  function setProjectsExpanded(expanded, persist = true) {
-    if (!projectsGrid) return;
-    if (persist) projectsExpanded = expanded;
-    projectsGrid.classList.toggle('projects-collapsed', !expanded);
-    if (projectsMore) projectsMore.classList.toggle('hidden', expanded);
-    if (projectsMoreBtn) projectsMoreBtn.setAttribute('aria-expanded', String(expanded));
-    if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
+  function projectCard(p, disciplina) {
+    const area = p.area ? `<span class="project-meta-chip" title="Metragem aproximada, calculada a partir de ${escapeText(p.area.base)}"><i class="ph-bold ph-ruler"></i> ≈ ${p.area.valor} m²</span>` : '';
+    return `<article class="project-plate" data-modal="${p.id}">
+      <div class="project-media-wrap">
+        <img src="${p.capa}" alt="${escapeText(`${disciplina.nome}: ${p.tipo}`)}" class="project-media" loading="lazy" decoding="async">
+        <span class="project-code-tag">${escapeText(disciplina.nome.toUpperCase())}</span>
+        ${p.modelo ? '<span class="project-3d-tag"><i class="ph-bold ph-cube"></i> 3D</span>' : ''}
+        <span class="project-count-tag"><i class="ph-bold ph-images"></i> ${p.imagens.length}</span>
+      </div>
+      <div class="project-plate-body">
+        <div>
+          <h3 class="project-plate-title">${escapeText(p.tipo)}</h3>
+          <p class="project-plate-desc">${escapeText(p.resumo)}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border-light">
+          ${area}${p.ferramentas.map((t) => `<span class="tech-badge">${escapeText(t)}</span>`).join('')}
+        </div>
+      </div>
+    </article>`;
   }
 
-  if (projectsMoreBtn) projectsMoreBtn.addEventListener('click', () => setProjectsExpanded(true));
+  function renderVitrine(data) {
+    const disciplinas = new Map(data.disciplinas.map((d) => [d.id, d]));
+    vitrineRoot.innerHTML = data.disciplinas.map((d) => {
+      const obras = data.projetos.filter((p) => p.disciplina === d.id);
+      if (!obras.length) return '';
+      return `<section class="vitrine-section" data-disc="${d.id}" aria-label="${escapeText(d.nome)}">
+        <div class="vitrine-head"><i class="ph-bold ${d.icone}" aria-hidden="true"></i><h3>${escapeText(d.nome)}</h3><span>${obras.length} ${obras.length > 1 ? 'obras' : 'obra'}</span></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">${obras.map((p) => projectCard(p, d)).join('')}</div>
+      </section>`;
+    }).join('');
 
-  const filterBtns = document.querySelectorAll('.project-filter-btn, .filter-btn');
-  const projectCards = document.querySelectorAll('.project-plate, .project-card');
+    for (const p of data.projetos) {
+      const disciplina = disciplinas.get(p.disciplina);
+      const destaques = [];
+      if (p.conteudo.length) destaques.push(`Conteúdo: ${p.conteudo.join(', ').toLowerCase()}.`);
+      destaques.push(`${p.imagens.length} ${p.imagens.length > 1 ? 'pranchas publicadas' : 'prancha publicada'}, com carimbo e dados do cliente omitidos.`);
+      if (p.area) destaques.push(`Metragem aproximada de ${p.area.valor} m², obtida a partir de ${p.area.base}.`);
+      if (p.modelo) destaques.push('Modelo 3D simples: arraste para girar e role para ampliar.');
+      projectDetails[p.id] = {
+        title: p.tipo, sub: disciplina.nome, desc: p.resumo, highlights: destaques, techs: p.ferramentas,
+        images: p.imagens.map((i) => ({ src: i.src, caption: i.caption })), modelo: p.modelo
+      };
+    }
+  }
 
-  filterBtns.forEach(btn => {
+  function applyProjectFilter(value) {
+    if (viewerBlock) viewerBlock.classList.toggle('hidden', value !== 'all' && value !== 'viewer');
+    document.querySelectorAll('.vitrine-section').forEach((section) => {
+      section.classList.toggle('hidden', value === 'viewer' || (value !== 'all' && section.dataset.disc !== value));
+    });
+  }
+
+  fetch('assets/vitrine/projetos.json')
+    .then((response) => response.json())
+    .then((data) => {
+      renderVitrine(data);
+      applyProjectFilter(document.querySelector('.project-filter-btn.active')?.dataset.filter || 'all');
+      if (typeof ScrollTrigger !== 'undefined') ScrollTrigger.refresh();
+    })
+    .catch((error) => {
+      console.error('Falha ao carregar a vitrine de projetos:', error);
+      if (vitrineRoot) vitrineRoot.innerHTML = '<p class="text-sm text-ink-muted">Não foi possível carregar os projetos agora. Atualize a página para tentar de novo.</p>';
+    });
+
+  filterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      filterBtns.forEach(b => b.classList.remove('active'));
+      filterBtns.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-
-      const filterValue = btn.getAttribute('data-filter');
-
-      // Com um filtro ativo, mostra todos os projetos da categoria; em "Todos", volta à lista curta
-      if (filterValue !== 'all') setProjectsExpanded(true, false);
-      else setProjectsExpanded(projectsExpanded, false);
-
-      projectCards.forEach(card => {
-        const category = card.getAttribute('data-category');
-        if (filterValue === 'all' || category === filterValue) {
-          card.classList.remove('hidden');
-          card.style.opacity = '0';
-          card.style.transform = 'translateY(10px)';
-          setTimeout(() => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-          }, 40);
-        } else {
-          card.classList.add('hidden');
-        }
-      });
+      applyProjectFilter(btn.dataset.filter);
     });
   });
 
   // =========================================================================
-  // 4. Project Modal Lightbox & Detailed Specs Data
+  // 4. Modal do projeto: galeria de pranchas e modelo 3D simples
   // =========================================================================
-  const projectDetails = {
-    'modal-p1': {
-      title: 'Barrilete e instalações hidrossanitárias em Revit',
-      sub: 'AION BIM · Residencial / Comercial',
-      images: [
-        { src: 'assets/images/hidro/hidro-isometrico-3d.webp', caption: 'Isométrico 3D do barrilete e das prumadas' }
-      ],
-      desc: 'Modelagem 3D isométrica de alta complexidade contendo barriletes, baterias de reservatórios superiores, prumadas de esgoto, ventilação e água fria devidamente compatibilizadas no Revit MEP.',
-      highlights: [
-        'Modelagem geométrica precisa de curvas, registros e barriletes superiores.',
-        'Compatibilização espacial completa entre disciplinas MEP e Estrutural.',
-        'Tabelas paramétricas com quantitativo de conexões e tubulações.',
-        'Pranchas isométricas detalhadas para orientar os instaladores em obra.'
-      ],
-      techs: ['Revit MEP', 'Isométricos 3D', 'NBR 5626', 'NBR 8160', 'Navisworks']
-    },
-    'modal-p2': {
-      title: 'Traçado elétrico, eletrodutos e eletrocalhas',
-      sub: 'Edifício Comercial · Jardim Sul',
-      images: [
-        { src: 'assets/images/eletrico/eletrico-jardim-sul-ifc.webp', caption: 'Quadros de carga e diagramas multifilares' },
-        { src: 'assets/images/eletrico/eletrico-isometrico-3d.webp', caption: 'Modelo elétrico em 3D' }
-      ],
-      desc: 'Modelagem espacial tridimensional em formato aberto IFC e Revit de todo o encaminhamento de eletrocalhas, pontos de iluminação, quadros de distribuição (QDC) e circuitos de força.',
-      highlights: [
-        'Distribuição racional de circuitos com balanceamento de fases.',
-        'Modelagem de leitos de cabos e eletrodutos rígidos/flexíveis.',
-        'Detecção de interferências pré-obra (Clash Detection).',
-        'Exportação em padrão aberto IFC para troca com outras disciplinas e softwares.'
-      ],
-      techs: ['IFC OpenBIM', 'Revit Electrical', 'Eletrocalhas', 'NBR 5410']
-    },
-    'modal-p3': {
-      title: 'Projeto estrutural completo em concreto armado',
-      sub: 'Complexo Funerário & Crematório',
-      images: [
-        { src: 'assets/images/estrutural/estrutural-crematorio-01.webp', caption: 'Estacas, baldrames, vigas e isométricos da estrutura' },
-        { src: 'assets/images/estrutural/estrutural-crematorio-02.webp', caption: 'Cortes da cobertura e detalhes dos blocos' },
-        { src: 'assets/images/estrutural/estrutural-crematorio-03.webp', caption: 'Cortes longitudinais e isométricos' },
-        { src: 'assets/images/estrutural/estrutural-crematorio-04.webp', caption: 'Detalhamento das vigas' }
-      ],
-      desc: 'Conjunto completo de pranchas executivas contemplando fôrmas, locação de pilares/fundações, armaduras longitudinais e transversais de vigas contínuas e dimensionamento de lajes.',
-      highlights: [
-        'Dimensionamento estrutural atendendo aos estados limites últimos e de serviço (ELU/ELS).',
-        'Detalhamento de vigas contínuas com diagrama de momentos e corte de armaduras.',
-        'Plantas de fôrmas claras com indicação de rebaixos, aberturas e cotas.',
-        'Tabelas de aço estrutural com consumo discriminado por elemento (CA-50 / CA-60).'
-      ],
-      techs: ['Concreto Armado', 'Eberick', 'AutoCAD', 'NBR 6118:2023', 'Detalhamento Estrutural']
-    },
-    'modal-p4': {
-      title: 'Planta de locação, estacas e pilares',
-      sub: 'Edificação Multiuso',
-      images: [
-        { src: 'assets/images/estrutural/estrutural-locacao-terreo.webp', caption: 'Locação, quadro de cargas e blocos' },
-        { src: 'assets/images/estrutural/estrutural-fundacoes.webp', caption: 'Detalhamento das fundações' },
-        { src: 'assets/images/estrutural/estrutural-formas-terreo.webp', caption: 'Formas do pavimento térreo' },
-        { src: 'assets/images/estrutural/estrutural-vigas-terreo.webp', caption: 'Detalhamento das vigas do térreo' },
-        { src: 'assets/images/estrutural/estrutural-lajes.webp', caption: 'Armação das lajes' },
-        { src: 'assets/images/estrutural/estrutural-lajes-cobertura.webp', caption: 'Armação das lajes da cobertura' },
-        { src: 'assets/images/estrutural/estrutural-pilares-cobertura.webp', caption: 'Tabela e detalhamento dos pilares' }
-      ],
-      desc: 'Planta executiva de locação de infraestrutura, com marcação de eixos ortogonais, coordenadas de estaqueamento, cargas transmitidas às fundações e tabela de pilares.',
-      highlights: [
-        'Amarração precisa de eixos de locação referenciados a marcos de topografia.',
-        'Quadro de cargas e esforços característicos de fundação.',
-        'Tabela de pilares com seções transversais e arranjo de estribos.',
-        'Padronização gráfica para facilitar a leitura no canteiro de obras.'
-      ],
-      techs: ['Locação', 'Fundações', 'Pilares', 'AutoCAD', 'Topografia']
-    },
-    'modal-p5': {
-      title: 'As-built a partir de nuvem de pontos e fotos 360°',
-      sub: 'Complexo Industrial DAI / SIS',
-      images: [
-        { src: 'assets/images/asbuilt/asbuilt-hidrantes-revit.webp', caption: 'Modelo as-built com a rede de hidrantes' },
-        { src: 'assets/images/asbuilt/asbuilt-ppci.webp', caption: 'Prancha de PPCI' },
-        { src: 'assets/images/asbuilt/asbuilt-comunicacao.webp', caption: 'Prancha de comunicação' }
-      ],
-      desc: 'Reconstituição arquitetônica e de utilidades industriais a partir de escaneamento a laser 3D (LiDAR) e fotogrametria, vetorizando a situação real com a precisão do levantamento a laser.',
-      highlights: [
-        'Processamento e limpeza de nuvens de pontos densas no CloudCompare.',
-        'Vetorização tridimensional das estruturas existentes dentro do Revit.',
-        'Identificação de desvios executivos em relação ao projeto original.',
-        'Integração com fotos esféricas 360° para tour virtual interativo da edificação.'
-      ],
-      techs: ['CloudCompare', 'Nuvem de Pontos (LiDAR)', 'Revit As-Built', 'Tours 360°']
-    },
-    'modal-p6': {
-      title: 'Levantamento planialtimétrico e terraplenagem',
-      sub: 'Propriedade Rural J&F · Haras Santa Luzia, Aruanã',
-      images: [
-        { src: 'assets/images/topografia/topo-haras-santa-luzia.webp', caption: 'Levantamento, curvas de nível e terraplenagem' }
-      ],
-      desc: 'Planta topográfica de grande escala com curvas de nível equidistantes, cálculo volumétrico de corte e aterro para platôs, delimitação perimétrica e arruamento.',
-      highlights: [
-        'Geração de curvas de nível com alta fidelidade de terreno.',
-        'Cálculo de movimentação de terra (terraplenagem) e compensação de volumes.',
-        'Divisão de talhões, acessos e benfeitorias rurais.',
-        'Elaboração no Autodesk Civil 3D com dados georreferenciados.'
-      ],
-      techs: ['AutoCAD Civil 3D', 'Planialtimetria', 'Terraplenagem', 'Curvas de Nível']
-    },
-    'modal-p7': {
-      title: 'Vistas de ambientes e isométricos sanitários',
-      sub: 'Edifício Residencial Jardim Sul',
-      images: [
-        { src: 'assets/images/hidro/hidro-jardim-sul-vistas-3d.webp', caption: 'Vistas dos ambientes' },
-        { src: 'assets/images/hidro/hidro-jardim-sul-pranchas.webp', caption: 'Plantas hidráulica e sanitária do térreo' }
-      ],
-      desc: 'Pranchas executivas contendo ampliações de banheiros, cozinhas e áreas de serviço com indicação precisa de registros de gaveta, ralos sifonados e diâmetros nominais.',
-      highlights: [
-        'Vistas explodidas e isométricas de banheiros tipo.',
-        'Compatibilização com peças sanitárias e pontos elétricos adjacentes.',
-        'Tabela de conexões e tubos com quantitativos por ambiente.',
-        'Dimensionamento conforme a NBR 5626 e a NBR 8160.'
-      ],
-      techs: ['Revit MEP', 'Detalhamento Executivo', 'NBR 5626', 'NBR 8160']
-    },
-    'modal-p8': {
-      title: 'Demarcação de gleba e georreferenciamento',
-      sub: 'Chácara · Senador Canedo, GO',
-      images: [
-        { src: 'assets/images/topografia/topo-senador-canedo.webp', caption: 'Demarcação da gleba' }
-      ],
-      desc: 'Planta de demarcação perimétrica, amarração em coordenadas geográficas UTM, cálculo de área e confrontações para fins de regularização fundiária.',
-      highlights: [
-        'Determinação de vértices em coordenadas UTM (SIRGAS 2000).',
-        'Memorial descritivo perimétrico com azimutes e distâncias.',
-        'Confrontações e limites de vizinhança validados.',
-        'Elaboração para documentação cartorial.'
-      ],
-      techs: ['QGIS', 'Coordenadas UTM', 'Topografia', 'AutoCAD']
-    },
-    'modal-p9': {
-      title: 'Pranchas executivas de água fria e esgoto',
-      sub: 'Residencial Foizer Capri',
-      images: [
-        { src: 'assets/images/hidro/hidro-foizer-capri-01.webp', caption: 'Plantas hidráulica e sanitária do pavimento superior' },
-        { src: 'assets/images/hidro/hidro-foizer-capri-02.webp', caption: 'Cobertura e isométrico do barrilete' },
-        { src: 'assets/images/hidro/hidro-foizer-capri-03.webp', caption: 'Vistas dos ambientes do pavimento superior' }
-      ],
-      desc: 'Documentação completa para aprovação e execução em canteiro, com esquemas verticais de colunas, prumadas e dimensionamento de reservatórios.',
-      highlights: [
-        'Esquema vertical e prumadas de água fria e esgoto sanitário.',
-        'Dimensionamento de ramais e sub-ramais por método de unidades de Hunter.',
-        'Detalhamento de caixas de gordura e fossas/filtros quando aplicável.',
-        'Pranchas executivas prontas para plotagem e uso em obra.'
-      ],
-      techs: ['Revit MEP', 'Esquema Vertical', 'Quantitativos', 'NBR 5626']
-    },
-    'modal-p10': {
-      title: 'Projeto hidrossanitário com isométricos e lista de materiais',
-      sub: 'Casa Cléria',
-      images: [
-        { src: 'assets/images/hidro/hidro-casa-cleria-01.webp', caption: 'Planta baixa e isométricos gerais' },
-        { src: 'assets/images/hidro/hidro-casa-cleria-02.webp', caption: 'Cortes' },
-        { src: 'assets/images/hidro/hidro-casa-cleria-03.webp', caption: 'Isométricos do barrilete' },
-        { src: 'assets/images/hidro/hidro-casa-cleria-04.webp', caption: 'Isométricos isolados e lista de materiais' }
-      ],
-      desc: 'Pranchas de instalações hidrossanitárias com plantas baixas, cortes, isométricos do barrilete e dos ramais e lista de materiais.',
-      highlights: [
-        'Plantas baixas das instalações por pavimento.',
-        'Cortes com a rede vertical e os reservatórios.',
-        'Isométricos do barrilete e de trechos isolados.',
-        'Lista de materiais junto às pranchas.'
-      ],
-      techs: ['Revit MEP', 'Isométricos 3D', 'Lista de materiais']
-    },
-    'modal-p11': {
-      title: 'As-built hidrossanitário da cozinha do Bloco O',
-      sub: 'Ministério da Saúde · Bloco O',
-      images: [
-        { src: 'assets/images/hidro/hidro-mnsd-brasilia-01.webp', caption: 'Detalhes dos ambientes' },
-        { src: 'assets/images/hidro/hidro-mnsd-brasilia-02.webp', caption: 'Plantas de água fria, água quente e esgoto sanitário' }
-      ],
-      desc: 'As-built das instalações hidrossanitárias da cozinha do Bloco O do Ministério da Saúde: plantas baixas de água fria, água quente e esgoto sanitário e cortes de 1 a 12.',
-      highlights: [
-        'Planta baixa de água fria e água quente.',
-        'Planta baixa do esgoto sanitário.',
-        'Cortes de 1 a 12 detalhando os ambientes.',
-        'Compatibilização BIM pela AION BIM.'
-      ],
-      techs: ['As-built', 'Hidrossanitário', 'Compatibilização BIM']
-    },
-    'modal-p12': {
-      title: 'Projeto elétrico: pontos, quadros e diagramas',
-      sub: 'Residencial Foizer Capri',
-      images: [
-        { src: 'assets/images/eletrico/eletrico-foizer-capri-01.webp', caption: 'Pontos elétricos, quadros de carga e legenda' },
-        { src: 'assets/images/eletrico/eletrico-foizer-capri-02.webp', caption: 'Diagramas multifilares e proteção dos quadros' }
-      ],
-      desc: 'Pranchas elétricas com plantas de pontos, quadros de carga e diagramas multifilares dos quadros de distribuição.',
-      highlights: [
-        'Legenda e plantas de pontos elétricos.',
-        'Quadros de carga dos quadros de distribuição.',
-        'Diagramas multifilares e detalhes de proteção.'
-      ],
-      techs: ['Revit Electrical', 'Quadros de carga', 'Diagramas multifilares']
-    },
-    'modal-p13': {
-      title: 'Terraplenagem com mapa de corte e aterro',
-      sub: 'Cemitério Aldeia do Vale · Nova Fátima, GO',
-      images: [
-        { src: 'assets/images/topografia/topo-cav-terraplenagem.webp', caption: 'Mapa hipsométrico de corte e aterro' },
-        { src: 'assets/images/topografia/topo-aldeia-do-vale.webp', caption: 'Mapa de terraplenagem e perfis' }
-      ],
-      desc: 'Projeto de terraplenagem com mapa hipsométrico de corte e aterro, perfis do terreno e memorial de cálculo dos volumes.',
-      highlights: [
-        'Mapa hipsométrico de corte e aterro por faixa de cota.',
-        'Perfis do terreno com as áreas de corte e de aterro.',
-        'Memorial de cálculo do estacionamento e das edificações: cerca de 13,3 mil m³ de aterro compactado e 970 m³ de corte.'
-      ],
-      techs: ['Terraplenagem', 'Corte e aterro', 'Memorial de cálculo']
-    },
-    'modal-p14': {
-      title: 'Levantamento planialtimétrico com tour virtual',
-      sub: 'Félix AP · Goiânia, GO',
-      images: [
-        { src: 'assets/images/topografia/topo-felix-ap-goiania.webp', caption: 'Levantamento planialtimétrico e modelo do terreno' }
-      ],
-      desc: 'Levantamento planialtimétrico com coordenadas em SIRGAS 2000, modelo do terreno e QR code na prancha para abrir o tour virtual.',
-      highlights: [
-        'Coordenadas em SIRGAS 2000 e plano local topográfico.',
-        'Modelo tridimensional do terreno.',
-        'QR code na prancha para abrir o tour virtual no celular.'
-      ],
-      techs: ['Planialtimetria', 'SIRGAS 2000', 'Tour virtual']
-    }
-  };
 
   const projectModal = document.getElementById('project-modal');
   const modalImg = document.getElementById('modal-img');
@@ -356,6 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalCaption = document.getElementById('modal-caption');
   const modalCounter = document.getElementById('modal-counter');
   const modalStage = projectModal ? projectModal.querySelector('.modal-stage') : null;
+  const modalTabs = document.getElementById('modal-tabs');
+  const modalPaneSheets = document.getElementById('modal-pane-sheets');
+  const modalPane3d = document.getElementById('modal-pane-3d');
+  const modal3dStage = document.getElementById('modal-3d-stage');
+  const modal3dStatus = document.getElementById('modal-3d-status');
   let galleryImages = [];
   let galleryIndex = 0;
   let currentTitle = '';
@@ -404,24 +210,67 @@ document.addEventListener('DOMContentLoaded', () => {
       modalTechs.appendChild(span);
     });
 
+    currentModelUrl = data.modelo || null;
+    modalTabs.classList.toggle('hidden', !currentModelUrl);
+    setModalTab('pranchas');
+
     projectModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
   }
 
+  // Modelo 3D simples: o motor só é baixado quando a pessoa abre a aba "Modelo 3D"
+  let miniViewer = null;
+  let currentModelUrl = null;
+  async function startModel3D() {
+    if (miniViewer || !currentModelUrl) return;
+    const url = currentModelUrl;
+    modal3dStatus.textContent = 'Carregando modelo 3D…';
+    modal3dStatus.classList.remove('hidden');
+    try {
+      const { MiniViewer } = await import('./src/vitrine/MiniViewer.js');
+      const viewer = new MiniViewer(modal3dStage);
+      miniViewer = viewer;
+      await viewer.load(url);
+      if (miniViewer === viewer) modal3dStatus.classList.add('hidden');
+    } catch (error) {
+      console.error('Falha ao abrir o modelo 3D:', error);
+      modal3dStatus.textContent = 'Não foi possível abrir o modelo 3D neste navegador.';
+    }
+  }
+
+  function stopModel3D() {
+    if (!miniViewer) return;
+    const viewer = miniViewer;
+    miniViewer = null;
+    viewer.dispose();
+  }
+
+  function setModalTab(tab) {
+    const is3d = tab === 'modelo';
+    modalPaneSheets.classList.toggle('hidden', is3d);
+    modalPane3d.classList.toggle('hidden', !is3d);
+    modalTabs.querySelectorAll('[data-tab]').forEach((btn) => btn.setAttribute('aria-selected', String(btn.dataset.tab === tab)));
+    if (is3d) startModel3D();
+  }
+
+  modalTabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-tab]');
+    if (btn) setModalTab(btn.dataset.tab);
+  });
+
   function closeProjectModal() {
+    stopModel3D();
     projectModal.classList.add('hidden');
     document.body.style.overflow = '';
   }
 
-  // Attach click to all project cards / plates
-  document.querySelectorAll('.project-plate, .project-card, [data-modal]').forEach(card => {
-    card.addEventListener('click', () => {
-      const modalKey = card.getAttribute('data-modal');
-      if (modalKey) {
-        openProjectModal(modalKey);
-      }
+  // Os cards são criados depois do carregamento do JSON, então o clique é delegado
+  if (vitrineRoot) {
+    vitrineRoot.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-modal]');
+      if (card) openProjectModal(card.getAttribute('data-modal'));
     });
-  });
+  }
 
   // Direct trigger for 3D IFC Viewer
   document.querySelectorAll('[data-open-ifc]').forEach(card => {

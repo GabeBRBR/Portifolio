@@ -194,22 +194,23 @@
           <h2 class="section-headline">Arquivo técnico de projetos</h2>
         </div>
 
-        <!-- Project Filters -->
+        <!-- Filtros por disciplina -->
         <div class="filter-row" role="group" aria-label="Filtrar projetos">
           <button class="project-filter-btn active" data-filter="all">Todos</button>
-          <button class="project-filter-btn" data-filter="ifc"><i class="ph-bold ph-cube text-ochre-dark mr-1"></i> Visualizador IFC</button>
-          <button class="project-filter-btn" data-filter="bim">BIM &amp; MEP</button>
-          <button class="project-filter-btn" data-filter="estrutural">Estruturas</button>
-          <button class="project-filter-btn" data-filter="asbuilt">As-Built / Laser 3D</button>
+          <button class="project-filter-btn" data-filter="viewer"><i class="ph-bold ph-cube text-ochre-dark mr-1"></i> Visualizador IFC</button>
+          <button class="project-filter-btn" data-filter="estrutural">Estrutural</button>
+          <button class="project-filter-btn" data-filter="hidrossanitario">Hidrossanitário</button>
+          <button class="project-filter-btn" data-filter="eletrico">Elétrico</button>
+          <button class="project-filter-btn" data-filter="incendio">Incêndio</button>
+          <button class="project-filter-btn" data-filter="asbuilt">As-built</button>
           <button class="project-filter-btn" data-filter="topografia">Topografia</button>
         </div>
       </div>
 
-      <!-- Project Plates Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 projects-collapsed" id="projects-grid">
-        
+      <!-- Visualizador BIM principal -->
+      <div id="vitrine-viewer" class="mb-14">
         <!-- Plate 0: Visualizador BIM -->
-        <div class="project-plate reveal border-2 !border-ochre/50 shadow-md bg-gradient-to-b from-surface to-surfaceSubtle col-span-1 md:col-span-2 lg:col-span-3" data-category="ifc" data-open-ifc="casa-terrea">
+        <div class="project-plate reveal border-2 !border-ochre/50 shadow-md bg-gradient-to-b from-surface to-surfaceSubtle" data-open-ifc="casa-terrea">
           <div class="grid grid-cols-1 lg:grid-cols-12">
             <div class="lg:col-span-7 project-media-wrap relative group cursor-pointer !h-64 sm:!h-80">
               <img src="assets/images/geral/visualizador-bim.webp" alt="Modelo BIM 3D aberto no visualizador do portfólio" class="project-media !object-cover" loading="lazy">
@@ -247,304 +248,10 @@
             </div>
           </div>
         </div>
-        
-        <!-- Plate 1: BIM Hidro 3D -->
-        <div class="project-plate reveal" data-category="bim" data-modal="modal-p1">
-          <div class="project-media-wrap">
-            <img src="assets/images/hidro/hidro-isometrico-3d-sm.webp" alt="Modelagem BIM Hidrossanitária 3D" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-01 · BIM MEP</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">AION BIM · Residencial / Comercial</span>
-              <h3 class="project-plate-title">Barrilete e instalações hidrossanitárias em Revit</h3>
-              <p class="project-plate-desc">Modelagem Revit de reservatórios, barriletes, prumadas e colunas sanitárias compatibilizadas.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Revit MEP</span>
-              <span class="tech-badge">Isométrico 3D</span>
-              <span class="tech-badge">Compatibilização</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 2: Infra Elétrica IFC -->
-        <div class="project-plate reveal" data-category="bim" data-modal="modal-p2">
-          <div class="project-media-wrap">
-            <img src="assets/images/eletrico/eletrico-jardim-sul-ifc-sm.webp" alt="Traçado elétrico e eletrocalhas em BIM" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-02 · ELÉTRICO</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 2</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Edifício Comercial · Jardim Sul</span>
-              <h3 class="project-plate-title">Traçado elétrico, eletrodutos e eletrocalhas</h3>
-              <p class="project-plate-desc">Encaminhamento elétrico em Revit e IFC para alimentadores, quadros e eletrocalhas.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">IFC OpenBIM</span>
-              <span class="tech-badge">Revit Electrical</span>
-              <span class="tech-badge">Eletrocalhas</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 3: Projeto Estrutural Crematório -->
-        <div class="project-plate reveal" data-category="estrutural" data-modal="modal-p3">
-          <div class="project-media-wrap">
-            <img src="assets/images/estrutural/estrutural-crematorio-01-sm.webp" alt="Projeto Estrutural de Crematório" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-03 · ESTRUTURAL</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 4</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Complexo funerário e crematório</span>
-              <h3 class="project-plate-title">Projeto estrutural completo em concreto armado</h3>
-              <p class="project-plate-desc">Pranchas executivas de formas, fundações, vigas e lajes em concreto armado.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Concreto Armado</span>
-              <span class="tech-badge">Eberick</span>
-              <span class="tech-badge">Detalhamento Vigas</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 4: Locação e Pilares -->
-        <div class="project-plate reveal" data-category="estrutural" data-modal="modal-p4">
-          <div class="project-media-wrap">
-            <img src="assets/images/estrutural/estrutural-locacao-terreo-sm.webp" alt="Planta de Locação Estrutural" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-04 · FUNDAÇÕES</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 7</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Edificação Multiuso</span>
-              <h3 class="project-plate-title">Planta de locação, estacas e pilares</h3>
-              <p class="project-plate-desc">Locação estrutural com eixos, estacas, pilares, cargas de fundação e armação.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Locação</span>
-              <span class="tech-badge">Fundações</span>
-              <span class="tech-badge">AutoCAD</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 5: As-Built Nuvem de Pontos -->
-        <div class="project-plate reveal" data-category="asbuilt" data-modal="modal-p5">
-          <div class="project-media-wrap">
-            <img src="assets/images/asbuilt/asbuilt-hidrantes-revit-sm.webp" alt="As-Built Nuvem de Pontos Complexo DAI" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-05 · AS-BUILT 3D</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 3</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Complexo Industrial DAI / SIS</span>
-              <h3 class="project-plate-title">As-built a partir de nuvem de pontos e fotos 360°</h3>
-              <p class="project-plate-desc">As-built de edificação existente a partir de nuvem LiDAR e fotos 360°.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Laser Scanning</span>
-              <span class="tech-badge">CloudCompare</span>
-              <span class="tech-badge">Revit As-Built</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 6: Topografia Haras Santa Luzia -->
-        <div class="project-plate reveal" data-category="topografia" data-modal="modal-p6">
-          <div class="project-media-wrap">
-            <img src="assets/images/topografia/topo-haras-santa-luzia-sm.webp" alt="Topografia Haras Santa Luzia" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-06 · TOPOGRAFIA</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Propriedade Rural J&amp;F · Haras Santa Luzia, Aruanã</span>
-              <h3 class="project-plate-title">Levantamento planialtimétrico e terraplenagem</h3>
-              <p class="project-plate-desc">Levantamento com curvas de nível, corte e aterro para implantação e terraplenagem.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Civil 3D</span>
-              <span class="tech-badge">Terraplenagem</span>
-              <span class="tech-badge">Curvas de Nível</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 7: Vistas de Ambientes Hidrossanitários -->
-        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p7">
-          <div class="project-media-wrap">
-            <img src="assets/images/hidro/hidro-jardim-sul-vistas-3d-sm.webp" alt="Detalhamento de Ambientes Hidrossanitários" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-07 · DETALHAMENTO</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 2</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Edifício Residencial Jardim Sul</span>
-              <h3 class="project-plate-title">Vistas de ambientes e isométricos sanitários</h3>
-              <p class="project-plate-desc">Vistas e isométricos para execução de instalações sanitárias em ambientes críticos.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Revit MEP</span>
-              <span class="tech-badge">Detalhamento NBR 5626</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 8: Demarcação Chácara Senador Canedo -->
-        <div class="project-plate reveal is-extra" data-category="topografia" data-modal="modal-p8">
-          <div class="project-media-wrap">
-            <img src="assets/images/topografia/topo-senador-canedo-sm.webp" alt="Demarcação de Área Senador Canedo" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-08 · GEODÉSICA</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Chácara · Senador Canedo, GO</span>
-              <h3 class="project-plate-title">Demarcação de gleba e georreferenciamento</h3>
-              <p class="project-plate-desc">Demarcação em UTM/SIRGAS 2000 com memorial descritivo para regularização cartorial.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">QGIS</span>
-              <span class="tech-badge">Coordenadas UTM</span>
-              <span class="tech-badge">Regularização</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 9: Pranchas Hidro Foizer Capri -->
-        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p9">
-          <div class="project-media-wrap">
-            <img src="assets/images/hidro/hidro-foizer-capri-01-sm.webp" alt="Pranchas Hidrossanitárias Foizer Capri" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-09 · EXECUTIVO</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 3</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Residencial Foizer Capri</span>
-              <h3 class="project-plate-title">Pranchas executivas de água fria e esgoto</h3>
-              <p class="project-plate-desc">Pranchas de água fria e esgoto com listas de conexões prontas para obra.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Revit MEP</span>
-              <span class="tech-badge">Esquema Vertical</span>
-              <span class="tech-badge">Quantitativos</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 10 -->
-        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p10">
-          <div class="project-media-wrap">
-            <img src="assets/images/hidro/hidro-casa-cleria-03-sm.webp" alt="Isométricos do barrilete da Casa Cléria" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-10 · BIM MEP</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 4</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Casa Cléria</span>
-              <h3 class="project-plate-title">Projeto hidrossanitário com isométricos e lista de materiais</h3>
-              <p class="project-plate-desc">Plantas baixas, cortes, isométricos do barrilete e dos ramais e lista de materiais.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Revit MEP</span>
-              <span class="tech-badge">Isométricos 3D</span>
-              <span class="tech-badge">Lista de materiais</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 11 -->
-        <div class="project-plate reveal is-extra" data-category="asbuilt" data-modal="modal-p11">
-          <div class="project-media-wrap">
-            <img src="assets/images/hidro/hidro-mnsd-brasilia-01-sm.webp" alt="As-built hidrossanitário da cozinha do Ministério da Saúde" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-11 · AS-BUILT</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 2</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Ministério da Saúde · Bloco O</span>
-              <h3 class="project-plate-title">As-built hidrossanitário da cozinha do Bloco O</h3>
-              <p class="project-plate-desc">Plantas de água fria, água quente e esgoto sanitário e cortes de 1 a 12.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">As-built</span>
-              <span class="tech-badge">Hidrossanitário</span>
-              <span class="tech-badge">Compatibilização BIM</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 12 -->
-        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p12">
-          <div class="project-media-wrap">
-            <img src="assets/images/eletrico/eletrico-foizer-capri-01-sm.webp" alt="Pranchas elétricas do Foizer Capri" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-12 · ELÉTRICO</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 2</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Residencial Foizer Capri</span>
-              <h3 class="project-plate-title">Projeto elétrico: pontos, quadros e diagramas</h3>
-              <p class="project-plate-desc">Plantas de pontos elétricos, quadros de carga e diagramas multifilares.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Revit Electrical</span>
-              <span class="tech-badge">Quadros de carga</span>
-              <span class="tech-badge">Diagramas multifilares</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 13 -->
-        <div class="project-plate reveal is-extra" data-category="topografia" data-modal="modal-p13">
-          <div class="project-media-wrap">
-            <img src="assets/images/topografia/topo-cav-terraplenagem-sm.webp" alt="Mapa de corte e aterro do Cemitério Aldeia do Vale" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-13 · TERRAPLENAGEM</span>
-            <span class="project-count-tag"><i class="ph-bold ph-images"></i> 2</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Cemitério Aldeia do Vale · Nova Fátima, GO</span>
-              <h3 class="project-plate-title">Terraplenagem com mapa de corte e aterro</h3>
-              <p class="project-plate-desc">Mapa hipsométrico, perfis e memorial de cálculo dos volumes de corte e aterro.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Terraplenagem</span>
-              <span class="tech-badge">Corte e aterro</span>
-              <span class="tech-badge">Memorial de cálculo</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plate 14 -->
-        <div class="project-plate reveal is-extra" data-category="topografia" data-modal="modal-p14">
-          <div class="project-media-wrap">
-            <img src="assets/images/topografia/topo-felix-ap-goiania-sm.webp" alt="Levantamento planialtimétrico em Goiânia" class="project-media" loading="lazy">
-            <span class="project-code-tag">PRJ-14 · TOPOGRAFIA</span>
-          </div>
-          <div class="project-plate-body">
-            <div>
-              <span class="project-plate-sub">Félix AP · Goiânia, GO</span>
-              <h3 class="project-plate-title">Levantamento planialtimétrico com tour virtual</h3>
-              <p class="project-plate-desc">Levantamento em SIRGAS 2000, modelo do terreno e QR code para o tour virtual.</p>
-            </div>
-            <div class="flex flex-wrap gap-1.5 pt-3 border-t border-border-light">
-              <span class="tech-badge">Planialtimetria</span>
-              <span class="tech-badge">SIRGAS 2000</span>
-              <span class="tech-badge">Tour virtual</span>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      <div class="projects-more" id="projects-more">
-        <button type="button" id="projects-more-btn" class="btn-outline-editorial" aria-expanded="false" aria-controls="projects-grid">
-          <span>Ver todos os 14 projetos</span>
-          <i class="ph-bold ph-caret-down text-xs"></i>
-        </button>
-      </div>
+      <!-- Obras por disciplina (geradas de assets/vitrine/projetos.json) -->
+      <div id="vitrine-root" class="space-y-16" aria-live="polite"></div>
 
     </div>
   </section>
@@ -1136,14 +843,26 @@ def auditar_durabilidade_nbr6118(dados_viga):
       
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 sm:p-8">
         <div class="lg:col-span-7">
-          <div class="modal-stage bg-surfaceSubtle rounded border border-border-editorial p-2">
-            <img id="modal-img" src="" alt="Prancha do projeto" class="max-h-[75vh] w-auto object-contain rounded">
-            <button type="button" id="modal-prev" class="modal-nav-btn modal-nav-prev" aria-label="Imagem anterior"><i class="ph-bold ph-caret-left"></i></button>
-            <button type="button" id="modal-next" class="modal-nav-btn modal-nav-next" aria-label="Próxima imagem"><i class="ph-bold ph-caret-right"></i></button>
+          <div id="modal-tabs" class="modal-tabs hidden" role="tablist" aria-label="Conteúdo do projeto">
+            <button type="button" role="tab" data-tab="pranchas" aria-selected="true"><i class="ph-bold ph-images"></i> Pranchas</button>
+            <button type="button" role="tab" data-tab="modelo" aria-selected="false"><i class="ph-bold ph-cube"></i> Modelo 3D</button>
           </div>
-          <div class="modal-gallery-bar">
-            <span id="modal-caption"></span>
-            <span id="modal-counter" aria-live="polite"></span>
+          <div id="modal-pane-sheets">
+            <div class="modal-stage bg-surfaceSubtle rounded border border-border-editorial p-2">
+              <img id="modal-img" src="" alt="Prancha do projeto" class="max-h-[75vh] w-auto object-contain rounded">
+              <button type="button" id="modal-prev" class="modal-nav-btn modal-nav-prev" aria-label="Imagem anterior"><i class="ph-bold ph-caret-left"></i></button>
+              <button type="button" id="modal-next" class="modal-nav-btn modal-nav-next" aria-label="Próxima imagem"><i class="ph-bold ph-caret-right"></i></button>
+            </div>
+            <div class="modal-gallery-bar">
+              <span id="modal-caption"></span>
+              <span id="modal-counter" aria-live="polite"></span>
+            </div>
+          </div>
+          <div id="modal-pane-3d" class="hidden">
+            <div id="modal-3d-stage" class="modal-3d-stage">
+              <div id="modal-3d-status" class="modal-3d-status">Carregando modelo 3D…</div>
+            </div>
+            <p class="modal-3d-hint"><i class="ph-bold ph-hand-grabbing"></i> Arraste para girar · role ou use dois dedos para ampliar</p>
           </div>
         </div>
         <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
