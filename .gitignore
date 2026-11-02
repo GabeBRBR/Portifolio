@@ -31,3 +31,6 @@ _deps.tgz
 
 # Configuracao local do Claude Code
 .claude/
+
+# Pipeline da vitrine: relatórios guardam nomes de arquivos de origem (clientes)
+scripts/vitrine/relatorios/

@@ -20,6 +20,8 @@
     "web-ifc": "0.0.77"
   },
   "devDependencies": {
+    "mupdf": "^1.28.1",
+    "sharp": "^0.35.5",
     "vite": "7.1.7"
   }
 }
