@@ -1081,49 +1081,6 @@ html.lenis, html.lenis body { height: auto; }
   border-radius: 9999px;
 }
 
-/* Faixa de números logo abaixo do hero */
-.stats-strip {
-  position: relative;
-  z-index: 1;
-  padding: 0 0 1rem;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  background: var(--ink-primary);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-}
-
-.stat {
-  padding: 1.5rem 1.25rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.stat dt {
-  font-family: var(--font-mono);
-  font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--accent-gold-light);
-  margin-bottom: 0.5rem;
-}
-
-.stat dd {
-  font-size: 0.8rem;
-  line-height: 1.45;
-  color: #CBD5E1;
-}
-
-@media (min-width: 900px) {
-  .stats-grid { grid-template-columns: repeat(4, 1fr); }
-  .stat { border-bottom: none; padding: 1.75rem 1.5rem; }
-  .stat:last-child { border-right: none; }
-}
-
 /* Seção escura das automações */
 .section-dark {
   position: relative;
