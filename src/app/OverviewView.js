@@ -112,7 +112,7 @@ export class OverviewView {
       <ul class="bim-bars">${list.map((item) => `
         <li><button type="button" data-set="${this.register(item.rows)}" title="${escapeHtml(item.label)}: ${format(item.value)} ${escapeHtml(unit)}">
           <span class="bim-bars__label">${item.color ? `<span class="bim-dot" style="--dot:${item.color}"></span>` : ''}${escapeHtml(item.label)}</span>
-          <span class="bim-bars__track"><span class="bim-bars__fill${item.other ? ' bim-bars__fill--other' : ''}" style="width:${Math.max(1.5, (item.value / max) * 100).toFixed(2)}%"></span></span>
+          <span class="bim-bars__track"><span class="bim-bars__fill${item.other ? ' bim-bars__fill--other' : ''}" style="width:${Math.max(1.5, (item.value / max) * 100).toFixed(2)}%;${item.color ? `--fill:${item.color}` : ''}"></span></span>
           <span class="bim-bars__value">${format(item.value)}</span>
         </button></li>`).join('')}</ul>
     </section>`;

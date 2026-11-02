@@ -391,7 +391,7 @@ ul[role="group"] ul[role="group"] .bim-node--element { padding-left: 50px; }
 .bim-bars button:hover { background: var(--bim-paper); }
 .bim-bars__label { grid-area: label; display: flex; align-items: center; gap: .4rem; overflow: hidden; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
 .bim-bars__track { grid-area: track; height: 8px; }
-.bim-bars__fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--bim-ink-2); }
+.bim-bars__fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--fill, var(--bim-ink-2)); }
 .bim-bars button:hover .bim-bars__fill { background: var(--bim-select); }
 .bim-bars__fill--other { background: #b9b5aa; }
 .bim-bars__value { grid-area: value; min-width: 4.5ch; color: var(--bim-ink); font-weight: 700; text-align: right; }

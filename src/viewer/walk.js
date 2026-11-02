@@ -15,6 +15,7 @@ export class WalkMethods {
     // placement click so it is reserved exclusively for choosing the floor.
     if (this.highlighter) this.highlighter.enabled = false;
     this.walk.mode = 'placement';
+    this.onModeChange?.({ walk: 'placement' });
     this.world.renderer.three.domElement.classList.add('ifc-place-cursor');
     this.walkHelp?.classList.remove('hidden');
     this.walkCrosshair?.classList.add('hidden');
@@ -24,6 +25,7 @@ export class WalkMethods {
   async exitWalk({ fit = true } = {}) {
     const wasWalking = this.walk.mode !== 'orbit';
     this.walk.mode = 'orbit';
+    this.onModeChange?.({ walk: 'orbit' });
     this.walk.keys.clear();
     this.walk.jumpRequested = false;
     this.walk.velocityY = 0;
@@ -102,6 +104,7 @@ export class WalkMethods {
         // the proxy prepared at load/visibility time remains in use.
         this.walk.accumulator = 0;
         this.walk.mode = 'walk';
+        this.onModeChange?.({ walk: 'walk' });
         this.walk.lastFragmentsUpdate = 0;
         // First-person view must never replace a wall/beam at the edge of the
         // canvas with a coarser or missing fragment. Keep all *visible model*

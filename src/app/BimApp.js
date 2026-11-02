@@ -304,9 +304,12 @@ export class BimApp {
     if (!this.selectionRows.length) this.sheet.render([]);
   }
 
-  onModeChange({ plan }) {
-    this.ui.planBanner.classList.toggle('hidden', !plan);
-    this.ui.planLabel.textContent = plan || '';
+  onModeChange(info) {
+    // Engine callbacks carry either the plan label or the walk mode; each one updates only its own control.
+    if ('walk' in info) this.setToolActive(info.walk === 'orbit' ? 'orbit' : 'walk');
+    if (!('plan' in info)) return;
+    this.ui.planBanner.classList.toggle('hidden', !info.plan);
+    this.ui.planLabel.textContent = info.plan || '';
     this.renderClipControls();
   }
 
