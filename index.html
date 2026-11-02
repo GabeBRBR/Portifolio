@@ -33,7 +33,27 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Phosphor Icons (versão fixa) -->
-  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script defer src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <!-- Dados estruturados para o Google -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Gabriel Biagini Almeida Reis",
+    "jobTitle": "Engenheiro Civil",
+    "description": "Engenheiro Civil (UFG) com atuação em BIM multidisciplinar, projetos estruturais, as-built com nuvem de pontos e automação com Python e Dynamo.",
+    "url": "https://gabebrbr.github.io/Portifolio/",
+    "image": "https://gabebrbr.github.io/Portifolio/assets/og-image.jpg",
+    "email": "mailto:biaginialmeida@gmail.com",
+    "telephone": "+55-62-98114-3331",
+    "address": { "@type": "PostalAddress", "addressLocality": "Goiânia", "addressRegion": "GO", "addressCountry": "BR" },
+    "alumniOf": { "@type": "CollegeOrUniversity", "name": "Universidade Federal de Goiás" },
+    "worksFor": { "@type": "Organization", "name": "AION BIM" },
+    "knowsLanguage": ["pt-BR", "en", "es"],
+    "sameAs": ["https://br.linkedin.com/in/gabriel-biagini-almeida-reis-22b450181"]
+  }
+  </script>
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
@@ -112,6 +132,7 @@
         <div class="lg:col-span-6 space-y-8">
           
           <div class="space-y-3">
+            <span class="status-pill"><span class="status-dot"></span>Na AION BIM · aberto a projetos e consultoria</span>
             <div class="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-ochre-dark">
               <span>●</span>
               <span>Engenheiro Civil · Estruturas, BIM e Infraestrutura</span>
@@ -135,13 +156,17 @@
             <a href="#contato" class="btn-outline-editorial">
               <span>Entrar em contato</span>
             </a>
+            <a href="https://br.linkedin.com/in/gabriel-biagini-almeida-reis-22b450181" target="_blank" rel="noopener noreferrer" class="btn-outline-editorial" aria-label="Perfil no LinkedIn">
+              <i class="ph-fill ph-linkedin-logo text-base" style="color:#0A66C2"></i>
+              <span>LinkedIn</span>
+            </a>
           </div>
-          
+
           <!-- Proof Strip -->
           <div class="pt-6 border-t border-border-editorial mt-8">
-            <p class="text-xs text-ink-muted font-bold uppercase tracking-wider mb-3">Onde já atuei</p>
+            <p class="text-xs text-ink-muted font-bold uppercase tracking-wider mb-3">Onde atuo e já atuei</p>
             <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-ink-secondary">
-              <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-buildings mr-1"></i> AION BIM</span>
+              <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-buildings mr-1"></i> AION BIM <span class="exp-now">Atual</span></span>
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-drop mr-1"></i> SANEAGO</span>
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-shield mr-1"></i> POLÍCIA CIVIL</span>
             </div>
@@ -154,6 +179,18 @@
           <img src="assets/foto-capacete.webp" alt="Gabriel Biagini, engenheiro civil, de capacete branco" width="1024" height="1536" fetchpriority="high" decoding="async" class="w-full h-full object-cover object-top profile-enter-anim">
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Faixa de números (todos conferem com o que está publicado abaixo) -->
+  <section class="stats-strip" aria-label="Resumo do portfólio">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <dl class="stats-grid reveal">
+        <div class="stat"><dt>14</dt><dd>projetos documentados com pranchas</dd></div>
+        <div class="stat"><dt>5</dt><dd>frentes: hidrossanitário, elétrico, estrutural, as-built e topografia</dd></div>
+        <div class="stat"><dt>3</dt><dd>modelos BIM para explorar em 3D no navegador</dd></div>
+        <div class="stat"><dt>4</dt><dd>organizações: AION BIM, Polícia Civil, Saneago e Rio Vento</dd></div>
+      </dl>
     </div>
   </section>
 
@@ -181,7 +218,7 @@
       </div>
 
       <!-- Project Plates Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="projects-grid">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 projects-collapsed" id="projects-grid">
         
         <!-- Plate 0: Visualizador BIM -->
         <div class="project-plate reveal border-2 !border-ochre/50 shadow-md bg-gradient-to-b from-surface to-surfaceSubtle col-span-1 md:col-span-2 lg:col-span-3" data-category="ifc" data-open-ifc="casa-terrea">
@@ -348,7 +385,7 @@
         </div>
 
         <!-- Plate 7: Vistas de Ambientes Hidrossanitários -->
-        <div class="project-plate reveal" data-category="bim" data-modal="modal-p7">
+        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p7">
           <div class="project-media-wrap">
             <img src="assets/images/hidro/hidro-jardim-sul-vistas-3d-sm.webp" alt="Detalhamento de Ambientes Hidrossanitários" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-07 · DETALHAMENTO</span>
@@ -368,7 +405,7 @@
         </div>
 
         <!-- Plate 8: Demarcação Chácara Senador Canedo -->
-        <div class="project-plate reveal" data-category="topografia" data-modal="modal-p8">
+        <div class="project-plate reveal is-extra" data-category="topografia" data-modal="modal-p8">
           <div class="project-media-wrap">
             <img src="assets/images/topografia/topo-senador-canedo-sm.webp" alt="Demarcação de Área Senador Canedo" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-08 · GEODÉSICA</span>
@@ -388,7 +425,7 @@
         </div>
 
         <!-- Plate 9: Pranchas Hidro Foizer Capri -->
-        <div class="project-plate reveal" data-category="bim" data-modal="modal-p9">
+        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p9">
           <div class="project-media-wrap">
             <img src="assets/images/hidro/hidro-foizer-capri-01-sm.webp" alt="Pranchas Hidrossanitárias Foizer Capri" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-09 · EXECUTIVO</span>
@@ -409,7 +446,7 @@
         </div>
 
         <!-- Plate 10 -->
-        <div class="project-plate reveal" data-category="bim" data-modal="modal-p10">
+        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p10">
           <div class="project-media-wrap">
             <img src="assets/images/hidro/hidro-casa-cleria-03-sm.webp" alt="Isométricos do barrilete da Casa Cléria" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-10 · BIM MEP</span>
@@ -430,7 +467,7 @@
         </div>
 
         <!-- Plate 11 -->
-        <div class="project-plate reveal" data-category="asbuilt" data-modal="modal-p11">
+        <div class="project-plate reveal is-extra" data-category="asbuilt" data-modal="modal-p11">
           <div class="project-media-wrap">
             <img src="assets/images/hidro/hidro-mnsd-brasilia-01-sm.webp" alt="As-built hidrossanitário da cozinha do Ministério da Saúde" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-11 · AS-BUILT</span>
@@ -451,7 +488,7 @@
         </div>
 
         <!-- Plate 12 -->
-        <div class="project-plate reveal" data-category="bim" data-modal="modal-p12">
+        <div class="project-plate reveal is-extra" data-category="bim" data-modal="modal-p12">
           <div class="project-media-wrap">
             <img src="assets/images/eletrico/eletrico-foizer-capri-01-sm.webp" alt="Pranchas elétricas do Foizer Capri" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-12 · ELÉTRICO</span>
@@ -472,7 +509,7 @@
         </div>
 
         <!-- Plate 13 -->
-        <div class="project-plate reveal" data-category="topografia" data-modal="modal-p13">
+        <div class="project-plate reveal is-extra" data-category="topografia" data-modal="modal-p13">
           <div class="project-media-wrap">
             <img src="assets/images/topografia/topo-cav-terraplenagem-sm.webp" alt="Mapa de corte e aterro do Cemitério Aldeia do Vale" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-13 · TERRAPLENAGEM</span>
@@ -493,7 +530,7 @@
         </div>
 
         <!-- Plate 14 -->
-        <div class="project-plate reveal" data-category="topografia" data-modal="modal-p14">
+        <div class="project-plate reveal is-extra" data-category="topografia" data-modal="modal-p14">
           <div class="project-media-wrap">
             <img src="assets/images/topografia/topo-felix-ap-goiania-sm.webp" alt="Levantamento planialtimétrico em Goiânia" class="project-media" loading="lazy">
             <span class="project-code-tag">PRJ-14 · TOPOGRAFIA</span>
@@ -514,13 +551,20 @@
 
       </div>
 
+      <div class="projects-more" id="projects-more">
+        <button type="button" id="projects-more-btn" class="btn-outline-editorial" aria-expanded="false" aria-controls="projects-grid">
+          <span>Ver todos os 14 projetos</span>
+          <i class="ph-bold ph-caret-down text-xs"></i>
+        </button>
+      </div>
+
     </div>
   </section>
 
   <!-- =========================================================================
        03. AUTOMAÇÕES, SCRIPTS & PROGRAMAÇÃO
        ========================================================================= -->
-  <section id="automacoes" class="py-24 bg-surface border-y border-border-editorial">
+  <section id="automacoes" class="py-24 section-dark">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
@@ -528,11 +572,11 @@
         <h2 class="section-headline">Automações, scripts e algoritmos</h2>
       </div>
 
-      <p class="text-ink-body text-base max-w-3xl mb-8 leading-relaxed">
+      <p class="dark-lead max-w-3xl mb-8 leading-relaxed">
         Soluções práticas desenvolvidas para acelerar fluxos técnicos repetitivos, automatizar parametrizações no Revit com Dynamo/Python e realizar calibrações numéricas no ABAQUS.
       </p>
 
-      <p class="font-mono text-xs text-ink-muted max-w-3xl -mt-5 mb-8">Trechos ilustrativos e simplificados, para mostrar a lógica de cada automação.</p>
+      <p class="dark-note max-w-3xl -mt-5 mb-8">Trechos ilustrativos e simplificados, para mostrar a lógica de cada automação.</p>
 
       <!-- Code Workbench -->
       <div class="code-workbench reveal max-w-5xl mx-auto">
@@ -794,9 +838,10 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <span class="dossier-index">FORMAÇÃO 05 · CANADÁ (2014–2017)</span>
             <h4 class="font-heading font-bold text-ink text-base mt-1 mb-2">St. Michael's University School (SMUS)</h4>
             <p class="text-xs sm:text-sm text-ink-body leading-relaxed mb-3">
-              Ensino médio completo em Victoria, British Columbia, no Canadá, com base sólida em ciências exatas. Inglês fluente.
+              Ensino médio completo em Victoria, British Columbia, no Canadá, com base sólida em ciências exatas. Inglês avançado e espanhol intermediário.
             </p>
-            <span class="tech-badge highlight">Inglês fluente</span>
+            <span class="tech-badge highlight">Inglês avançado</span>
+            <span class="tech-badge">Espanhol intermediário</span>
           </div>
 
         </div>
@@ -822,7 +867,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <!-- Experience 1: AION BIM -->
         <div class="exp-log-item reveal">
           <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
-            <h3 class="exp-log-company">AION BIM</h3>
+            <h3 class="exp-log-company">AION BIM <span class="exp-now">Atual</span></h3>
             <span class="font-mono text-xs text-ink-muted">Goiânia, GO</span>
           </div>
           <span class="exp-log-role">Case · Coordenação BIM e as-built</span>
@@ -947,12 +992,24 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <div class="lg:col-span-7 reveal">
           <div class="editorial-card">
             <h4 class="font-mono text-xs uppercase font-bold text-ochre-dark tracking-wider mb-4 pb-2 border-b border-border-light">
-              Ferramentas aplicadas nos projetos
+              Ferramentas e nível de domínio
             </h4>
-            <p class="text-sm text-ink-body leading-relaxed mb-4">As ferramentas aparecem junto às entregas que viabilizam: modelos compatibilizados, pranchas executivas, automações e análises numéricas.</p>
-            <div class="competency-items">
-              <span class="tech-badge">Revit</span><span class="tech-badge">AutoCAD</span><span class="tech-badge">ABAQUS</span><span class="tech-badge">Python</span><span class="tech-badge">Dynamo</span><span class="tech-badge">Civil 3D</span><span class="tech-badge">CloudCompare</span><span class="tech-badge">QGIS</span>
-            </div>
+            <ul class="skill-list">
+              <li><span>Revit</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><em>avançado</em></li>
+              <li><span>AutoCAD</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><em>avançado</em></li>
+              <li><span>Python / Dynamo</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><em>automação</em></li>
+              <li><span>IA aplicada à engenharia</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><em>avançado</em></li>
+              <li><span>Pacote Office / Excel</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><em>avançado</em></li>
+              <li><span>ABAQUS</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
+              <li><span>Eberick</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
+              <li><span>Civil 3D</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
+              <li><span>Cype 3D</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
+              <li><span>QGIS</span><span class="skill-dots"><i class="on"></i><i></i><i></i></span><em>básico</em></li>
+              <li><span>CloudCompare</span><span class="skill-dots"><i class="on"></i><i></i><i></i></span><em>básico</em></li>
+            </ul>
+            <p class="text-xs text-ink-muted leading-relaxed mt-5 pt-4 border-t border-border-light">
+              <strong class="text-ink">Idiomas:</strong> inglês avançado · espanhol intermediário. Cada ferramenta aparece nos projetos acima, junto da entrega que ela viabilizou.
+            </p>
           </div>
         </div>
 
@@ -977,7 +1034,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <!-- Left: Direct Info & Social -->
         <div class="lg:col-span-5 space-y-6 reveal">
           <h3 class="font-heading font-bold text-xl text-ink">
-            Disponível para contratação, projetos multidisciplinares e consultoria técnica.
+            Disponível para projetos multidisciplinares e consultoria técnica.
           </h3>
           <p class="text-ink-body text-sm leading-relaxed">
             Seja para o desenvolvimento de modelagens executivas em BIM, projetos estruturais, vistorias técnicas ou automação de processos de engenharia com Python/Dynamo, estou à disposição.
@@ -992,6 +1049,16 @@ def auditar_durabilidade_nbr6118(dados_viga):
               <div>
                 <span class="font-mono text-xs text-ochre-dark uppercase font-bold tracking-wider block">WhatsApp</span>
                 <p class="font-heading font-bold text-ink text-base group-hover:text-ochre-dark transition-colors">(62) 98114-3331</p>
+              </div>
+            </a>
+
+            <a href="https://br.linkedin.com/in/gabriel-biagini-almeida-reis-22b450181" target="_blank" rel="noopener noreferrer" class="editorial-card flex items-center gap-4 !p-4 group">
+              <div class="w-11 h-11 rounded flex items-center justify-center text-xl shrink-0 border" style="background:#EAF3FB;color:#0A66C2;border-color:#BFD9F1">
+                <i class="ph-fill ph-linkedin-logo"></i>
+              </div>
+              <div>
+                <span class="font-mono text-xs text-ochre-dark uppercase font-bold tracking-wider block">LinkedIn</span>
+                <p class="font-heading font-bold text-ink text-sm sm:text-base group-hover:text-ochre-dark transition-colors">Gabriel Biagini Almeida Reis</p>
               </div>
             </a>
 
@@ -1321,7 +1388,8 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <div>
           &copy; <span id="current-year">2026</span> · Todos os direitos reservados.
         </div>
-        <div>
+        <div class="flex items-center gap-4">
+          <a href="https://br.linkedin.com/in/gabriel-biagini-almeida-reis-22b450181" target="_blank" rel="noopener noreferrer" class="hover:text-ink transition-colors">LinkedIn</a>
           <a href="#hero" class="hover:text-ink transition-colors">Voltar ao topo ↑</a>
         </div>
       </div>
