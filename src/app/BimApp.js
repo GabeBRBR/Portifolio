@@ -10,7 +10,7 @@ import { OverviewView } from './OverviewView.js';
 
 const WORK_LABELS = { 'casa-terrea': 'Casa Térrea', galpao: 'Galpão Industrial', 'casa-popular': 'Casa Popular' };
 const CLIP_LABELS = [['minX', 'X mín.'], ['maxX', 'X máx.'], ['minY', 'Altura mín.'], ['maxY', 'Altura máx.'], ['minZ', 'Z mín.'], ['maxZ', 'Z máx.']];
-const FLOAT_PANELS = { color: 'bim-color-panel', explode: 'ifc-explode-panel', clip: 'ifc-clip-panel', measure: 'bim-measure-panel', views: 'bim-views-panel', settings: 'bim-settings-panel' };
+const FLOAT_PANELS = { color: 'bim-color-panel', explode: 'ifc-explode-panel', clip: 'ifc-clip-panel', measure: 'bim-measure-panel', coords: 'bim-coords-panel', views: 'bim-views-panel', settings: 'bim-settings-panel' };
 const MOBILE = window.matchMedia('(max-width: 900px)');
 
 const storage = {
@@ -190,6 +190,8 @@ export class BimApp {
     this.root.querySelectorAll('[data-std-view]').forEach((button) => button.addEventListener('click', () => void this.engine.setStandardView(button.dataset.stdView)));
     byId('bim-measure-clear').addEventListener('click', () => this.engine.clearMeasurements());
     byId('bim-measure-stop').addEventListener('click', () => { this.setMeasureMode(null); this.closePanels(); });
+    byId('bim-coords-clear').addEventListener('click', () => this.engine.clearMeasurements());
+    byId('bim-coords-stop').addEventListener('click', () => { this.setMeasureMode(null); this.closePanels(); });
 
     // Saved views
     this.ui.viewForm.addEventListener('submit', (event) => {
@@ -372,7 +374,14 @@ export class BimApp {
     if (action === 'measure') {
       const opening = document.getElementById(FLOAT_PANELS.measure).classList.contains('hidden');
       this.togglePanel('measure');
-      if (opening && !this.engine.measureMode) this.setMeasureMode('length');
+      if (opening && (!this.engine.measureMode || this.engine.measureMode === 'point')) this.setMeasureMode('length');
+      return;
+    }
+    if (action === 'coords') {
+      const opening = document.getElementById(FLOAT_PANELS.coords).classList.contains('hidden');
+      this.togglePanel('coords');
+      if (opening) this.setMeasureMode('point');
+      else this.setMeasureMode(null);
       return;
     }
     this.togglePanel(action);
@@ -390,15 +399,23 @@ export class BimApp {
     this.closePanels();
     if (opening) panel.classList.remove('hidden');
     this.root.querySelectorAll('[data-action]').forEach((button) => {
-      if (FLOAT_PANELS[button.dataset.action]) button.classList.toggle('active', opening && button.dataset.action === name || (button.dataset.action === 'measure' && Boolean(this.engine.measureMode)));
+      if (FLOAT_PANELS[button.dataset.action]) button.classList.toggle('active', opening && button.dataset.action === name || this.measureToolActive(button.dataset.action));
     });
   }
 
   closePanels() {
     Object.values(FLOAT_PANELS).forEach((id) => document.getElementById(id)?.classList.add('hidden'));
     this.root.querySelectorAll('[data-action]').forEach((button) => {
-      if (FLOAT_PANELS[button.dataset.action]) button.classList.toggle('active', button.dataset.action === 'measure' && Boolean(this.engine.measureMode));
+      if (FLOAT_PANELS[button.dataset.action]) button.classList.toggle('active', this.measureToolActive(button.dataset.action));
     });
+  }
+
+  /** The measure button owns length/angle/area; the coordinates button owns the point mode. */
+  measureToolActive(action) {
+    const mode = this.engine.measureMode;
+    if (action === 'measure') return Boolean(mode) && mode !== 'point';
+    if (action === 'coords') return mode === 'point';
+    return false;
   }
 
   renderClipControls() {
@@ -432,7 +449,8 @@ export class BimApp {
   setMeasureMode(mode) {
     void this.engine.setMeasureMode(mode);
     this.root.querySelectorAll('[data-measure]').forEach((button) => button.setAttribute('aria-checked', String(button.dataset.measure === mode)));
-    this.root.querySelector('[data-action="measure"]')?.classList.toggle('active', Boolean(mode));
+    this.root.querySelector('[data-action="measure"]')?.classList.toggle('active', Boolean(mode) && mode !== 'point');
+    this.root.querySelector('[data-action="coords"]')?.classList.toggle('active', mode === 'point');
     const help = mode === 'length'
       ? 'Clique no ponto A. Encaixes: ponto final, ponto médio, perpendicular, aresta e face.'
       : mode === 'point'

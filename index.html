@@ -1176,6 +1176,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
           </div>
           <div class="bim-toolbar__group">
             <button type="button" data-action="measure" class="bim-tool" title="Medir distância ou área"><i class="ph ph-ruler"></i><span>Medir</span></button>
+            <button type="button" data-action="coords" class="bim-tool" title="Ler as coordenadas de um ponto"><i class="ph ph-map-pin"></i><span>Coordenadas</span></button>
             <button type="button" data-action="views" class="bim-tool" title="Vistas salvas"><i class="ph ph-bookmark-simple"></i><span>Vistas</span></button>
             <button type="button" data-action="settings" class="bim-tool" title="Fundo e qualidade gráfica"><i class="ph ph-sliders-horizontal"></i><span>Ajustes</span></button>
           </div>
@@ -1208,13 +1209,20 @@ def auditar_durabilidade_nbr6118(dados_viga):
           <div class="bim-segmented" role="radiogroup" aria-label="Tipo de medição">
             <button type="button" data-measure="length" role="radio" aria-checked="false"><i class="ph ph-ruler"></i> Distância</button>
             <button type="button" data-measure="angle" role="radio" aria-checked="false"><i class="ph ph-angle"></i> Ângulo</button>
-            <button type="button" data-measure="point" role="radio" aria-checked="false"><i class="ph ph-map-pin"></i> Coordenadas</button>
             <button type="button" data-measure="area" role="radio" aria-checked="false"><i class="ph ph-polygon"></i> Área</button>
           </div>
-          <p class="bim-note"><b>Distância:</b> um clique no ponto A e outro no ponto B, com encaixe em ponto final, ponto médio, perpendicular, aresta e face. <b>Esc</b> cancela o ponto, <b>Delete</b> apaga a última medição. <b>Coordenadas:</b> um clique mostra X, Y e a cota Z do ponto e copia para a área de transferência. <b>Ângulo:</b> três cliques (ponto, vértice, ponto). <b>Área:</b> um clique por vértice, <b>Enter</b> ou clique no primeiro ponto fecha o polígono.</p>
+          <p class="bim-note"><b>Distância:</b> um clique no ponto A e outro no ponto B, com encaixe em ponto final, ponto médio, perpendicular, aresta e face. <b>Esc</b> cancela o ponto, <b>Delete</b> apaga a última medição. <b>Ângulo:</b> três cliques (ponto, vértice, ponto). <b>Área:</b> um clique por vértice, <b>Enter</b> ou clique no primeiro ponto fecha o polígono.</p>
           <div class="bim-float__actions">
             <button type="button" id="bim-measure-clear" class="bim-link-button">Apagar medições</button>
             <button type="button" id="bim-measure-stop" class="bim-link-button">Encerrar</button>
+          </div>
+        </section>
+        <section id="bim-coords-panel" class="bim-float hidden" aria-label="Coordenadas">
+          <span class="bim-float__label">Coordenadas do ponto</span>
+          <p class="bim-note">Clique em qualquer ponto do modelo para ver <b>X</b>, <b>Y</b> e a cota <b>Z</b>. Os valores são copiados para a área de transferência. Encaixa em ponto final, ponto médio, aresta e face. <b>Delete</b> apaga o último ponto.</p>
+          <div class="bim-float__actions">
+            <button type="button" id="bim-coords-clear" class="bim-link-button">Apagar pontos</button>
+            <button type="button" id="bim-coords-stop" class="bim-link-button">Encerrar</button>
           </div>
         </section>
         <section id="bim-views-panel" class="bim-float hidden" aria-label="Vistas">
