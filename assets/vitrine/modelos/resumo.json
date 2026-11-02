@@ -1,0 +1,30 @@
+{
+  "sobrado-concreto-armado": {
+    "termosSubstituidos": 0,
+    "fragMB": 0.08,
+    "areasPorPavimento": {
+      "(sem pavimento)": 241.9
+    }
+  },
+  "residencia-alto-padrao-piscina": {
+    "termosSubstituidos": 1,
+    "fragMB": 0.12,
+    "areasPorPavimento": {
+      "(sem pavimento)": 201.1
+    }
+  },
+  "residencia-alto-padrao-hidrossanitario": {
+    "termosSubstituidos": 1,
+    "fragMB": 1.55,
+    "areasPorPavimento": {
+      "(sem pavimento)": 9.4
+    }
+  },
+  "residencia-alto-padrao-eletrico": {
+    "termosSubstituidos": 1,
+    "fragMB": 0.88,
+    "areasPorPavimento": {
+      "(sem pavimento)": 0
+    }
+  }
+}
