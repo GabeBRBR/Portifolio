@@ -85,7 +85,6 @@ export class TakeoffView {
         <div class="bim-page-head__actions">
           <button type="button" class="bim-button" data-export="xlsx"><i class="ph ph-file-xls"></i>Exportar Excel</button>
           <button type="button" class="bim-button bim-button--quiet" data-export="csv"><i class="ph ph-file-csv"></i>CSV</button>
-          ${index.rows.some((row) => sinapiOf(row)) ? '<button type="button" class="bim-button bim-button--quiet" data-export="sinapi" title="Insumos e composições SINAPI com quantidades, para orçamento"><i class="ph ph-currency-circle-dollar"></i>Lista SINAPI</button>' : ''}
         </div>
       </header>
       <div class="bim-filters" role="group" aria-label="Agrupamento e filtros">
