@@ -601,7 +601,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center;
   transition: transform var(--transition-smooth);
 }
 
@@ -1142,16 +1142,6 @@ html.lenis, html.lenis body { height: auto; }
 
 .skill-dots i.on { background: var(--accent-gold); }
 
-/* Projetos: lista curta por padrão, com botão para ver todos */
-.projects-collapsed .project-plate.is-extra { display: none; }
-
-.projects-more {
-  display: flex;
-  justify-content: center;
-  margin-top: 2.5rem;
-}
-
-.projects-more.hidden { display: none !important; }
 
 /* Indica, também no toque, que o cartão abre os detalhes */
 .project-plate[data-modal] .project-plate-body::after {
@@ -1177,4 +1167,133 @@ html.lenis, html.lenis body { height: auto; }
   .skill-list { column-gap: 2rem; grid-template-columns: 1fr 1fr; }
   .skill-list li { grid-template-columns: 1fr auto; }
   .skill-list em { display: none; }
+}
+
+/* ==========================================================================
+   Nova vitrine: seções por disciplina, selo 3D e modelo 3D no modal
+   ========================================================================== */
+.vitrine-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border-editorial);
+}
+
+.vitrine-head i { font-size: 1.25rem; color: var(--accent-gold-dark); }
+
+.vitrine-head h3 {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink-primary);
+}
+
+.vitrine-head span {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.project-3d-tag {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--accent-gold);
+  color: var(--ink-primary);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 3px;
+}
+
+.project-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-gold-dark);
+  background: #FFFFFF;
+  border: 1px solid var(--accent-gold);
+  padding: 0.2rem 0.55rem;
+  border-radius: 3px;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-tabs.hidden { display: none !important; }
+
+.modal-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  background: #FFFFFF;
+  border: 1px solid var(--border-editorial);
+  border-radius: 4px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.modal-tabs button[aria-selected="true"],
+.modal-tabs button:hover {
+  background: var(--ink-primary);
+  border-color: var(--ink-primary);
+  color: #FFFFFF;
+}
+
+.modal-3d-stage {
+  position: relative;
+  width: 100%;
+  height: min(70vh, 560px);
+  background: #252E3A;
+  border: 1px solid var(--border-editorial);
+  border-radius: 4px;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.modal-3d-stage canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.modal-3d-stage canvas:active { cursor: grabbing; }
+
+.modal-3d-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #CBD5E1;
+  background: rgba(37, 46, 58, 0.92);
+  z-index: 2;
+}
+
+.modal-3d-status.hidden { display: none !important; }
+
+.modal-3d-hint {
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
 }
