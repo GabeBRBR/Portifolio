@@ -21,8 +21,24 @@ npm run build:css         # regenera o tailwind.css (rode depois de mudar classe
 ## Estilos e imagens do portfólio
 
 - **CSS:** `style.css` guarda os componentes do portfólio e `tailwind.css` os utilitários do Tailwind. O `tailwind.css` é gerado (não edite à mão) por `npm run build:css`, que lê `tailwind.config.cjs` e as classes usadas em `index.html`, `script.js` e `src/`. Sempre que usar uma classe Tailwind nova, rode o comando e faça commit do arquivo gerado.
-- **Imagens dos projetos:** cada prancha tem duas versões WebP em `assets/images/<disciplina>/`: `nome.webp` (completa, usada no modal) e `nome-sm.webp` (900 px, usada no card). Os JPGs originais continuam na pasta e podem ser apagados quando quiser.
-- **Novo projeto:** copie um card `project-plate` do `index.html` (troque o `data-modal`) e acrescente a entrada correspondente em `projectDetails` no `script.js`, com a lista `images` (a galeria do modal usa essa lista, com legenda por imagem).
+- **Vitrine de projetos:** os cards e o modal são gerados em `script.js` a partir de `assets/vitrine/projetos.json` (obras agrupadas por disciplina). Cada obra tem pranchas em `assets/vitrine/<disciplina>/<obra>/NN.webp`, uma `capa.webp` e, quando há IFC, um modelo 3D simples em `assets/vitrine/modelos/<obra>.frag` (`src/vitrine/MiniViewer.js`: só gira e dá zoom, carregado quando a pessoa abre a aba "Modelo 3D").
+
+## Pipeline da vitrine (`scripts/vitrine/`)
+
+Os PDFs e IFCs originais **não entram no repositório**: ficam numa pasta local (`PORTIFOLIO_FONTE`, padrão `DesktopNOVAS MIDiAS PORTIFOLIO`) e só as saídas anonimizadas são versionadas.
+
+```bash
+node scripts/vitrine/render-sheets.mjs        # PDFs -> WebP, cobre carimbos e textos sensíveis
+node scripts/vitrine/processar-imagens.mjs    # JPG/PNG já exportados -> WebP anonimizado
+node scripts/vitrine/convert-modelos.mjs      # IFC -> .frag (só geometria, nomes removidos)
+node scripts/vitrine/build-manifest.mjs       # capas + assets/vitrine/projetos.json
+node scripts/vitrine/verificar-texto.mjs      # texto que sobrou fora das áreas cobertas
+```
+
+- `obras.mjs` é o catálogo: tipo de obra (sem nome de cliente), retângulos de redação por obra, lista `BLOQUEIO` de termos proibidos, metragens aproximadas (`AREAS`) e IFCs (`MODELOS`).
+- Depois de rodar, confira as imagens: `folha-contato.mjs` e `folha-cantos.mjs` montam folhas de revisão. Nada deve ser publicado sem essa leitura.
+- Os relatórios (`scripts/vitrine/relatorios/`) citam os nomes dos arquivos de origem e por isso ficam fora do git e do site.
+- Para uma obra nova, acrescente-a em `obras.mjs`, rode os scripts e revise as imagens.
 
 ## Estrutura do visualizador
 
