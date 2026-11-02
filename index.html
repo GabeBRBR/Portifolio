@@ -1131,6 +1131,9 @@ def auditar_durabilidade_nbr6118(dados_viga):
       <div class="bim-topbar__actions">
         <label class="bim-button bim-button--accent" for="ifc-file-input"><i class="ph-bold ph-upload-simple"></i><span>Abrir IFC</span></label>
         <input id="ifc-file-input" type="file" multiple accept=".ifc,.IFC" hidden>
+        <button id="bim-shortcuts-btn" class="bim-icon-button" type="button" aria-label="Atalhos de teclado" title="Atalhos de teclado (?)"><i class="ph ph-keyboard"></i></button>
+        <button id="bim-toggle-navigator" class="bim-icon-button" type="button" data-panel-toggle="navigator" aria-pressed="true" aria-label="Mostrar navegador do projeto" title="Navegador do projeto"><i class="ph ph-sidebar-simple"></i></button>
+        <button id="bim-toggle-sheet" class="bim-icon-button" type="button" data-panel-toggle="sheet" aria-pressed="true" aria-label="Mostrar propriedades do elemento" title="Propriedades do elemento"><i class="ph ph-sidebar-simple bim-flip"></i></button>
         <button id="ifc-benchmark-copy-btn" class="bim-icon-button" type="button" aria-label="Copiar medição de desempenho" title="Copiar medição de desempenho"><i class="ph ph-gauge"></i></button>
         <button id="ifc-fullscreen-btn" class="bim-icon-button" type="button" aria-label="Tela cheia" title="Tela cheia"><i class="ph ph-corners-out"></i></button>
         <button id="ifc-close-btn" class="bim-icon-button" type="button" aria-label="Fechar visualizador" title="Fechar"><i class="ph ph-x"></i></button>
@@ -1157,13 +1160,34 @@ def auditar_durabilidade_nbr6118(dados_viga):
         <div id="bim-measure-help" class="bim-walk-help hidden"></div>
         <div id="bim-legend" class="bim-legend hidden" aria-label="Legenda de cores"></div>
 
+        <div id="bim-hover-tip" class="bim-hover-tip hidden" role="tooltip"></div>
+        <div id="bim-context-menu" class="bim-context-menu hidden" role="menu" aria-label="Ações do elemento"></div>
+        <section id="bim-shortcuts" class="bim-float bim-shortcuts hidden" aria-label="Atalhos de teclado">
+          <div class="bim-float__head"><span>Atalhos de teclado</span><button type="button" class="bim-link-button" data-shortcuts-close>Fechar</button></div>
+          <dl class="bim-shortcuts__list">
+            <div><dt><kbd>F</kbd></dt><dd>Enquadrar tudo</dd></div>
+            <div><dt><kbd>I</kbd></dt><dd>Isolar a seleção</dd></div>
+            <div><dt><kbd>H</kbd></dt><dd>Ocultar a seleção</dd></div>
+            <div><dt><kbd>U</kbd></dt><dd>Mostrar tudo</dd></div>
+            <div><dt><kbd>Esc</kbd></dt><dd>Limpar seleção</dd></div>
+            <div><dt><kbd>Ctrl</kbd> + clique</dt><dd>Somar à seleção</dd></div>
+            <div><dt><kbd>?</kbd></dt><dd>Mostrar ou ocultar esta lista</dd></div>
+          </dl>
+        </section>
+        <div id="bim-viewcube" class="bim-viewcube" title="Cubo de navegação: clique em uma face, aresta ou canto"></div>
+        <nav class="bim-navbar" aria-label="Navegação do modelo">
+          <button type="button" data-action="orbit" class="bim-tool bim-tool--icon active" title="Órbita"><i class="ph ph-arrows-clockwise"></i><span class="bim-visually-hidden">Órbita</span></button>
+          <button type="button" data-action="walk" class="bim-tool bim-tool--icon bim-walk-only" title="Caminhar em primeira pessoa"><i class="ph ph-person-simple-walk"></i><span class="bim-visually-hidden">Caminhar</span></button>
+          <button type="button" data-action="fit" class="bim-tool bim-tool--icon" title="Enquadrar tudo"><i class="ph ph-frame-corners"></i><span class="bim-visually-hidden">Enquadrar</span></button>
+        </nav>
+
         <div class="bim-stage__drawers">
           <button type="button" class="bim-drawer-toggle" data-drawer="navigator"><i class="ph ph-tree-structure"></i><span>Navegador</span></button>
           <button type="button" class="bim-drawer-toggle" data-drawer="sheet"><i class="ph ph-identification-card"></i><span>Elemento</span></button>
         </div>
 
         <div class="bim-toolbar" role="toolbar" aria-label="Ferramentas do modelo">
-          <div class="bim-toolbar__group">
+          <div class="bim-toolbar__group bim-toolbar__group--mobile-nav">
             <button type="button" data-action="orbit" class="bim-tool active" title="Órbita"><i class="ph ph-arrows-clockwise"></i><span>Órbita</span></button>
             <button type="button" data-action="walk" class="bim-tool bim-walk-only" title="Caminhar em primeira pessoa"><i class="ph ph-person-simple-walk"></i><span>Caminhar</span></button>
             <button type="button" data-action="fit" class="bim-tool" title="Enquadrar tudo"><i class="ph ph-frame-corners"></i><span>Enquadrar</span></button>

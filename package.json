@@ -8,7 +8,8 @@
     "build": "vite build && node scripts/copy-assets.mjs",
     "preview": "vite preview",
     "build:css": "npx --yes tailwindcss@3.4.17 -c tailwind.config.cjs -i tailwind-input.css -o tailwind.css --minify",
-    "convert:fragments": "node scripts/convert-ifc-to-fragments.mjs"
+    "convert:fragments": "node scripts/convert-ifc-to-fragments.mjs",
+    "test": "node --test \"tests/*.test.mjs\""
   },
   "dependencies": {
     "@thatopen/components": "3.4.8",
