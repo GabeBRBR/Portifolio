@@ -456,9 +456,9 @@ details.bim-props > summary small { margin-left: .4rem; color: var(--bim-muted);
 .bim-standard-views button:hover { border-color: var(--bim-accent); }
 
 /* Snap marker shapes: end = square, mid = triangle, perp = right angle, edge = diamond, face = circle. */
-.bim-snap-marker[data-shape="end"]::before { border-radius: 0; }
-.bim-snap-marker[data-shape="mid"]::before { border: 0; background: #d99a00; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
-.bim-snap-marker[data-shape="perp"]::before { border-width: 0 0 3px 3px; background: transparent; left: -8px; top: -8px; }
+.bim-snap-marker[data-shape="end"]::before { border-radius: 0; border-color: #4db8ff; background: rgba(77, 184, 255, .22); }
+.bim-snap-marker[data-shape="mid"]::before { width: 18px; height: 18px; left: -9px; top: -9px; border: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20d%3D'M8%202%20L14.5%2014%20H1.5%20Z'%20fill%3D'rgba(77%2C184%2C255%2C.22)'%20stroke%3D'%234db8ff'%20stroke-width%3D'2'%20stroke-linejoin%3D'round'%2F%3E%3C%2Fsvg%3E") center / contain no-repeat; }
+.bim-snap-marker[data-shape="perp"]::before { width: 18px; height: 18px; left: -9px; top: -9px; border: 0; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20d%3D'M2%2014%20H14%20M8%2014%20V2%20M8%2010%20H12%20V14'%20fill%3D'none'%20stroke%3D'%234db8ff'%20stroke-width%3D'2'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%2F%3E%3C%2Fsvg%3E") center / contain no-repeat; }
 .bim-snap-marker::after { content: attr(data-label); position: absolute; left: 12px; top: 8px; padding: 1px 6px; border-radius: 4px; background: rgba(20, 32, 46, .92); color: #fff; font-size: 11px; white-space: nowrap; }
 
 .bim-tool--icon { min-width: 44px; }

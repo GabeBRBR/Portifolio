@@ -1,6 +1,7 @@
 import * as OBC from '@thatopen/components';
 import * as OBCF from '@thatopen/components-front';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 import { LodMode, RenderedFaces } from '@thatopen/fragments';
@@ -64,6 +65,7 @@ export class ViewerEngine {
     this.clipPlanes = [];
     this.explodedGroup = null;
     this.explodedElements = [];
+    this.explodedLevels = 0;
     this.explosionBuildPromise = null;
     this.explosionBuildVersion = 0;
     this.collisionDebugEnabled = false;
@@ -414,16 +416,19 @@ export class ViewerEngine {
     return materials;
   }
 
+  /**
+   * Explosion by storey: element geometry is baked into world space and merged
+   * per storey and material, so a level is a handful of meshes (not thousands)
+   * and the slider only moves those groups vertically.
+   */
   async buildExplodedView() {
     if (this.explodedElements.length) return this.explodedElements;
     if (this.explosionBuildPromise) return this.explosionBuildPromise;
     const version = ++this.explosionBuildVersion;
     this.explosionBuildPromise = (async () => {
-      this.setLoading(true, 'Preparando explosão por elementos IFC…', 0);
-      const group = new THREE.Group();
-      group.name = 'Explosão por elementos IFC';
-      const elements = [];
+      this.setLoading(true, 'Preparando explosão por pavimento…', 0);
       const records = [...this.modelRecords.values()].filter((record) => record.visible);
+      const items = [];
       let completed = 0;
       for (const record of records) {
         const model = this.fragments?.list.get(record.id);
@@ -434,48 +439,78 @@ export class ViewerEngine {
           this.getExplosionMaterials(model, itemIds)
         ]);
         model.object.updateWorldMatrix(true, true);
+        const fallback = new THREE.MeshStandardMaterial({ color: '#b7b1a6', roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
         for (let itemIndex = 0; itemIndex < meshGroups.length; itemIndex += 1) {
           const meshes = meshGroups[itemIndex];
           if (!meshes?.length) continue;
-          let material = materialSet.get(itemIds[itemIndex]);
-          if (!material) {
-            material = new THREE.MeshStandardMaterial({ color: '#b7b1a6', roughness: 0.74, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: this.clipPlanes });
-            materialSet.set(itemIds[itemIndex], material);
-          }
-          const element = new THREE.Group();
-          element.name = `IFC ${itemIds[itemIndex]}`;
-          element.applyMatrix4(model.object.matrixWorld);
+          const material = materialSet.get(itemIds[itemIndex]) || fallback;
+          const parts = [];
+          const box = new THREE.Box3();
           for (const meshData of meshes) {
             if (!meshData.positions?.length) continue;
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(meshData.positions), 3));
-            if (meshData.indices?.length) geometry.setIndex(new THREE.BufferAttribute(meshData.indices, 1));
+            if (meshData.indices?.length) geometry.setIndex(new THREE.BufferAttribute(Uint32Array.from(meshData.indices), 1));
+            else geometry.setIndex(Array.from({ length: meshData.positions.length / 3 }, (_, i) => i));
             geometry.computeVertexNormals();
-            const piece = new THREE.Mesh(geometry, material);
             const transform = meshData.transform?.isMatrix4
               ? meshData.transform
               : new THREE.Matrix4().fromArray(meshData.transform?.elements || meshData.transform || []);
-            piece.applyMatrix4(transform);
-            element.add(piece);
+            geometry.applyMatrix4(new THREE.Matrix4().multiplyMatrices(model.object.matrixWorld, transform));
+            geometry.computeBoundingBox();
+            box.union(geometry.boundingBox);
+            parts.push(geometry);
           }
-          if (!element.children.length) continue;
-          group.add(element);
-          element.updateWorldMatrix(true, true);
-          const box = new THREE.Box3().setFromObject(element);
-          if (box.isEmpty()) continue;
-          elements.push({ element, basePosition: element.position.clone(), center: box.getCenter(new THREE.Vector3()), record });
+          if (!parts.length || box.isEmpty()) continue;
+          const row = this.bimIndex.get(record.id, itemIds[itemIndex]);
+          items.push({ storey: row && row.storey !== 'Sem pavimento' ? row.storey : null, y: (box.min.y + box.max.y) / 2, material, parts });
         }
         completed += 1;
-        this.setLoading(true, `Preparando explosão por elementos IFC…`, Math.round((completed / records.length) * 100));
+        this.setLoading(true, 'Preparando explosão por pavimento…', Math.round((completed / records.length) * 100));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
       if (version !== this.explosionBuildVersion) {
-        group.traverse((object) => object.geometry?.dispose?.());
+        items.forEach((item) => item.parts.forEach((geometry) => geometry.dispose()));
         return [];
       }
+      // Level height = median element height of the storey; loose elements join the nearest level.
+      const byStorey = new Map();
+      items.forEach((item) => { if (item.storey) (byStorey.get(item.storey) || byStorey.set(item.storey, []).get(item.storey)).push(item.y); });
+      const levels = [...byStorey].map(([name, ys]) => ({ name, y: ys.sort((p, q) => p - q)[Math.floor(ys.length / 2)] })).sort((p, q) => p.y - q.y);
+      if (!levels.length) levels.push({ name: 'Modelo', y: 0 });
+      // Reference levels closer than 60 cm (viga, barrilete…) share one explosion step.
+      let step = 0;
+      levels.forEach((level, index) => {
+        if (index && level.y - levels[index - 1].y > 0.6) step += 1;
+        level.step = step;
+      });
+      const levelOf = (item) => item.storey
+        ? levels.find((level) => level.name === item.storey).step
+        : levels.reduce((best, level) => (Math.abs(level.y - item.y) < Math.abs(best.y - item.y) ? level : best), levels[0]).step;
+      const buckets = new Map();
+      items.forEach((item) => {
+        const rank = levelOf(item);
+        const key = `${rank}|${item.material.uuid}`;
+        const bucket = buckets.get(key) || buckets.set(key, { rank, material: item.material, geometries: [] }).get(key);
+        bucket.geometries.push(...item.parts);
+      });
+      const group = new THREE.Group();
+      group.name = 'Explosão por pavimento';
+      const elements = [];
+      buckets.forEach((bucket) => {
+        const merged = bucket.geometries.length === 1 ? bucket.geometries[0] : mergeGeometries(bucket.geometries, false);
+        if (bucket.geometries.length > 1) bucket.geometries.forEach((geometry) => geometry.dispose());
+        if (!merged) return;
+        const mesh = new THREE.Mesh(merged, bucket.material);
+        mesh.name = `Pavimento ${bucket.rank}`;
+        group.add(mesh);
+        elements.push({ element: mesh, rank: bucket.rank });
+      });
       this.world.scene.three.add(group);
       group.visible = false;
       this.explodedGroup = group;
       this.explodedElements = elements;
+      this.explodedLevels = step + 1;
       return elements;
     })();
     try {
@@ -518,14 +553,8 @@ export class ViewerEngine {
       if (this.walk.mode !== 'orbit') await this.exitWalk({ fit: false });
       const elements = await this.buildExplodedView();
       if (!elements.length || this.explodeDistance !== nextDistance) return;
-      const center = elements.reduce((sum, entry) => sum.add(entry.center), new THREE.Vector3()).multiplyScalar(1 / elements.length);
-      elements.forEach((entry, index) => {
-        const direction = entry.center.clone().sub(center);
-        if (direction.lengthSq() < 1e-7) {
-          const angle = (index / elements.length) * Math.PI * 2;
-          direction.set(Math.cos(angle), 0, Math.sin(angle));
-        } else direction.normalize();
-        entry.element.position.copy(entry.basePosition).addScaledVector(direction, nextDistance);
+      elements.forEach((entry) => {
+        entry.element.position.y = entry.rank * nextDistance;
         entry.element.updateMatrix();
       });
       this.modelRecords.forEach((record, id) => {
@@ -534,7 +563,7 @@ export class ViewerEngine {
       });
       this.explodedGroup.visible = true;
       this.world.renderer.needsUpdate = true;
-      this.showStatus(`Explosão por ${elements.length} elementos IFC ativa. Retorne a 0,0 m para reativar seleção e caminhada.`);
+      this.showStatus(`Explosão por ${this.explodedLevels} pavimentos ativa. Retorne a 0,0 m para reativar seleção e caminhada.`);
     } catch (error) {
       console.error('Falha ao preparar a explosão IFC:', error);
       this.explodeDistance = 0;

@@ -7,7 +7,8 @@ const CLOSE_PX = 12;
 const SNAP_SHAPES = { [SnappingClass.POINT]: 'end', [SnappingClass.LINE]: 'line', [SnappingClass.FACE]: 'face' };
 const SNAP_NAMES = { end: 'Ponto final', mid: 'Ponto médio', perp: 'Perpendicular', line: 'Aresta', face: 'Face' };
 // Screen distance (px) within which an edge hit is pulled to its midpoint or perpendicular foot.
-const EDGE_SNAP_PX = { mid: 14, perp: 32 };
+const SNAP_RADIUS_PX = { end: 18, mid: 18, perp: 26, line: 8 };
+const SNAP_WEIGHT = { end: 0.7, mid: 0.8, perp: 0.9, line: 1.2 };
 const meters = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const degrees = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -137,7 +138,7 @@ export class MeasureTool {
     ]).catch(() => null);
     if (!hit?.point) return null;
     const result = { point: hit.point.clone(), shape: SNAP_SHAPES[hit.snappingClass] || 'face', x: event.clientX - rect.left, y: event.clientY - rect.top };
-    if (result.shape === 'line' && hit.snappedEdgeP1 && hit.snappedEdgeP2) this.refineEdgeSnap(result, hit.snappedEdgeP1, hit.snappedEdgeP2, rect);
+    if (result.shape !== 'end') this.refineSnap(result, hit, rect);
     return result;
   }
 
@@ -146,29 +147,54 @@ export class MeasureTool {
     return { x: ((projected.x + 1) / 2) * rect.width, y: ((1 - projected.y) / 2) * rect.height };
   }
 
-  /** On an edge: midpoint and the perpendicular foot from the previous point win over a plain edge snap when the cursor is close to them. */
-  refineEdgeSnap(result, p1, p2, rect) {
-    const a = new THREE.Vector3(p1.x, p1.y, p1.z);
-    const b = new THREE.Vector3(p2.x, p2.y, p2.z);
-    const candidates = [{ shape: 'mid', point: a.clone().add(b).multiplyScalar(0.5) }];
-    if (this.start && this.mode === 'length') {
-      const edge = b.clone().sub(a);
-      const t = edge.lengthSq() ? this.start.clone().sub(a).dot(edge) / edge.lengthSq() : -1;
-      if (t > 0.001 && t < 0.999) candidates.push({ shape: 'perp', point: a.clone().addScaledVector(edge, t) });
+  /**
+   * Magnetic snaps around a surface or edge hit: the cursor can be anywhere on
+   * the surface, but endpoints, midpoints and perpendicular feet pull harder
+   * (larger screen radius) than a plain edge, which pulls harder than the face.
+   */
+  refineSnap(result, hit, rect) {
+    const vertices = [];
+    const segments = [];
+    const vec = (x, y, z) => new THREE.Vector3(x, y, z);
+    if (hit.snappedEdgeP1 && hit.snappedEdgeP2) {
+      const a = vec(hit.snappedEdgeP1.x, hit.snappedEdgeP1.y, hit.snappedEdgeP1.z);
+      const b = vec(hit.snappedEdgeP2.x, hit.snappedEdgeP2.y, hit.snappedEdgeP2.z);
+      vertices.push(a, b);
+      segments.push([a, b]);
+    } else if (hit.facePoints?.length >= 9) {
+      const f = hit.facePoints;
+      const count = Math.floor(f.length / 3);
+      for (let i = 0; i < count; i += 1) vertices.push(vec(f[i * 3], f[i * 3 + 1], f[i * 3 + 2]));
+      for (let i = 0; i < count; i += 1) segments.push([vertices[i], vertices[(i + 1) % count]]);
     }
+    if (!segments.length) return;
+    const candidates = vertices.map((point) => ({ shape: 'end', point }));
+    segments.forEach(([a, b]) => {
+      candidates.push({ shape: 'mid', point: a.clone().add(b).multiplyScalar(0.5) });
+      const edge = b.clone().sub(a);
+      const lengthSq = edge.lengthSq();
+      if (!lengthSq) return;
+      if (this.start && this.mode === 'length') {
+        const t = this.start.clone().sub(a).dot(edge) / lengthSq;
+        if (t > 0.001 && t < 0.999) candidates.push({ shape: 'perp', point: a.clone().addScaledVector(edge, t) });
+      }
+      // Plain edge: closest point on the segment to the surface hit.
+      const u = Math.min(1, Math.max(0, result.point.clone().sub(a).dot(edge) / lengthSq));
+      candidates.push({ shape: 'line', point: a.clone().addScaledVector(edge, u) });
+    });
     let best = null;
     candidates.forEach((candidate) => {
       const screen = this.toScreen(candidate.point, rect);
       const distance = Math.hypot(screen.x - result.x, screen.y - result.y);
-      // Midpoint wins ties: it is the more specific intent when both are near.
-      if (distance <= EDGE_SNAP_PX[candidate.shape] && (!best || distance < best.distance - 4 || (candidate.shape === 'mid' && distance <= best.distance + 4))) best = { ...candidate, distance, screen };
+      if (distance > SNAP_RADIUS_PX[candidate.shape]) return;
+      const score = distance * SNAP_WEIGHT[candidate.shape];
+      if (!best || score < best.score) best = { ...candidate, score, screen };
     });
-    if (best) {
-      result.point = best.point;
-      result.shape = best.shape;
-      result.x = best.screen.x;
-      result.y = best.screen.y;
-    }
+    if (!best) return;
+    result.point = best.point;
+    result.shape = best.shape;
+    result.x = best.screen.x;
+    result.y = best.screen.y;
   }
 
   async handleMove(event) {
