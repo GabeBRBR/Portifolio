@@ -193,7 +193,8 @@ export const MODELOS = [
   { id: 'sobrado-concreto-armado', obra: 'sobrado-concreto-armado', disciplina: 'estrutural', fonte: '1 - Estrutural/casa foizer/AION-FOIZER-CAPRI-EST-R02.IFC' },
   { id: 'residencia-alto-padrao-piscina', obra: 'residencia-alto-padrao-piscina', disciplina: 'estrutural', fonte: '1 - Estrutural/casa paula/AION-GM_BIM-JD_SUL_60-EST-R06.IFC' },
   { id: 'residencia-alto-padrao-hidrossanitario', obra: 'residencia-alto-padrao-hidrossanitario', disciplina: 'hidrossanitario', fonte: '2 - Hidrossanitario/casa paula/AION-GM_BIM-JD_SUL_60-HID-R07.ifc' },
-  { id: 'residencia-alto-padrao-eletrico', obra: 'residencia-alto-padrao-eletrico', disciplina: 'eletrico', fonte: '3 - Eletrico/casa paula/AION-GM_BIM-JD_SUL_60-ELE-R04.ifc' }
+  { id: 'residencia-alto-padrao-eletrico', obra: 'residencia-alto-padrao-eletrico', disciplina: 'eletrico', fonte: '3 - Eletrico/casa paula/AION-GM_BIM-JD_SUL_60-ELE-R04.ifc' },
+  { id: 'edificacao-publica-ppci', obra: 'edificacao-publica-ppci', disciplina: 'incendio', fonte: '9 - Incendio/AION-PAB-PPCI-R00.ifc' }
 ];
 
 /** Ordem e rótulos das seções da vitrine. */

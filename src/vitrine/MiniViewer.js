@@ -72,7 +72,7 @@ export class MiniViewer {
 
   /**
    * Caixa que ignora elementos isolados muito longe do resto (comuns em exportações do Revit):
-   * usa a faixa de 3% a 97% dos centros e a une às caixas desses elementos.
+   * usa a faixa de 0,5% a 99,5% dos centros e a une às caixas desses elementos.
    */
   robustBox(caixas) {
     const caixa = new THREE.Box3();
@@ -80,7 +80,7 @@ export class MiniViewer {
     const centros = caixas.map((b) => b.getCenter(new THREE.Vector3()));
     const faixa = (eixo) => {
       const v = centros.map((c) => c[eixo]).sort((x, y) => x - y);
-      return [v[Math.floor((v.length - 1) * 0.03)], v[Math.ceil((v.length - 1) * 0.97)]];
+      return [v[Math.floor((v.length - 1) * 0.005)], v[Math.ceil((v.length - 1) * 0.995)]];
     };
     const [x0, x1] = faixa('x'); const [y0, y1] = faixa('y'); const [z0, z1] = faixa('z');
     caixas.forEach((b, i) => {
@@ -93,7 +93,7 @@ export class MiniViewer {
   frame(caixa) {
     const centro = caixa.getCenter(new THREE.Vector3());
     const raio = Math.max(caixa.getSize(new THREE.Vector3()).length() / 2, 1);
-    const distancia = raio / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2)) * 0.95;
+    const distancia = raio / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2)) * 1.05;
     this.camera.near = Math.max(raio / 200, 0.05);
     this.camera.far = distancia * 20;
     this.camera.updateProjectionMatrix();
