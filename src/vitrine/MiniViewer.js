@@ -4,7 +4,7 @@ import { FragmentsModels } from '@thatopen/fragments';
 import fragmentsWorkerUrl from '@thatopen/fragments/worker?url';
 
 /**
- * Visualizador 3D mínimo dos cards da vitrine: só gira e dá zoom.
+ * Visualizador 3D mínimo dos cards da vitrine: gira, move (pan) e dá zoom.
  *
  * Usa three + Fragments direto (sem @thatopen/components), carrega um único
  * modelo geométrico (.frag) e desenha sob demanda, sem laço contínuo.
@@ -25,7 +25,9 @@ export class MiniViewer {
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enablePan = false;
+    this.controls.enablePan = true;
+    this.controls.screenSpacePanning = true;
+    this.controls.panSpeed = 0.9;
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.12;
     this.controls.addEventListener('change', () => this.invalidate());
@@ -44,6 +46,18 @@ export class MiniViewer {
   }
 
   invalidate() { this.dirty = true; }
+
+  /**
+   * "rotate": arrastar gira (botão direito, Shift ou dois dedos movem).
+   * "pan": arrastar move a vista (útil no trackpad e no toque, sem botão direito).
+   */
+  setMode(mode) {
+    const mover = mode === 'pan';
+    this.controls.mouseButtons.LEFT = mover ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
+    this.controls.mouseButtons.RIGHT = mover ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN;
+    this.controls.touches.ONE = mover ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
+    this.controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+  }
 
   resize() {
     const { clientWidth: w, clientHeight: h } = this.container;
