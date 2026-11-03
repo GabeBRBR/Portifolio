@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="project-media-wrap">
         <img src="${p.capa}" alt="${escapeText(`${disciplina.nome}: ${p.tipo}`)}" class="project-media" loading="lazy" decoding="async">
         <span class="project-code-tag">${escapeText(disciplina.nome.toUpperCase())}</span>
-        ${p.modelo ? '<span class="project-3d-tag"><i class="ph-bold ph-cube"></i> 3D</span>' : ''}
+        ${p.modelo ? '<span class="project-3d-tag"><i class="ph-bold ph-cube"></i> Modelo 3D</span>' : ''}
         <span class="project-count-tag"><i class="ph-bold ph-images"></i> ${p.imagens.length}</span>
       </div>
       <div class="project-plate-body">
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (p.conteudo.length) destaques.push(`Conteúdo: ${p.conteudo.join(', ').toLowerCase()}.`);
       destaques.push(`${p.imagens.length} ${p.imagens.length > 1 ? 'pranchas publicadas' : 'prancha publicada'}, com carimbo e dados do cliente omitidos.`);
       if (p.area) destaques.push(`Metragem aproximada de ${p.area.valor} m², obtida a partir de ${p.area.base}.`);
-      if (p.modelo) destaques.push('Modelo 3D simples: arraste para girar e role para ampliar.');
+      if (p.modelo) destaques.push('Modelo 3D simples: arraste para girar e role para ampliar. As pranchas ficam na outra aba.');
       projectDetails[p.id] = {
         title: p.tipo, sub: disciplina.nome, desc: p.resumo, highlights: destaques, techs: p.ferramentas,
         images: p.imagens.map((i) => ({ src: i.src, caption: i.caption })), modelo: p.modelo
@@ -212,7 +212,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     currentModelUrl = data.modelo || null;
     modalTabs.classList.toggle('hidden', !currentModelUrl);
-    setModalTab('pranchas');
+    // Obras com modelo abrem direto no 3D; as pranchas ficam na outra aba
+    setModalTab(currentModelUrl ? 'modelo' : 'pranchas');
 
     projectModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
