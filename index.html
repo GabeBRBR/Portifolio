@@ -279,7 +279,10 @@
         <!-- Workbench Header -->
         <div class="code-workbench-header">
           <div class="flex items-center gap-2 overflow-x-auto py-1">
-            <button class="code-tab active" data-tab="tab-dynamo">
+            <button class="code-tab active" data-tab="tab-plugins">
+              <i class="ph-bold ph-puzzle-piece text-ochre-dark mr-1"></i> Plugins Revit
+            </button>
+            <button class="code-tab" data-tab="tab-dynamo">
               <i class="ph-bold ph-code text-ochre-dark mr-1"></i> Revit_Parametrizacao.py
             </button>
             <button class="code-tab" data-tab="tab-abaqus">
@@ -293,14 +296,22 @@
             </button>
           </div>
 
-          <button id="copy-code-btn" class="btn-code-copy" title="Copiar código">
+          <button id="copy-code-btn" class="btn-code-copy hidden" title="Copiar código">
             <i class="ph-bold ph-copy"></i>
             <span>Copiar</span>
           </button>
         </div>
 
+        <!-- Tab 0: plugins pyRevit (gerada de assets/plugins/plugins.json) -->
+        <div id="tab-plugins" class="code-tab-content active plugins-panel">
+          <p class="plugins-intro">Extensão própria para o Revit, feita em Python com pyRevit. Os ícones abaixo são os dos botões reais da faixa de opções.</p>
+          <div id="plugins-tabs" class="plugins-tabs" role="tablist" aria-label="Abas da extensão"></div>
+          <p id="plugins-resumo" class="plugins-resumo"></p>
+          <div id="plugins-grid" class="plugins-grid"></div>
+        </div>
+
         <!-- Tab 1: Dynamo / Revit Python -->
-        <div id="tab-dynamo" class="code-tab-content active code-display">
+        <div id="tab-dynamo" class="code-tab-content hidden code-display">
           <pre><code class="language-python"># -*- coding: utf-8 -*-
 """
 AUTOMAÇÃO BIM: Parametrização em Lote e Extração de Quantitativos no Revit

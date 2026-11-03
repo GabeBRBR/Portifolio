@@ -1,0 +1,205 @@
+{
+ "abas": [
+  {
+   "id": "geral",
+   "nome": "Documentação e dados",
+   "resumo": "Parâmetros, tabelas, quantitativos, cotas, tags, vistas e pranchas em lote.",
+   "ferramentas": [
+    {
+     "nome": "Adicionar Parâmetro",
+     "descricao": "Selecione um elemento que já tenha o parâmetro desejado. Depois escolha esse parâmetro e as famílias que devem recebê-lo, agrupadas por categoria ou a partir de elemento…",
+     "icone": "assets/plugins/geral/adicionar-parametro.png"
+    },
+    {
+     "nome": "Buscar e Substituir",
+     "descricao": "Localiza textos nativos nas vistas e folhas, inclusive vistas colocadas em folhas e textos de vínculos.",
+     "icone": "assets/plugins/geral/buscar-e-substituir.png"
+    },
+    {
+     "nome": "DWG para Textos",
+     "descricao": "Selecione um DWG importado ou vinculado e converta TEXT, MTEXT e atributos do Model Space em textos nativos do Revit na vista ativa.",
+     "icone": "assets/plugins/geral/converter-texto-dwg.png"
+    },
+    {
+     "nome": "Criar Tipos de Janelas",
+     "descricao": "Lê dimensões da coluna A de um Excel e cria novos tipos de janela a partir de um tipo base, definindo largura e altura em centímetros.",
+     "icone": "assets/plugins/geral/duplicar-esquadrias.png"
+    },
+    {
+     "nome": "Organizar Tabelas",
+     "descricao": "Coloca schedules na prancha ativa ou reorganiza os já existentes: iguala a largura à da tabela mais larga (ou usa larguras manuais) e empilha as tabelas de cima para bai…",
+     "icone": "assets/plugins/geral/organizar-tabelas.png"
+    },
+    {
+     "nome": "Quantitativos Consolidados",
+     "descricao": "Lê o nome e a quantidade (com unidade) de várias schedules e desenha tabelas estáticas em vistas de desenho (draft views), com o estilo de uma schedule modelo (textos, l…",
+     "icone": "assets/plugins/geral/quantitativos-consolidados.png"
+    },
+    {
+     "nome": "Schedule Manager",
+     "descricao": "Gerencia grupos de tabelas de quantitativos (nome + quantidade em m², m ou m³): cria os schedules já padronizados, reordena e posiciona o grupo inteiro na prancha ativa.",
+     "icone": "assets/plugins/geral/schedule-manager.png"
+    },
+    {
+     "nome": "TABELAS",
+     "descricao": "Gera tabelas a partir das tabelas mãe (ETAPA = PADRÃO e BLOCOS = PADRÃO), uma para cada combinação de Etapa, Bloco, Filtro de Fase e Fase.",
+     "icone": "assets/plugins/geral/tabelas.png"
+    },
+    {
+     "nome": "Trocar Família",
+     "descricao": "Selecione uma instância e escolha uma família/tipo carregado da mesma categoria para trocar todas as instâncias da família original no projeto.",
+     "icone": "assets/plugins/geral/trocar-familia.png"
+    },
+    {
+     "nome": "Ambientes e Pisos",
+     "descricao": "Inclui: Cotas de Ambientes, Cotas de Forros, Cotas de Pisos.",
+     "icone": "assets/plugins/geral/cotas-ambientes-pisos.png"
+    },
+    {
+     "nome": "Cotas Famílias",
+     "descricao": "Inclui: Louças Sanitárias, Famílias por Ambiente, Famílias por Região.",
+     "icone": "assets/plugins/geral/cotas-familias.png"
+    },
+    {
+     "nome": "Cotas Paredes",
+     "descricao": "Inclui: Cotas Externas, Cotas Internas.",
+     "icone": "assets/plugins/geral/cotas-paredes.png"
+    },
+    {
+     "nome": "Gerenciador de Folhas",
+     "descricao": "Gerencia pranchas existentes - adiciona, move e remove vistas, com layout automático respeitando o carimbo e pré-visualização com arrastar.",
+     "icone": "assets/plugins/geral/pranchas.png"
+    },
+    {
+     "nome": "Tags em Lote",
+     "descricao": "Inserção em lote de identificadores para Portas, Janelas, Paredes, Ambientes e Forros com controle de offset e orientação.",
+     "icone": "assets/plugins/geral/tags-em-lote.png"
+    },
+    {
+     "nome": "Vistas em Lote",
+     "descricao": "Inclui: Caderno de Esquadrias, Vistas por Ambiente.",
+     "icone": "assets/plugins/geral/vistas-em-lote.png"
+    }
+   ]
+  },
+  {
+   "id": "hidrossanitario",
+   "nome": "Hidrossanitário",
+   "resumo": "Dimensionamento, conexão, cotagem e verificação de redes hidráulicas e sanitárias.",
+   "ferramentas": [
+    {
+     "nome": "Ajustar Sanitário",
+     "descricao": "Ajuste avançado de inclinação e elevação (Anti-Clash Pro) em tubulações sanitárias, com diagnóstico de declividade normativa e filtros por sistema/tipo.",
+     "icone": "assets/plugins/hidrossanitario/ajustar-sanitario.png"
+    },
+    {
+     "nome": "Clash Detection",
+     "descricao": "Detecta interferências entre hidráulica, elétrica, climatização e estrutura, no modelo e nos vínculos, usando a geometria real dos elementos.",
+     "icone": "assets/plugins/hidrossanitario/clash-detection.png"
+    },
+    {
+     "nome": "Conectar Tubos",
+     "descricao": "Conecta pontas abertas dos tipos de tubo escolhidos a Conexões de Tubo (fittings) próximas e colineares, esticando o tubo pelo próprio eixo sem alterar a inclinação.",
+     "icone": "assets/plugins/hidrossanitario/conectar-tubos-proximos.png"
+    },
+    {
+     "nome": "Cotar Hidráulica",
+     "descricao": "Selecione vistas na folha ativa e crie cadeias de cotas para tubulações, conexões e acessórios em plantas, cortes e elevações.",
+     "icone": "assets/plugins/hidrossanitario/cotar-hidraulica.png"
+    },
+    {
+     "nome": "Criar Vistas de Ambientes",
+     "descricao": "Cria vistas por cliques em espaços fechados por paredes e linhas de separação, sem elementos Ambiente.",
+     "icone": "assets/plugins/hidrossanitario/criar-vistas-de-ambientes.png"
+    },
+    {
+     "nome": "Dimensionar Água Fria",
+     "descricao": "Dimensiona e verifica a rede de distribuição de água fria predial (ABNT NBR 5626:2020) pelo Método dos Pesos Relativos.",
+     "icone": "assets/plugins/hidrossanitario/dimensionar-agua-fria.png"
+    },
+    {
+     "nome": "Identificar Tubulações",
+     "descricao": "Identifica automaticamente tubulações na vista ativa (hospedeiro e vínculos), posicionando identificadores de diâmetro e fluxo a partir dos reservatórios.",
+     "icone": "assets/plugins/hidrossanitario/identificar-tubulacoes.png"
+    },
+    {
+     "nome": "Inspecionar Rede",
+     "descricao": "Selecione um tubo para localizar pontas abertas no trecho conectado e tubos isolados do mesmo sistema MEP.",
+     "icone": "assets/plugins/hidrossanitario/inspecionar-rede.png"
+    },
+    {
+     "nome": "Selecionar Conexões",
+     "descricao": "Filtra e seleciona conexões de tubo do mesmo tipo na vista ativa com base no comprimento de tubos conectados (ex: tocos <= 5cm) e intervalo de elevação (ex: 45 a 55cm).",
+     "icone": "assets/plugins/hidrossanitario/selecionar-conexoes.png"
+    },
+    {
+     "nome": "Trocar Sistema",
+     "descricao": "Troca o tipo ou o sistema nomeado de tubulações. Verifica as conexões físicas e reverte redes que o Revit não consiga alterar sem desconectar.",
+     "icone": "assets/plugins/hidrossanitario/trocar-sistema.png"
+    }
+   ]
+  },
+  {
+   "id": "ppci",
+   "nome": "PPCI",
+   "resumo": "Hidrantes, sprinklers, iluminação de emergência e relatórios de proteção contra incêndio.",
+   "ferramentas": [
+    {
+     "nome": "Alinhar ao Forro",
+     "descricao": "Seleciona um tipo de luminaria e ajusta as instancias para ficarem logo abaixo da face inferior do forro encontrado no mesmo XY, inclusive quando a luminaria estiver den…",
+     "icone": "assets/plugins/ppci/alinhar-ao-forro.png"
+    },
+    {
+     "nome": "Área Hidrantes e Extintores v1.3",
+     "descricao": "Calcula a área alcançável por hidrantes e extintores pelo menor percurso em planta.",
+     "icone": "assets/plugins/ppci/coberturahidrantesextintores-v1-3.png"
+    },
+    {
+     "nome": "Dimensionar Hidrantes",
+     "descricao": "Pré-dimensiona os diâmetros de uma rede de hidrantes/mangotinhos a partir de um ponto selecionado, conforme os parâmetros hidráulicos informados.",
+     "icone": "assets/plugins/ppci/dimensionar-hidrantes.png"
+    },
+    {
+     "nome": "Dimensionar SPK por Ambiente",
+     "descricao": "Calcula zonas hidráulicas de sprinklers por Room da arquitetura vinculada.",
+     "icone": "assets/plugins/ppci/dimensionar-sprinklers-ambientes.png"
+    },
+    {
+     "nome": "Dimensionar SPK por Tabela",
+     "descricao": "Dimensiona as tubulações da rede de sprinklers pela contagem acumulada de bicos abastecidos conforme tabela normativa simplificada de diâmetros.",
+     "icone": "assets/plugins/ppci/dimensionar-sprinklers-tabela.png"
+    },
+    {
+     "nome": "Iluminação de Emergência",
+     "descricao": "Distribui automaticamente luminárias de emergência no ambiente clicado reconhecendo o pé-direito livre (H).",
+     "icone": "assets/plugins/ppci/lum-de-emer.png"
+    },
+    {
+     "nome": "Otimizar Tê Redutor",
+     "descricao": "Analisa conexões da rede e substitui Tês com reduções intermediárias (na derivação ou na passagem) por um único Tê Redutor selecionado pelas Preferências de Roteamento.",
+     "icone": "assets/plugins/ppci/otimizar-te-redutor.png"
+    },
+    {
+     "nome": "Relatório Tubulações",
+     "descricao": "Relatório de tubos, conexões e acessórios selecionados, com IDs, tipos, conectividade, coordenadas dos conectores, comprimento, DN, diâmetro interno e material.",
+     "icone": "assets/plugins/ppci/relatorio-tubulacoes.png"
+    },
+    {
+     "nome": "Distribuir Sprinklers",
+     "descricao": "Gera uma distribuição preliminar de sprinklers de risco leve no nível da vista ativa, usando um vínculo arquitetônico como referência.",
+     "icone": "assets/plugins/ppci/spk.png"
+    },
+    {
+     "nome": "Validação SPK Região Crítica",
+     "descricao": "Extrai os dados de Tubos, Sprinklers e Nós da região mais crítica para validação externa.",
+     "icone": "assets/plugins/ppci/validar-regiao-critica-spk.png"
+    },
+    {
+     "nome": "Verificar Hidrantes",
+     "descricao": "Analisa a rede de hidrantes existente sem alterar o modelo. Calcula a RTI útil mínima tabular e o ponto preliminar da bomba, com memorial e auditoria.",
+     "icone": "assets/plugins/ppci/verificar-hidrantes.png"
+    }
+   ]
+  }
+ ]
+}

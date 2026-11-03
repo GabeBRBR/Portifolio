@@ -33,6 +33,7 @@ node scripts/vitrine/processar-imagens.mjs    # JPG/PNG já exportados -> WebP a
 node scripts/vitrine/convert-modelos.mjs      # IFC -> .frag (só geometria, nomes removidos)
 node scripts/vitrine/build-manifest.mjs       # capas + assets/vitrine/projetos.json
 node scripts/vitrine/verificar-texto.mjs      # texto que sobrou fora das áreas cobertas
+node scripts/vitrine/extrair-plugins.mjs      # ícones e nomes dos botões pyRevit -> assets/plugins
 ```
 
 - `obras.mjs` é o catálogo: tipo de obra (sem nome de cliente), retângulos de redação por obra, lista `BLOQUEIO` de termos proibidos, metragens aproximadas (`AREAS`) e IFCs (`MODELOS`).
