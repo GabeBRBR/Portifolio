@@ -51,92 +51,28 @@
     },
     {
      "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/02.webp",
-     "caption": "Térreo · Vigas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/03.webp",
      "caption": "Térreo · Formas",
      "w": 2400,
      "h": 1728
     },
     {
+     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/03.webp",
+     "caption": "Térreo · Fundações",
+     "w": 2400,
+     "h": 1728
+    },
+    {
      "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/04.webp",
-     "caption": "Térreo · Fundações",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/05.webp",
-     "caption": "Cobertura · Vigas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/06.webp",
-     "caption": "Térreo · Fundações",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/07.webp",
-     "caption": "Cobertura · Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/08.webp",
-     "caption": "Térreo · Fundações",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/09.webp",
      "caption": "Cobertura · Formas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/10.webp",
-     "caption": "Térreo · Fundações",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/11.webp",
-     "caption": "Cobertura · Lajes",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/12.webp",
-     "caption": "Barrilete · Vigas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/13.webp",
-     "caption": "Barrilete · Formas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-fundacao-estacas/14.webp",
-     "caption": "Barrilete · Lajes",
      "w": 2400,
      "h": 1728
     }
    ],
    "conteudo": [
     "Térreo · Locação",
-    "Térreo · Vigas",
     "Térreo · Formas",
     "Térreo · Fundações",
-    "Cobertura · Vigas",
-    "Cobertura · Pilares",
-    "Cobertura · Formas",
-    "Cobertura · Lajes"
+    "Cobertura · Formas"
    ],
    "area": null,
    "modelo": null,
@@ -167,79 +103,22 @@
     },
     {
      "src": "assets/vitrine/estrutural/sobrado-concreto-armado/03.webp",
-     "caption": "Formas",
+     "caption": "Fundações",
      "w": 2400,
-     "h": 1728
+     "h": 1696
     },
     {
      "src": "assets/vitrine/estrutural/sobrado-concreto-armado/04.webp",
-     "caption": "Formas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/05.webp",
-     "caption": "Fundações",
-     "w": 2400,
-     "h": 1696
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/06.webp",
-     "caption": "Fundações",
-     "w": 2400,
-     "h": 1696
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/07.webp",
-     "caption": "Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/08.webp",
-     "caption": "Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/09.webp",
      "caption": "Vigas",
      "w": 2400,
      "h": 1696
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/10.webp",
-     "caption": "Vigas",
-     "w": 2400,
-     "h": 1696
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/11.webp",
-     "caption": "Vigas",
-     "w": 2400,
-     "h": 1767
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/12.webp",
-     "caption": "Escada",
-     "w": 2400,
-     "h": 1696
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-concreto-armado/13.webp",
-     "caption": "Lajes",
-     "w": 2400,
-     "h": 1767
     }
    ],
    "conteudo": [
     "Locação",
     "Formas",
     "Fundações",
-    "Pilares",
-    "Vigas",
-    "Escada",
-    "Lajes"
+    "Vigas"
    ],
    "area": {
     "valor": 240,
@@ -273,96 +152,12 @@
     },
     {
      "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/03.webp",
-     "caption": "Fundações",
+     "caption": "Vigas",
      "w": 2400,
      "h": 1728
     },
     {
      "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/04.webp",
-     "caption": "Vigas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/05.webp",
-     "caption": "Vigas",
-     "w": 2400,
-     "h": 1767
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/06.webp",
-     "caption": "Vigas",
-     "w": 2400,
-     "h": 1767
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/07.webp",
-     "caption": "Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/08.webp",
-     "caption": "Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/09.webp",
-     "caption": "Lajes",
-     "w": 2400,
-     "h": 1767
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/10.webp",
-     "caption": "Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/11.webp",
-     "caption": "Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/12.webp",
-     "caption": "Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/13.webp",
-     "caption": "Lajes",
-     "w": 2400,
-     "h": 1767
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/14.webp",
-     "caption": "Lajes",
-     "w": 2400,
-     "h": 1767
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/15.webp",
-     "caption": "Formas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/16.webp",
-     "caption": "Formas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/17.webp",
-     "caption": "Formas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/residencia-alto-padrao-piscina/18.webp",
      "caption": "Piscina",
      "w": 2400,
      "h": 1696
@@ -372,9 +167,6 @@
     "Locação",
     "Fundações",
     "Vigas",
-    "Pilares",
-    "Lajes",
-    "Formas",
     "Piscina"
    ],
    "area": {
@@ -403,86 +195,28 @@
     },
     {
      "src": "assets/vitrine/estrutural/sobrado-popular/02.webp",
-     "caption": "Térreo · Formas",
+     "caption": "Térreo · Fundações",
      "w": 2400,
      "h": 1728
     },
     {
      "src": "assets/vitrine/estrutural/sobrado-popular/03.webp",
-     "caption": "Térreo · Fundações",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/04.webp",
-     "caption": "Térreo · Fundações",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/05.webp",
-     "caption": "Térreo · Vigas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/06.webp",
      "caption": "1º pavimento · Formas",
      "w": 2400,
      "h": 1728
     },
     {
-     "src": "assets/vitrine/estrutural/sobrado-popular/07.webp",
-     "caption": "1º pavimento · Pilares",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/08.webp",
-     "caption": "1º pavimento · Escada",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/09.webp",
-     "caption": "1º pavimento · Vigas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/10.webp",
-     "caption": "1º pavimento · Lajes",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/11.webp",
+     "src": "assets/vitrine/estrutural/sobrado-popular/04.webp",
      "caption": "Cobertura · Formas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/12.webp",
-     "caption": "Cobertura · Vigas",
-     "w": 2400,
-     "h": 1728
-    },
-    {
-     "src": "assets/vitrine/estrutural/sobrado-popular/13.webp",
-     "caption": "Cobertura · Lajes",
      "w": 2400,
      "h": 1728
     }
    ],
    "conteudo": [
     "Térreo · Locação",
-    "Térreo · Formas",
     "Térreo · Fundações",
-    "Térreo · Vigas",
     "1º pavimento · Formas",
-    "1º pavimento · Pilares",
-    "1º pavimento · Escada",
-    "1º pavimento · Vigas"
+    "Cobertura · Formas"
    ],
    "area": null,
    "modelo": null,
@@ -570,24 +304,6 @@
     {
      "src": "assets/vitrine/hidrossanitario/sobrado-hidrossanitario/03.webp",
      "caption": "Prancha 3",
-     "w": 1700,
-     "h": 2459
-    },
-    {
-     "src": "assets/vitrine/hidrossanitario/sobrado-hidrossanitario/04.webp",
-     "caption": "Prancha 4",
-     "w": 1700,
-     "h": 2459
-    },
-    {
-     "src": "assets/vitrine/hidrossanitario/sobrado-hidrossanitario/05.webp",
-     "caption": "Prancha 5",
-     "w": 1700,
-     "h": 2459
-    },
-    {
-     "src": "assets/vitrine/hidrossanitario/sobrado-hidrossanitario/06.webp",
-     "caption": "Prancha 6",
      "w": 1700,
      "h": 2459
     }
@@ -744,24 +460,6 @@
      "caption": "Prancha 3",
      "w": 2400,
      "h": 1153
-    },
-    {
-     "src": "assets/vitrine/hidrossanitario/edificacao-publica-hidrossanitario/04.webp",
-     "caption": "Prancha 4",
-     "w": 2400,
-     "h": 1153
-    },
-    {
-     "src": "assets/vitrine/hidrossanitario/edificacao-publica-hidrossanitario/05.webp",
-     "caption": "Prancha 5",
-     "w": 2400,
-     "h": 1153
-    },
-    {
-     "src": "assets/vitrine/hidrossanitario/edificacao-publica-hidrossanitario/06.webp",
-     "caption": "Prancha 6",
-     "w": 2400,
-     "h": 1153
     }
    ],
    "conteudo": [],
@@ -903,29 +601,11 @@
      "src": "assets/vitrine/incendio/edificacao-publica-ppci/02.webp",
      "caption": "Prancha 2",
      "w": 2400,
-     "h": 1293
+     "h": 1153
     },
     {
      "src": "assets/vitrine/incendio/edificacao-publica-ppci/03.webp",
      "caption": "Prancha 3",
-     "w": 2400,
-     "h": 1153
-    },
-    {
-     "src": "assets/vitrine/incendio/edificacao-publica-ppci/04.webp",
-     "caption": "Prancha 4",
-     "w": 2400,
-     "h": 1293
-    },
-    {
-     "src": "assets/vitrine/incendio/edificacao-publica-ppci/05.webp",
-     "caption": "Prancha 5",
-     "w": 2400,
-     "h": 1293
-    },
-    {
-     "src": "assets/vitrine/incendio/edificacao-publica-ppci/06.webp",
-     "caption": "Prancha 6",
      "w": 2400,
      "h": 1293
     }
@@ -968,30 +648,6 @@
     {
      "src": "assets/vitrine/asbuilt/edificio-comercial-asbuilt/04.webp",
      "caption": "Prancha 4",
-     "w": 2400,
-     "h": 1698
-    },
-    {
-     "src": "assets/vitrine/asbuilt/edificio-comercial-asbuilt/05.webp",
-     "caption": "Prancha 5",
-     "w": 2400,
-     "h": 1698
-    },
-    {
-     "src": "assets/vitrine/asbuilt/edificio-comercial-asbuilt/06.webp",
-     "caption": "Prancha 6",
-     "w": 2400,
-     "h": 1698
-    },
-    {
-     "src": "assets/vitrine/asbuilt/edificio-comercial-asbuilt/07.webp",
-     "caption": "Prancha 7",
-     "w": 2400,
-     "h": 1698
-    },
-    {
-     "src": "assets/vitrine/asbuilt/edificio-comercial-asbuilt/08.webp",
-     "caption": "Prancha 8",
      "w": 2400,
      "h": 1698
     }
@@ -1064,24 +720,6 @@
      "caption": "Prancha 3",
      "w": 2400,
      "h": 1696
-    },
-    {
-     "src": "assets/vitrine/topografia/empreendimento-funerario-terraplenagem/04.webp",
-     "caption": "Prancha 4",
-     "w": 2400,
-     "h": 1696
-    },
-    {
-     "src": "assets/vitrine/topografia/empreendimento-funerario-terraplenagem/05.webp",
-     "caption": "Prancha 5",
-     "w": 2400,
-     "h": 1696
-    },
-    {
-     "src": "assets/vitrine/topografia/empreendimento-funerario-terraplenagem/06.webp",
-     "caption": "Prancha 6",
-     "w": 2400,
-     "h": 1698
     }
    ],
    "conteudo": [],
