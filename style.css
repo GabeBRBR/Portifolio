@@ -1203,16 +1203,17 @@ html.lenis, html.lenis body { height: auto; }
   position: absolute;
   right: 10px;
   top: 10px;
+  box-shadow: 0 2px 10px rgba(11, 19, 32, 0.25);
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   background: var(--accent-gold);
   color: var(--ink-primary);
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: 3px;
+  padding: 0.3rem 0.65rem;
+  border-radius: 4px;
 }
 
 .project-meta-chip {
