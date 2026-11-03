@@ -364,6 +364,40 @@ document.addEventListener('DOMContentLoaded', () => {
     code.innerHTML = highlightPython(code.textContent);
   });
 
+  // Aba "Plugins Revit": ferramentas lidas da extensão pyRevit (assets/plugins/plugins.json)
+  const pluginsTabs = document.getElementById('plugins-tabs');
+  const pluginsGrid = document.getElementById('plugins-grid');
+  const pluginsResumo = document.getElementById('plugins-resumo');
+  let pluginsData = null;
+
+  function showPluginTab(id) {
+    const aba = pluginsData.abas.find((a) => a.id === id) || pluginsData.abas[0];
+    pluginsTabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.plugin === aba.id)));
+    pluginsResumo.textContent = aba.resumo;
+    pluginsGrid.innerHTML = aba.ferramentas.map((f) => `<article class="plugin-tile">
+      <img src="${f.icone}" alt="" width="48" height="48" decoding="async">
+      <div><h4>${escapeText(f.nome)}</h4><p>${escapeText(f.descricao)}</p></div>
+    </article>`).join('');
+  }
+
+  if (pluginsTabs && pluginsGrid) {
+    fetch('assets/plugins/plugins.json')
+      .then((response) => response.json())
+      .then((data) => {
+        pluginsData = data;
+        pluginsTabs.innerHTML = data.abas.map((a) => `<button type="button" role="tab" data-plugin="${a.id}" aria-selected="false">${escapeText(a.nome)} <span>${a.ferramentas.length}</span></button>`).join('');
+        showPluginTab(data.abas[0].id);
+      })
+      .catch((error) => {
+        console.error('Falha ao carregar os plugins:', error);
+        pluginsGrid.innerHTML = '<p class="text-sm">Não foi possível carregar a lista de plugins agora.</p>';
+      });
+    pluginsTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-plugin]');
+      if (btn && pluginsData) showPluginTab(btn.dataset.plugin);
+    });
+  }
+
   const codeTabBtns = document.querySelectorAll('.code-tab, .code-tab-btn');
   const codeTabContents = document.querySelectorAll('.code-tab-content');
   const copyCodeBtn = document.getElementById('copy-code-btn');
@@ -378,6 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       btn.classList.add('active');
       const targetId = btn.getAttribute('data-tab');
+      if (copyCodeBtn) copyCodeBtn.classList.toggle('hidden', targetId === 'tab-plugins');
       const targetContent = document.getElementById(targetId);
       if (targetContent) {
         targetContent.classList.remove('hidden');
