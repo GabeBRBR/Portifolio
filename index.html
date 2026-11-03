@@ -872,8 +872,12 @@ def auditar_durabilidade_nbr6118(dados_viga):
           <div id="modal-pane-3d" class="hidden">
             <div id="modal-3d-stage" class="modal-3d-stage">
               <div id="modal-3d-status" class="modal-3d-status">Carregando modelo 3D…</div>
+              <div id="modal-3d-tools" class="modal-3d-tools" role="group" aria-label="Modo de arrasto">
+                <button type="button" data-mode="rotate" aria-pressed="true" title="Arrastar gira o modelo"><i class="ph-bold ph-arrows-clockwise"></i> Girar</button>
+                <button type="button" data-mode="pan" aria-pressed="false" title="Arrastar move a vista"><i class="ph-bold ph-hand-grabbing"></i> Mover</button>
+              </div>
             </div>
-            <p class="modal-3d-hint"><i class="ph-bold ph-hand-grabbing"></i> Arraste para girar · role ou use dois dedos para ampliar</p>
+            <p class="modal-3d-hint"><i class="ph-bold ph-cursor-click"></i> Arraste para girar · botão direito ou Shift para mover · role para ampliar · dois dedos movem e ampliam</p>
           </div>
         </div>
         <div class="lg:col-span-5 flex flex-col justify-between space-y-6">

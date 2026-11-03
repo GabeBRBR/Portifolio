@@ -211,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     currentModelUrl = data.modelo || null;
+    setModal3dMode('rotate');
     modalTabs.classList.toggle('hidden', !currentModelUrl);
     // Obras com modelo abrem direto no 3D; as pranchas ficam na outra aba
     setModalTab(currentModelUrl ? 'modelo' : 'pranchas');
@@ -222,6 +223,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modelo 3D simples: o motor só é baixado quando a pessoa abre a aba "Modelo 3D"
   let miniViewer = null;
   let currentModelUrl = null;
+  let modal3dMode = 'rotate';
+  const modal3dTools = document.getElementById('modal-3d-tools');
+
+  function setModal3dMode(mode) {
+    modal3dMode = mode;
+    modal3dTools.querySelectorAll('[data-mode]').forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode)));
+    if (miniViewer) miniViewer.setMode(mode);
+  }
+  modal3dTools.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-mode]');
+    if (btn) setModal3dMode(btn.dataset.mode);
+  });
   async function startModel3D() {
     if (miniViewer || !currentModelUrl) return;
     const url = currentModelUrl;
@@ -231,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const { MiniViewer } = await import('./src/vitrine/MiniViewer.js');
       const viewer = new MiniViewer(modal3dStage);
       miniViewer = viewer;
+      viewer.setMode(modal3dMode);
       await viewer.load(url);
       if (miniViewer === viewer) modal3dStatus.classList.add('hidden');
     } catch (error) {

@@ -1292,6 +1292,35 @@ html.lenis, html.lenis body { height: auto; }
 
 .modal-3d-status.hidden { display: none !important; }
 
+.modal-3d-tools {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+  display: inline-flex;
+  background: rgba(11, 19, 32, 0.78);
+  border: 1px solid #2A3C56;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.modal-3d-tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  color: #CBD5E1;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.modal-3d-tools button[aria-pressed="true"] { background: var(--accent-gold); color: var(--ink-primary); }
+
 .modal-3d-hint {
   margin-top: 0.6rem;
   font-family: var(--font-mono);
