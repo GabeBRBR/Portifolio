@@ -26,5 +26,10 @@
     "areasPorPavimento": {
       "(sem pavimento)": 0
     }
+  },
+  "edificacao-publica-ppci": {
+    "termosSubstituidos": 1,
+    "fragMB": 4.7,
+    "areasPorPavimento": {}
   }
 }

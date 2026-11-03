@@ -246,7 +246,7 @@
     "base": "lajes do modelo estrutural"
    },
    "modelo": "assets/vitrine/modelos/sobrado-concreto-armado.frag",
-   "modeloMB": 0.08
+   "modeloMB": null
   },
   {
    "id": "residencia-alto-padrao-piscina",
@@ -382,7 +382,7 @@
     "base": "lajes do modelo estrutural"
    },
    "modelo": "assets/vitrine/modelos/residencia-alto-padrao-piscina.frag",
-   "modeloMB": 0.12
+   "modeloMB": null
   },
   {
    "id": "sobrado-popular",
@@ -646,7 +646,7 @@
     "base": "lajes do modelo estrutural da mesma obra"
    },
    "modelo": "assets/vitrine/modelos/residencia-alto-padrao-hidrossanitario.frag",
-   "modeloMB": 1.55
+   "modeloMB": null
   },
   {
    "id": "sobrado-popular-hidrossanitario",
@@ -828,7 +828,7 @@
     "base": "lajes do modelo estrutural da mesma obra"
    },
    "modelo": "assets/vitrine/modelos/residencia-alto-padrao-eletrico.frag",
-   "modeloMB": 0.88
+   "modeloMB": null
   },
   {
    "id": "sobrado-popular-eletrico",
@@ -932,8 +932,8 @@
    ],
    "conteudo": [],
    "area": null,
-   "modelo": null,
-   "modeloMB": null
+   "modelo": "assets/vitrine/modelos/edificacao-publica-ppci.frag",
+   "modeloMB": 4.7
   },
   {
    "id": "edificio-comercial-asbuilt",

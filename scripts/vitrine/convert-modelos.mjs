@@ -29,7 +29,9 @@ api.SetLogLevel?.(LogLevel.LOG_LEVEL_OFF);
 
 const normalizar = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 await mkdir(OUT, { recursive: true });
-const resumo = {};
+// Converter só alguns ids não pode apagar o resumo dos outros.
+const resumoPath = path.join(OUT, 'resumo.json');
+const resumo = JSON.parse(await readFile(resumoPath, 'utf8').catch(() => '{}'));
 
 for (const m of MODELOS) {
   if (filtro.length && !filtro.includes(m.id)) continue;
@@ -70,4 +72,4 @@ for (const m of MODELOS) {
   resumo[m.id] = { termosSubstituidos: achados.length, fragMB: +(tamanho / 1048576).toFixed(2), areasPorPavimento: Object.fromEntries(Object.entries(areas).map(([k, v]) => [k, +v.toFixed(1)])) };
   console.log(m.id, resumo[m.id]);
 }
-await writeFile(path.join(OUT, 'resumo.json'), JSON.stringify(resumo, null, 2));
+await writeFile(resumoPath, JSON.stringify(resumo, null, 2));
