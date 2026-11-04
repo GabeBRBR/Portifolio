@@ -223,28 +223,6 @@
    "modeloMB": null
   },
   {
-   "id": "edificio-multipavimentos-estrutura",
-   "disciplina": "estrutural",
-   "tipo": "Edifício de múltiplos pavimentos",
-   "resumo": "Modelo estrutural em concreto armado de edifício de grande altura.",
-   "ferramentas": [
-    "Revit"
-   ],
-   "capa": "assets/vitrine/estrutural/edificio-multipavimentos-estrutura/capa.webp",
-   "imagens": [
-    {
-     "src": "assets/vitrine/estrutural/edificio-multipavimentos-estrutura/01.webp",
-     "caption": "Prancha",
-     "w": 2400,
-     "h": 1864
-    }
-   ],
-   "conteudo": [],
-   "area": null,
-   "modelo": null,
-   "modeloMB": null
-  },
-  {
    "id": "edificacao-estrutura-metalica",
    "disciplina": "estrutural",
    "tipo": "Edificação em estrutura metálica",

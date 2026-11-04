@@ -159,14 +159,6 @@ export const OBRAS_IMAGEM = [
     ]
   },
   {
-    slug: 'edificio-multipavimentos-estrutura', disciplina: 'estrutural',
-    tipo: 'Edifício de múltiplos pavimentos', resumo: 'Modelo estrutural em concreto armado de edifício de grande altura.',
-    ferramentas: ['Revit'],
-    itens: [
-      { fonte: '5 - Topografia/topo-cidade-opus-gyro.jpg', cobrir: [] }
-    ]
-  },
-  {
     slug: 'edificacao-estrutura-metalica', disciplina: 'estrutural',
     tipo: 'Edificação em estrutura metálica', resumo: 'Estacas, baldrames, vigas, cortes e detalhes de cobertura e ligações.',
     ferramentas: ['Cype 3D', 'Revit', 'Estrutura metálica'],
