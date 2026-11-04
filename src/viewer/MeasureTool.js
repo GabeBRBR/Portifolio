@@ -71,6 +71,18 @@ export class MeasureTool {
     container.appendChild(this.layer);
 
     this.canvas = world.renderer.three.domElement;
+    this.canvasSize = { width: this.canvas.clientWidth || 1, height: this.canvas.clientHeight || 1 };
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          this.canvasSize = {
+            width: entry.contentRect.width || this.canvas.clientWidth || 1,
+            height: entry.contentRect.height || this.canvas.clientHeight || 1
+          };
+        }
+      });
+      this.resizeObserver.observe(this.canvas);
+    }
     this.onMove = (event) => this.handleMove(event);
     this.onDown = (event) => { this.down = { x: event.clientX, y: event.clientY }; };
     this.onUp = (event) => this.handleUp(event);
@@ -438,7 +450,7 @@ export class MeasureTool {
   loop() {
     cancelAnimationFrame(this.frame);
     const tick = () => {
-      if (!this.enabled && !this.items.length) return;
+      if ((!this.enabled && !this.items.length) || (this.world && !this.world.enabled)) return;
       this.placeLabels();
       this.frame = requestAnimationFrame(tick);
     };
@@ -447,12 +459,13 @@ export class MeasureTool {
 
   placeLabels() {
     const camera = this.world.camera.three;
-    const rect = this.canvas.getBoundingClientRect();
+    const width = this.canvasSize?.width || this.canvas.clientWidth || 1;
+    const height = this.canvasSize?.height || this.canvas.clientHeight || 1;
     const place = (label, anchor) => {
       if (!label || !anchor) return;
       const projected = anchor.clone().project(camera);
       label.style.display = projected.z > -1 && projected.z < 1 ? '' : 'none';
-      label.style.transform = `translate(${((projected.x + 1) / 2) * rect.width}px, ${((1 - projected.y) / 2) * rect.height}px) translate(-50%, -120%)`;
+      label.style.transform = `translate(${((projected.x + 1) / 2) * width}px, ${((1 - projected.y) / 2) * height}px) translate(-50%, -120%)`;
     };
     this.items.forEach((item) => place(item.label, this.anchorOf(item.mode, item.points)));
     if (this.points.length && this.hover) {

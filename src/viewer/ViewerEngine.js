@@ -1284,7 +1284,15 @@ export class ViewerEngine {
     if (!active && this.walk.mode !== 'orbit') this.exitWalk({ fit: false });
     this.components.enabled = active;
     this.world.enabled = active;
-    if (active) this.world.renderer.needsUpdate = true;
+    if (active) {
+      this.walk.lastFrame = performance.now();
+      this.animateWalk();
+      this.measurements?.loop?.();
+      this.world.renderer.needsUpdate = true;
+    } else if (this.walkAnimId) {
+      cancelAnimationFrame(this.walkAnimId);
+      this.walkAnimId = null;
+    }
   }
 }
 

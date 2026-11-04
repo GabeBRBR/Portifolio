@@ -485,12 +485,16 @@ export class WalkMethods {
   }
 
   animateWalk() {
-    requestAnimationFrame(() => this.animateWalk());
+    if (this.walkAnimId) cancelAnimationFrame(this.walkAnimId);
+    // Nothing to measure or move while the viewer is closed.
+    if (this.world && !this.world.enabled) {
+      this.walkAnimId = null;
+      return;
+    }
+    this.walkAnimId = requestAnimationFrame(() => this.animateWalk());
     const now = performance.now();
     const delta = Math.min(0.1, (now - this.walk.lastFrame) / 1000);
     this.walk.lastFrame = now;
-    // Nothing to measure or move while the viewer is closed.
-    if (this.world && !this.world.enabled) return;
     this.updateAdaptiveQuality(now);
     this.updateWalk(delta);
   }

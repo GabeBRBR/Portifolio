@@ -169,7 +169,7 @@ export const OBRAS_IMAGEM = [
   {
     slug: 'edificacao-estrutura-metalica', disciplina: 'estrutural',
     tipo: 'Edificação em estrutura metálica', resumo: 'Estacas, baldrames, vigas, cortes e detalhes de cobertura e ligações.',
-    ferramentas: ['Revit', 'Estrutura metálica'],
+    ferramentas: ['Cype 3D', 'Revit', 'Estrutura metálica'],
     itens: [
       { fonte: '1 - Estrutural/metalica/estrutural-crematorio-01.jpg', cobrir: [[0.83, 0.65, 1, 1], [0.6, 0.945, 1, 1]] },
       { fonte: '1 - Estrutural/metalica/estrutural-crematorio-02.jpg', cobrir: [[0.83, 0.65, 1, 1], [0.6, 0.945, 1, 1]] },
