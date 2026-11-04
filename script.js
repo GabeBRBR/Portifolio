@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const subject = encodeURIComponent(`[Portfólio] ${formSubject.value} - ${formName.value.trim()}`);
       const body = encodeURIComponent(`Nome: ${formName.value.trim()}\nE-mail: ${formEmail.value.trim()}\nAssunto: ${formSubject.value}\n\nMensagem:\n${formMessage.value.trim()}`);
 
-      const mailtoUrl = `mailto:biaginialmeida@gmail.com?subject=${subject}&body=${body}`;
+      const mailtoUrl = `mailto:apollo.engenheiro@gmail.com?subject=${subject}&body=${body}`;
       window.location.href = mailtoUrl;
     });
   }
