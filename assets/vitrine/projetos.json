@@ -250,6 +250,7 @@
    "tipo": "Edificação em estrutura metálica",
    "resumo": "Estacas, baldrames, vigas, cortes e detalhes de cobertura e ligações.",
    "ferramentas": [
+    "Cype 3D",
     "Revit",
     "Estrutura metálica"
    ],

@@ -25,7 +25,7 @@ npm run build:css         # regenera o tailwind.css (rode depois de mudar classe
 
 ## Pipeline da vitrine (`scripts/vitrine/`)
 
-Os PDFs e IFCs originais **não entram no repositório**: ficam numa pasta local (`PORTIFOLIO_FONTE`, padrão `DesktopNOVAS MIDiAS PORTIFOLIO`) e só as saídas anonimizadas são versionadas.
+Os PDFs e IFCs originais **não entram no repositório**: ficam numa pasta local (`PORTIFOLIO_FONTE`, padrão `Desktop/NOVAS MIDiAS PORTIFOLIO`) e só as saídas anonimizadas são versionadas.
 
 ```bash
 node scripts/vitrine/render-sheets.mjs        # PDFs -> WebP, cobre carimbos e textos sensíveis

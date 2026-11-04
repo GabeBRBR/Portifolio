@@ -12,7 +12,7 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="Gabriel Biagini · Engenharia Civil">
-  <meta property="og:title" content="Gabriel Biagini Almeida Reis · Engenharia Civil, BIM e Automação">
+  <meta property="og:title" content="Gabriel Biagini Almeida Reis — Engenharia Civil, BIM e Automação">
   <meta property="og:description" content="Projetos estruturais, BIM multidisciplinar, as-built com nuvem de pontos e automação com Python e Dynamo. Goiânia, GO.">
   <meta property="og:url" content="https://gabebrbr.github.io/Portifolio/">
   <meta property="og:image" content="https://gabebrbr.github.io/Portifolio/assets/og-image.jpg">
@@ -20,6 +20,9 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Gabriel Biagini Almeida Reis, engenheiro civil">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Gabriel Biagini Almeida Reis — Engenharia Civil, BIM e Automação">
+  <meta name="twitter:description" content="Projetos estruturais, BIM multidisciplinar, as-built com nuvem de pontos e automação com Python e Dynamo. Goiânia, GO.">
+  <meta name="twitter:image" content="https://gabebrbr.github.io/Portifolio/assets/og-image.jpg">
 
   <!-- Favicon -->
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -48,7 +51,10 @@
     "email": "mailto:biaginialmeida@gmail.com",
     "telephone": "+55-62-98114-3331",
     "address": { "@type": "PostalAddress", "addressLocality": "Goiânia", "addressRegion": "GO", "addressCountry": "BR" },
-    "alumniOf": { "@type": "CollegeOrUniversity", "name": "Universidade Federal de Goiás" },
+    "alumniOf": [
+      { "@type": "CollegeOrUniversity", "name": "Universidade Federal de Goiás" },
+      { "@type": "EducationalOrganization", "name": "St. Michael's University School" }
+    ],
     "worksFor": { "@type": "Organization", "name": "AION BIM" },
     "knowsLanguage": ["pt-BR", "en", "es"],
     "sameAs": ["https://br.linkedin.com/in/gabriel-biagini-almeida-reis-22b450181"]
@@ -62,11 +68,13 @@
 </head>
 <body class="bg-paper text-ink-body antialiased selection:bg-ink selection:text-white">
 
+  <a href="#main" class="skip-to-content">Pular para o conteúdo principal</a>
+
   <!-- Subtle Blueprint Grid Pattern -->
   <div class="blueprint-grid-overlay" aria-hidden="true"></div>
 
   <!-- Header / Navigation Bar -->
-  <header id="header" class="fixed top-0 left-0 w-full z-50 transition-colors transition-transform duration-300">
+  <header id="header" class="fixed top-0 left-0 w-full z-50 duration-300">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       
       <!-- Brand & Name -->
@@ -122,6 +130,7 @@
     </div>
   </header>
 
+  <main id="main">
   <!-- Hero Section (Editorial Monograph Layout) -->
   <section id="hero" class="relative pt-32 pb-14 sm:pt-36 sm:pb-16">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -167,9 +176,14 @@
             <p class="text-xs text-ink-muted font-bold uppercase tracking-wider mb-3">Onde atuo e já atuei</p>
             <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-ink-secondary">
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-buildings mr-1"></i> AION BIM <span class="exp-now">Atual</span></span>
+              <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-building-apartment mr-1"></i> CITY SOLUÇÕES URBANAS</span>
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-drop mr-1"></i> SANEAGO</span>
               <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-shield mr-1"></i> POLÍCIA CIVIL</span>
+              <span class="font-heading font-bold text-sm tracking-tight"><i class="ph-bold ph-lightning mr-1"></i> RIO VENTO ENERGIA</span>
             </div>
+            <p class="text-xs text-ink-muted font-mono mt-3">
+              <i class="ph-bold ph-map-pin text-ochre-dark mr-1"></i> Goiânia, GO · Projetos e obras em GO, DF e MG (Presencial e Remoto)
+            </p>
           </div>
 
         </div>
@@ -251,7 +265,13 @@
       </div>
 
       <!-- Obras por disciplina (geradas de assets/vitrine/projetos.json) -->
-      <div id="vitrine-root" class="space-y-16" aria-live="polite"></div>
+      <div id="vitrine-root" class="space-y-16" aria-live="polite">
+        <div class="vitrine-skeleton grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7" aria-hidden="true">
+          <div class="vitrine-skeleton-card"></div>
+          <div class="vitrine-skeleton-card"></div>
+          <div class="vitrine-skeleton-card"></div>
+        </div>
+      </div>
 
     </div>
   </section>
@@ -726,6 +746,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
               <li><span>IA aplicada à engenharia</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><em>avançado</em></li>
               <li><span>Pacote Office / Excel</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><em>avançado</em></li>
               <li><span>ABAQUS</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
+              <li><span>Navisworks</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
               <li><span>Eberick</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
               <li><span>Civil 3D</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
               <li><span>Cype 3D</span><span class="skill-dots"><i class="on"></i><i class="on"></i><i></i></span><em>intermediário</em></li>
@@ -863,9 +884,10 @@ def auditar_durabilidade_nbr6118(dados_viga):
 
     </div>
   </section>
+  </main>
 
   <!-- Project Blueprint Lightbox Modal -->
-  <div id="project-modal" class="modal-overlay hidden" aria-hidden="true" role="dialog">
+  <div id="project-modal" class="modal-overlay hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-container">
       <button class="modal-close-btn" id="modal-close-btn" aria-label="Fechar">
         <i class="ph-bold ph-x"></i>
@@ -951,7 +973,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
     <div id="bim-workspace" class="bim-workspace" data-tab="model">
       <aside id="bim-navigator" class="bim-panel bim-navigator" aria-label="Navegador do projeto"></aside>
 
-      <main class="bim-stage" aria-label="Modelo 3D">
+      <div class="bim-stage" role="region" aria-label="Modelo 3D">
         <div id="ifc-canvas-container" class="bim-viewport"></div>
         <div id="ifc-loading-overlay" class="bim-loading hidden" aria-live="polite">
           <div class="bim-loading__spinner"></div>
@@ -1088,7 +1110,7 @@ def auditar_durabilidade_nbr6118(dados_viga):
           <label class="bim-check"><input type="checkbox" id="bim-spaces-toggle"> Mostrar ambientes (IfcSpace)</label>
           <p class="bim-note">A qualidade cai temporariamente durante movimentos pesados para manter a navegação fluida.</p>
         </section>
-      </main>
+      </div>
 
       <aside id="bim-sheet" class="bim-panel bim-sheet" aria-label="Dados do elemento"></aside>
       <section id="bim-takeoff" class="bim-panel bim-takeoff" aria-label="Quantitativos"></section>

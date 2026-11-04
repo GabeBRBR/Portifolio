@@ -32,30 +32,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================================
-  // 2. Active Navigation Link on Scroll
+  // 2. Active Navigation Link on Scroll (IntersectionObserver — no reflow)
   // =========================================================================
   const sections = document.querySelectorAll('section[id]');
   const navLinks = document.querySelectorAll('.nav-link');
 
-  function updateActiveNavLink() {
-    const scrollY = window.pageYOffset + 140;
-    sections.forEach(current => {
-      const sectionHeight = current.offsetHeight;
-      const sectionTop = current.offsetTop;
-      const sectionId = current.getAttribute('id');
-
-      if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
-        navLinks.forEach(link => {
-          link.classList.remove('active');
-          if (link.getAttribute('href') === `#${sectionId}`) {
-            link.classList.add('active');
-          }
-        });
-      }
+  if (typeof IntersectionObserver !== 'undefined' && sections.length) {
+    const navObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.getAttribute('id');
+          navLinks.forEach((link) => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${sectionId}`);
+          });
+        }
+      });
+    }, {
+      rootMargin: '-25% 0px -65% 0px',
+      threshold: 0
     });
-  }
 
-  window.addEventListener('scroll', updateActiveNavLink, { passive: true });
+    sections.forEach((sec) => navObserver.observe(sec));
+  }
 
   // =========================================================================
   // 3. Vitrine de projetos (gerada de assets/vitrine/projetos.json)
@@ -68,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function projectCard(p, disciplina) {
     const area = p.area ? `<span class="project-meta-chip" title="Metragem aproximada, calculada a partir de ${escapeText(p.area.base)}"><i class="ph-bold ph-ruler"></i> ≈ ${p.area.valor} m²</span>` : '';
-    return `<article class="project-plate" data-modal="${p.id}">
+    return `<article class="project-plate" data-modal="${p.id}" tabindex="0" role="button" aria-label="Ver detalhes de ${escapeText(`${disciplina.nome}: ${p.tipo}`)}">
       <div class="project-media-wrap">
         <img src="${p.capa}" alt="${escapeText(`${disciplina.nome}: ${p.tipo}`)}" class="project-media" loading="lazy" decoding="async">
         <span class="project-code-tag">${escapeText(disciplina.nome.toUpperCase())}</span>
@@ -165,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let galleryImages = [];
   let galleryIndex = 0;
   let currentTitle = '';
+  let lastFocusedElement = null;
 
   function showGalleryImage(index) {
     if (!galleryImages.length) return;
@@ -184,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = projectDetails[key];
     if (!data) return;
 
+    lastFocusedElement = document.activeElement;
     galleryImages = data.images || [];
     currentTitle = data.title;
     if (modalStage) modalStage.parentElement.classList.toggle('modal-single', galleryImages.length < 2);
@@ -217,7 +217,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setModalTab(currentModelUrl ? 'modelo' : 'pranchas');
 
     projectModal.classList.remove('hidden');
+    projectModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+    if (modalCloseBtn) modalCloseBtn.focus();
   }
 
   // Modelo 3D simples: o motor só é baixado quando a pessoa abre a aba "Modelo 3D"
@@ -276,7 +278,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeProjectModal() {
     stopModel3D();
     projectModal.classList.add('hidden');
+    projectModal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+      lastFocusedElement.focus();
+      lastFocusedElement = null;
+    }
   }
 
   // Os cards são criados depois do carregamento do JSON, então o clique é delegado
@@ -284,6 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
     vitrineRoot.addEventListener('click', (e) => {
       const card = e.target.closest('[data-modal]');
       if (card) openProjectModal(card.getAttribute('data-modal'));
+    });
+    vitrineRoot.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('[data-modal]');
+      if (card) {
+        e.preventDefault();
+        openProjectModal(card.getAttribute('data-modal'));
+      }
     });
   }
 
@@ -339,9 +354,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', (e) => {
       if (projectModal.classList.contains('hidden')) return;
-      if (e.key === 'Escape') closeProjectModal();
-      else if (e.key === 'ArrowLeft') showGalleryImage(galleryIndex - 1);
-      else if (e.key === 'ArrowRight') showGalleryImage(galleryIndex + 1);
+      if (e.key === 'Escape') {
+        closeProjectModal();
+      } else if (e.key === 'ArrowLeft') {
+        showGalleryImage(galleryIndex - 1);
+      } else if (e.key === 'ArrowRight') {
+        showGalleryImage(galleryIndex + 1);
+      } else if (e.key === 'Tab') {
+        const focusables = Array.from(
+          projectModal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        ).filter((el) => el.offsetParent !== null);
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     });
   }
 
@@ -463,20 +496,62 @@ document.addEventListener('DOMContentLoaded', () => {
   const formSubject = document.getElementById('form-subject');
   const formMessage = document.getElementById('form-message');
 
+  function setFieldError(field, message) {
+    if (!field) return;
+    field.classList.toggle('has-error', Boolean(message));
+    field.setAttribute('aria-invalid', message ? 'true' : 'false');
+    let msgEl = field.parentElement.querySelector('.form-error-msg');
+    if (message) {
+      if (!msgEl) {
+        msgEl = document.createElement('span');
+        msgEl.className = 'form-error-msg';
+        msgEl.setAttribute('role', 'alert');
+        field.parentElement.appendChild(msgEl);
+      }
+      msgEl.textContent = message;
+    } else if (msgEl) {
+      msgEl.remove();
+    }
+  }
+
+  [formName, formEmail, formMessage].forEach((field) => {
+    if (!field) return;
+    field.addEventListener('input', () => setFieldError(field, ''));
+  });
+
   function validateForm() {
-    if (!formName.value.trim()) {
-      alert('Por favor, informe seu nome.');
-      formName.focus();
-      return false;
+    let firstInvalid = null;
+    const nameVal = formName ? formName.value.trim() : '';
+    const emailVal = formEmail ? formEmail.value.trim() : '';
+    const messageVal = formMessage ? formMessage.value.trim() : '';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!nameVal) {
+      setFieldError(formName, 'Por favor, informe seu nome ou empresa.');
+      firstInvalid = firstInvalid || formName;
+    } else {
+      setFieldError(formName, '');
     }
-    if (!formEmail.value.trim()) {
-      alert('Por favor, informe seu e-mail.');
-      formEmail.focus();
-      return false;
+
+    if (!emailVal) {
+      setFieldError(formEmail, 'Por favor, informe seu e-mail.');
+      firstInvalid = firstInvalid || formEmail;
+    } else if (!emailRegex.test(emailVal)) {
+      setFieldError(formEmail, 'Informe um endereço de e-mail válido.');
+      firstInvalid = firstInvalid || formEmail;
+    } else {
+      setFieldError(formEmail, '');
     }
-    if (!formMessage.value.trim()) {
-      alert('Por favor, escreva uma mensagem.');
-      formMessage.focus();
+
+    if (!messageVal) {
+      setFieldError(formMessage, 'Por favor, escreva uma mensagem.');
+      firstInvalid = firstInvalid || formMessage;
+    } else {
+      setFieldError(formMessage, '');
+    }
+
+    if (firstInvalid) {
+      firstInvalid.focus();
       return false;
     }
     return true;
@@ -557,7 +632,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }); // End of matchMedia block
   } else {
     // Fallback if GSAP fails to load
-    document.querySelectorAll(".reveal").forEach(el => el.style.opacity = 1);
+    document.querySelectorAll(".reveal").forEach(el => {
+      el.classList.add('css-fallback', 'active');
+    });
   }
 
   // =========================================================================
@@ -581,45 +658,3 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
-
-  // =========================================================================
-  // 9. Tagline Word Reveal (Landing Page Design)
-  // =========================================================================
-  const tagline = document.querySelector('.tagline-reveal');
-  if (tagline && typeof IntersectionObserver !== 'undefined') {
-    const text = tagline.innerText.trim();
-    tagline.innerHTML = '';
-    
-    // Split into words and wrap in spans
-    tagline.setAttribute('aria-label', text);
-    const words = text.split(/\s+/);
-    words.forEach(word => {
-      const span = document.createElement('span');
-      span.textContent = word + ' ';
-      span.style.opacity = '0.25';
-      span.style.transition = 'opacity 0.8s cubic-bezier(0.32,0.72,0,1)';
-      span.style.display = 'inline-block';
-      span.setAttribute('aria-hidden', 'true');
-      tagline.appendChild(span);
-    });
-    
-    const wordObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          wordObserver.unobserve(entry.target);
-        }
-      });
-    }, {
-      rootMargin: '0px 0px -25% 0px',
-      threshold: 0
-    });
-    
-    // Observe each word with a slight programmatic delay based on position
-    // to ensure they activate in reading order if scrolling fast
-    const spans = tagline.querySelectorAll('span');
-    spans.forEach((span, index) => {
-      span.style.transitionDelay = (index * 30) + "ms";
-      wordObserver.observe(span);
-    });
-  }

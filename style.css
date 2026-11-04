@@ -59,6 +59,7 @@ html {
   font-size: 16px;
   background-color: var(--bg-body);
   color: var(--ink-body);
+  overflow-x: clip;
 }
 
 body {
@@ -66,11 +67,33 @@ body {
   background-color: var(--bg-body);
   color: var(--ink-body);
   line-height: 1.65;
-  overflow-x: hidden;
+  overflow-x: clip;
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.skip-to-content {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 200;
+  padding: 0.6rem 1rem;
+  background: var(--ink-primary);
+  color: #FFFFFF;
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 4px;
+  text-decoration: none;
+  box-shadow: var(--shadow-hover);
+  transition: top var(--transition-fast);
+}
+
+.skip-to-content:focus {
+  top: 1rem;
 }
 
 ::selection {
@@ -98,10 +121,9 @@ body {
    ========================================================================== */
 .blueprint-grid-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 0;
   opacity: 0.4;
@@ -136,6 +158,7 @@ body {
   background: rgba(247, 245, 240, 0.94);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-editorial);
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
 }
 
 /* Keep the main navigation available even if Tailwind's CDN utilities load late. */
@@ -256,7 +279,7 @@ body {
   padding: 0.75rem 1.4rem;
   text-decoration: none;
   border: 1px solid var(--ink-primary);
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal), opacity var(--transition-normal);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), opacity var(--transition-normal);
   cursor: pointer;
 }
 
@@ -281,7 +304,7 @@ body {
   text-decoration: none;
   border: 1px solid var(--border-editorial);
   box-shadow: var(--shadow-subtle);
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal), opacity var(--transition-normal);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), opacity var(--transition-normal);
   cursor: pointer;
 }
 
@@ -304,7 +327,7 @@ body {
   padding: 0.45rem 0.85rem;
   border-radius: 4px;
   text-decoration: none;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 .btn-whatsapp-direct:hover {
@@ -393,7 +416,7 @@ body {
   border-radius: 6px;
   padding: 1.75rem;
   box-shadow: var(--shadow-subtle);
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal), opacity var(--transition-normal);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), opacity var(--transition-normal);
 }
 
 @media (hover: hover) and (pointer: fine) { .editorial-card:hover {
@@ -462,12 +485,14 @@ body {
   padding: 2rem;
   box-shadow: var(--shadow-subtle);
   margin-bottom: 1.5rem;
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal), opacity var(--transition-normal);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), opacity var(--transition-normal);
 }
 
-.dossier-item:hover {
-  border-color: var(--accent-gold);
-  box-shadow: var(--shadow-card);
+@media (hover: hover) and (pointer: fine) {
+  .dossier-item:hover {
+    border-color: var(--accent-gold);
+    box-shadow: var(--shadow-card);
+  }
 }
 
 .dossier-index {
@@ -523,9 +548,11 @@ body {
   border: 2px solid var(--ink-primary);
 }
 
-.exp-log-item:hover::before {
-  border-color: var(--accent-gold);
-  background: var(--accent-gold);
+@media (hover: hover) and (pointer: fine) {
+  .exp-log-item:hover::before {
+    border-color: var(--accent-gold);
+    background: var(--accent-gold);
+  }
 }
 
 .exp-log-company {
@@ -551,13 +578,14 @@ body {
   font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 600;
+  min-height: 40px;
   padding: 0.5rem 1rem;
   background: #FFFFFF;
   border: 1px solid var(--border-editorial);
   color: var(--ink-muted);
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 .project-filter-btn:hover, .project-filter-btn.active {
@@ -574,7 +602,7 @@ body {
   box-shadow: var(--shadow-subtle);
   display: flex;
   flex-direction: column;
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal), opacity var(--transition-normal);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal), transform var(--transition-normal), opacity var(--transition-normal);
   cursor: pointer;
 }
 
@@ -788,10 +816,10 @@ body {
 
 .modal-close-btn {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 36px;
-  height: 36px;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-editorial);
@@ -801,7 +829,7 @@ body {
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 .modal-close-btn:hover {
@@ -843,6 +871,9 @@ body {
 .reveal {
   opacity: 0;
   transform: translateY(16px);
+}
+
+.reveal.css-fallback {
   transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -863,21 +894,23 @@ body {
 
 
 /* ==========================================================================
-   Accessibility (Focus States)
+   Accessibility (Focus States — WCAG AA >= 3:1 Non-Text Contrast)
    ========================================================================== */
 :focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--accent-gold-dark);
   outline-offset: 2px;
 }
 
+.section-dark :focus-visible {
+  outline-color: var(--accent-gold-light);
+}
+
 /* ==========================================================================
-   Design Engineering: Active (Press) States
+   Design Engineering: Active (Press) States (only buttons/chips, not large cards)
    ========================================================================== */
 .btn-primary-dark:active,
 .btn-outline-editorial:active,
 .btn-whatsapp-direct:active,
-.project-plate:active,
-.editorial-card:active,
 .project-filter-btn:active {
   transform: scale(0.97);
   transition-duration: 0.1s;
@@ -924,11 +957,20 @@ html.lenis, html.lenis body { height: auto; }
 
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .reveal,
+  .profile-enter-anim,
+  .btn-primary-dark,
+  .btn-outline-editorial,
+  .project-plate,
+  .project-media,
+  .floating-whatsapp {
+    transform: none !important;
+    opacity: 1 !important;
   }
 }
 
@@ -963,8 +1005,8 @@ html.lenis, html.lenis body { height: auto; }
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border-editorial);
   background: rgba(255, 255, 255, 0.94);
@@ -1361,7 +1403,9 @@ html.lenis, html.lenis body { height: auto; }
   color: #CBD5E1;
 }
 
-.plugins-tabs button:hover { color: #FFFFFF; background: #111D30; }
+@media (hover: hover) and (pointer: fine) {
+  .plugins-tabs button:hover { color: #FFFFFF; background: #111D30; }
+}
 .plugins-tabs button[aria-selected="true"] { color: #F8FAFC; background: #132238; border-color: var(--accent-gold); }
 
 .plugins-resumo { color: #94A3B8; font-family: var(--font-mono); font-size: 0.75rem; margin-bottom: 1.1rem; }
@@ -1402,4 +1446,35 @@ html.lenis, html.lenis body { height: auto; }
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ==========================================================================
+   Skeleton Loader & Form Error Inline Feedback
+   ========================================================================== */
+.vitrine-skeleton-card {
+  height: 380px;
+  border-radius: 6px;
+  border: 1px solid var(--border-editorial);
+  background: linear-gradient(90deg, #EFECE6 25%, #F7F5F0 50%, #EFECE6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.input-editorial.has-error {
+  border-color: #DC2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);
+}
+
+.form-error-msg {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #DC2626;
 }
