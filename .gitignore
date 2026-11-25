@@ -55,3 +55,6 @@ tests/
 # Notas e mapa de conhecimento locais (descrevem o visualizador)
 CLAUDE.md
 graphify-out/
+
+# Planos locais (descrevem o visualizador)
+tasks/
