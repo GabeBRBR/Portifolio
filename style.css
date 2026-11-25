@@ -1465,6 +1465,81 @@ html.lenis, html.lenis body { height: auto; }
   100% { background-position: -200% 0; }
 }
 
+/* ==========================================================================
+   Carrossel da vitrine (um por disciplina): 3 cards no desktop, 2 no tablet, 1 no celular
+   ========================================================================== */
+.vitrine-carousel {
+  --carousel-gap: 2rem;
+  --carousel-per-view: 1;
+  position: relative;
+}
+
+@media (min-width: 768px) { .vitrine-carousel { --carousel-per-view: 2; } }
+@media (min-width: 1024px) { .vitrine-carousel { --carousel-per-view: 3; } }
+
+.vitrine-track {
+  display: flex;
+  gap: var(--carousel-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* Respiro para o hover dos cards (translateY e sombra) não ser cortado pelo overflow */
+  padding: 0.5rem 0 1.25rem;
+  margin: -0.5rem 0 -1.25rem;
+}
+
+.vitrine-track::-webkit-scrollbar { display: none; }
+.vitrine-track:focus-visible { outline: 2px solid var(--ink-primary); outline-offset: 4px; border-radius: 6px; }
+
+.vitrine-track > .project-plate {
+  flex: 0 0 calc((100% - (var(--carousel-per-view) - 1) * var(--carousel-gap)) / var(--carousel-per-view));
+  scroll-snap-align: start;
+}
+
+.carousel-btn {
+  position: absolute;
+  top: 150px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border-editorial);
+  background: #FFFFFF;
+  color: var(--ink-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-subtle);
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.carousel-btn--prev { left: -1.375rem; }
+.carousel-btn--next { right: -1.375rem; }
+
+.carousel-btn:hover:not(:disabled) { background: var(--ink-primary); color: #FFFFFF; border-color: var(--ink-primary); }
+.carousel-btn:focus-visible { outline: 2px solid var(--ink-primary); outline-offset: 2px; }
+.carousel-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* Quando todos os cards cabem, as setas não fazem sentido */
+.vitrine-carousel.is-static .carousel-btn { display: none; }
+
+@media (max-width: 1279px) {
+  /* Sem espaço fora do container: as setas ficam sobre as bordas dos cards */
+  .carousel-btn--prev { left: 0.5rem; }
+  .carousel-btn--next { right: 0.5rem; }
+}
+
+@media (max-width: 639px) {
+  .carousel-btn { top: 110px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vitrine-track { scroll-behavior: auto; }
+}
+
 .input-editorial.has-error {
   border-color: #DC2626;
   box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);

@@ -84,6 +84,51 @@ document.addEventListener('DOMContentLoaded', () => {
     </article>`;
   }
 
+  // Carrossel por disciplina: rolagem nativa com snap; as setas só movem um card por vez.
+  function initCarousel(carousel) {
+    const track = carousel.querySelector('.vitrine-track');
+    const prev = carousel.querySelector('.carousel-btn--prev');
+    const next = carousel.querySelector('.carousel-btn--next');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const step = () => {
+      const card = track.querySelector('.project-plate');
+      if (!card) return track.clientWidth;
+      return card.getBoundingClientRect().width + (parseFloat(getComputedStyle(track).columnGap) || 0);
+    };
+    const update = () => {
+      const max = track.scrollWidth - track.clientWidth;
+      const fits = max <= 2;
+      carousel.classList.toggle('is-static', fits);
+      prev.disabled = track.scrollLeft <= 2;
+      next.disabled = track.scrollLeft >= max - 2;
+    };
+    // Destino pelo card mais próximo (e não por soma relativa), assim cliques rápidos não perdem passos.
+    let target = null;
+    const move = (dir) => {
+      const size = step();
+      const max = track.scrollWidth - track.clientWidth;
+      const base = target ?? track.scrollLeft;
+      target = Math.min(max, Math.max(0, (Math.round(base / size) + dir) * size));
+      track.scrollTo({ left: target, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    };
+
+    prev.addEventListener('click', () => move(-1));
+    next.addEventListener('click', () => move(1));
+    track.addEventListener('scroll', update, { passive: true });
+    // Ao fim da rolagem (ou se a pessoa arrastar), volta a usar a posição real.
+    track.addEventListener('scrollend', () => { target = null; });
+    track.addEventListener('touchstart', () => { target = null; }, { passive: true });
+    track.addEventListener('keydown', (e) => {
+      if (e.target !== track) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); move(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); }
+    });
+    // Também recalcula quando a seção sai de "hidden" (filtro) ou a tela muda de tamanho.
+    new ResizeObserver(update).observe(track);
+    update();
+  }
+
   function renderVitrine(data) {
     const disciplinas = new Map(data.disciplinas.map((d) => [d.id, d]));
     vitrineRoot.innerHTML = data.disciplinas.map((d) => {
@@ -91,9 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!obras.length) return '';
       return `<section class="vitrine-section" data-disc="${d.id}" aria-label="${escapeText(d.nome)}">
         <div class="vitrine-head"><i class="ph-bold ${d.icone}" aria-hidden="true"></i><h3>${escapeText(d.nome)}</h3><span>${obras.length} ${obras.length > 1 ? 'obras' : 'obra'}</span></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">${obras.map((p) => projectCard(p, d)).join('')}</div>
+        <div class="vitrine-carousel" role="region" aria-roledescription="carrossel" aria-label="Obras de ${escapeText(d.nome)}">
+          <button type="button" class="carousel-btn carousel-btn--prev" aria-label="Obra anterior" disabled><i class="ph-bold ph-caret-left" aria-hidden="true"></i></button>
+          <div class="vitrine-track" tabindex="0">${obras.map((p) => projectCard(p, d)).join('')}</div>
+          <button type="button" class="carousel-btn carousel-btn--next" aria-label="Próxima obra"><i class="ph-bold ph-caret-right" aria-hidden="true"></i></button>
+        </div>
       </section>`;
     }).join('');
+    vitrineRoot.querySelectorAll('.vitrine-carousel').forEach(initCarousel);
 
     for (const p of data.projetos) {
       const disciplina = disciplinas.get(p.disciplina);
