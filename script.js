@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Vitrine de projetos (gerada de assets/vitrine/projetos.json)
   // =========================================================================
   const vitrineRoot = document.getElementById('vitrine-root');
-  const viewerBlock = document.getElementById('vitrine-viewer');
   const filterBtns = document.querySelectorAll('.project-filter-btn');
   const projectDetails = {};
   const escapeText = (text) => String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -111,9 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyProjectFilter(value) {
-    if (viewerBlock) viewerBlock.classList.toggle('hidden', value !== 'all' && value !== 'viewer');
     document.querySelectorAll('.vitrine-section').forEach((section) => {
-      section.classList.toggle('hidden', value === 'viewer' || (value !== 'all' && section.dataset.disc !== value));
+      section.classList.toggle('hidden', value !== 'all' && section.dataset.disc !== value);
     });
   }
 
@@ -301,30 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
-  // Direct trigger for 3D IFC Viewer
-  document.querySelectorAll('[data-open-ifc]').forEach(card => {
-    card.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (window.ifcViewer && typeof window.ifcViewer.openViewer === 'function') {
-        const workKey = card.getAttribute('data-open-ifc') || 'casa-terrea';
-        window.ifcViewer.openViewer(workKey);
-      } else if (window.location.protocol === 'file:') {
-        window.alert('O portfólio pode ser aberto diretamente, mas o visualizador IFC precisa de um servidor local para carregar o motor WebAssembly. No terminal desta pasta, execute: pnpm dev');
-      } else {
-        const modal = document.getElementById('ifc-viewer-modal');
-        if (modal) {
-          modal.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-          const status = document.getElementById('ifc-status');
-          if (status) {
-            status.textContent = 'O motor IFC não foi carregado. No GitHub Pages, selecione “GitHub Actions” em Settings → Pages para publicar a versão compilada do site.';
-            status.classList.remove('hidden');
-          }
-        }
-      }
-    });
-  });
 
   if (modalCloseBtn) {
     modalCloseBtn.addEventListener('click', closeProjectModal);

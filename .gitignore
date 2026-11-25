@@ -34,3 +34,24 @@ _deps.tgz
 
 # Pipeline da vitrine: relatórios guardam nomes de arquivos de origem (clientes)
 scripts/vitrine/relatorios/
+
+# Cópia local do visualizador IFC para desenvolvimento e testes isolados (não enviar ao GitHub)
+ifc-viewer-local/
+
+# Visualizador BIM principal: fica só na máquina local (não enviar ao GitHub)
+src/app/
+src/bim/
+src/viewer/
+src/styles/
+src/ifc-viewer.js
+assets/IFC/
+assets/fragments/
+assets/wasm/
+docs/decisions/
+docs/benchmarks/
+scripts/convert-ifc-to-fragments.mjs
+tests/
+
+# Notas e mapa de conhecimento locais (descrevem o visualizador)
+CLAUDE.md
+graphify-out/

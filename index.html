@@ -91,9 +91,9 @@
       <!-- Desktop Navigation: work first, then context -->
       <nav class="portfolio-desktop-nav items-center gap-7" aria-label="Navegação">
         <a href="#projetos" class="nav-link"><span class="nav-num">01.</span>Projetos</a>
-        <a href="#automacoes" class="nav-link"><span class="nav-num">02.</span>Automações</a>
-        <a href="#trajetoria" class="nav-link"><span class="nav-num">03.</span>Pesquisa</a>
-        <a href="#experiencia" class="nav-link"><span class="nav-num">04.</span>Cases</a>
+        <a href="#experiencia" class="nav-link"><span class="nav-num">02.</span>Cases</a>
+        <a href="#automacoes" class="nav-link"><span class="nav-num">03.</span>Automações</a>
+        <a href="#trajetoria" class="nav-link"><span class="nav-num">04.</span>Pesquisa</a>
         <a href="#perfil" class="nav-link"><span class="nav-num">05.</span>Perfil</a>
         <a href="#contato" class="nav-link"><span class="nav-num">06.</span>Contato</a>
       </nav>
@@ -116,9 +116,9 @@
     <div id="mobile-menu" class="absolute top-full left-0 w-full lg:hidden bg-surface border-b border-border-editorial px-6 py-6 transition-[opacity,transform] duration-300 shadow-lg opacity-0 pointer-events-none -translate-y-4">
       <nav class="flex flex-col gap-3">
         <a href="#projetos" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">01.</span>Projetos</a>
-        <a href="#automacoes" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">02.</span>Automações</a>
-        <a href="#trajetoria" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">03.</span>Pesquisa</a>
-        <a href="#experiencia" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">04.</span>Cases</a>
+        <a href="#experiencia" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">02.</span>Cases</a>
+        <a href="#automacoes" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">03.</span>Automações</a>
+        <a href="#trajetoria" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">04.</span>Pesquisa</a>
         <a href="#perfil" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">05.</span>Perfil</a>
         <a href="#contato" class="mobile-nav-link"><span class="font-mono text-xs text-ochre-dark mr-2">06.</span>Contato</a>
         <div class="pt-4 border-t border-border-light flex flex-col gap-2">
@@ -164,10 +164,6 @@
             <a href="#contato" class="btn-outline-editorial">
               <span>Entrar em contato</span>
             </a>
-            <a href="https://br.linkedin.com/in/gabriel-biagini-almeida-reis-22b450181" target="_blank" rel="noopener noreferrer" class="btn-outline-editorial" aria-label="Perfil no LinkedIn">
-              <i class="ph-fill ph-linkedin-logo text-base" style="color:#0A66C2"></i>
-              <span>LinkedIn</span>
-            </a>
           </div>
 
           <!-- Proof Strip -->
@@ -196,7 +192,7 @@
   </section>
 
   <!-- =========================================================================
-       02. ARQUIVO DE PROJETOS & PRANCHAS
+       01. ARQUIVO DE PROJETOS
        ========================================================================= -->
   <section id="projetos" class="py-24">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -210,56 +206,12 @@
         <!-- Filtros por disciplina -->
         <div class="filter-row" role="group" aria-label="Filtrar projetos">
           <button class="project-filter-btn active" data-filter="all">Todos</button>
-          <button class="project-filter-btn" data-filter="viewer"><i class="ph-bold ph-cube text-ochre-dark mr-1"></i> Visualizador IFC</button>
           <button class="project-filter-btn" data-filter="estrutural">Estrutural</button>
           <button class="project-filter-btn" data-filter="hidrossanitario">Hidrossanitário</button>
           <button class="project-filter-btn" data-filter="eletrico">Elétrico</button>
           <button class="project-filter-btn" data-filter="incendio">Incêndio</button>
           <button class="project-filter-btn" data-filter="asbuilt">As-built</button>
           <button class="project-filter-btn" data-filter="topografia">Topografia</button>
-        </div>
-      </div>
-
-      <!-- Visualizador BIM principal -->
-      <div id="vitrine-viewer" class="mb-14">
-        <!-- Plate 0: Visualizador BIM -->
-        <div class="project-plate reveal border-2 !border-ochre/50 shadow-md bg-gradient-to-b from-surface to-surfaceSubtle" data-open-ifc="casa-terrea">
-          <div class="grid grid-cols-1 lg:grid-cols-12">
-            <div class="lg:col-span-7 project-media-wrap relative group cursor-pointer !h-64 sm:!h-80">
-              <img src="assets/images/geral/visualizador-bim.webp" alt="Modelo BIM 3D aberto no visualizador do portfólio" class="project-media !object-cover" loading="lazy">
-              <div class="absolute inset-0 bg-ink/25 flex items-center justify-center group-hover:bg-ink/10 transition-colors">
-                <span class="w-16 h-16 rounded-full bg-ochre text-ink flex items-center justify-center text-2xl shadow-xl transform group-hover:scale-110 transition-transform" aria-hidden="true">
-                  <i class="ph-bold ph-play ml-1"></i>
-                </span>
-              </div>
-              <span class="project-code-tag !bg-ochre !text-ink font-bold">● MODELO BIM 3D INTERATIVO</span>
-            </div>
-            <div class="lg:col-span-5 project-plate-body justify-between">
-              <div>
-                <span class="project-plate-sub text-ochre-dark font-bold block mb-1">Abre no navegador, sem instalar nada</span>
-                <h3 class="project-plate-title text-xl mb-2">Visualizador BIM no navegador</h3>
-                <p class="project-plate-desc text-xs sm:text-sm mb-3 leading-relaxed">
-                  Explore o modelo da obra em 3D e clique em qualquer elemento para ver área, volume e pavimento. Filtre por disciplina, meça, faça cortes e exporte os quantitativos para Excel. Também dá para caminhar pelo modelo em primeira pessoa.
-                </p>
-                <p class="text-xs text-ink-muted leading-relaxed">
-                  Tem um arquivo IFC? Abra o seu: ele é processado no seu navegador e não é enviado a nenhum servidor.
-                </p>
-              </div>
-              <div class="space-y-3 pt-3 mt-4 border-t border-border-light">
-                <div class="flex flex-wrap gap-1.5">
-                  <span class="tech-badge highlight"><i class="ph-bold ph-person-simple-walk mr-1"></i> Caminhada em 1ª pessoa</span>
-                  <span class="tech-badge highlight"><i class="ph-bold ph-stack mr-1"></i> Modelos federados</span>
-                  <span class="tech-badge">Planos de corte</span>
-                  <span class="tech-badge">Quantitativos</span>
-                </div>
-                <button type="button" class="btn-primary-dark w-full justify-center !py-2.5 !text-xs !bg-ink hover:!bg-ochre hover:!text-ink transition-colors">
-                  <i class="ph-bold ph-cube text-ochre mr-1"></i>
-                  <span>Abrir visualizador 3D</span>
-                </button>
-                <p class="text-[11px] font-mono text-ink-muted">Tecnologia: That Open Fragments e web-ifc.</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -276,13 +228,120 @@
   </section>
 
   <!-- =========================================================================
+       02. CASES E APLICAÇÕES PRÁTICAS
+       ========================================================================= -->
+  <section id="experiencia" class="py-24 bg-surface border-y border-border-editorial">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="section-header-editorial">
+        <span class="section-label">02 / Aplicações práticas</span>
+        <h2 class="section-headline">Cases de engenharia</h2>
+      </div>
+
+      <div class="max-w-4xl mx-auto space-y-10">
+        
+        <!-- Experience 1: AION BIM -->
+        <div class="exp-log-item reveal">
+          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
+            <h3 class="exp-log-company">AION BIM <span class="exp-now">Atual</span></h3>
+            <span class="font-mono text-xs text-ink-muted">Goiânia, GO</span>
+          </div>
+          <span class="exp-log-role">Case · Coordenação BIM e as-built</span>
+          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
+            <strong>Contexto:</strong> projetos multidisciplinares (incêndio/PPCI, hidrossanitário, estrutural, elétrico de baixa tensão e topografia) e edificações existentes exigiam leitura confiável do campo e produção em escala. <strong>Entrega:</strong> modelos BIM compatibilizados, as-built a partir de nuvem de pontos e tours 360°, e ferramentas próprias em Python/pyRevit que automatizam dimensionamento de sprinklers e hidrantes, cotagem e anotação em lote, montagem de pranchas e quantitativos.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-badge highlight">Revit API / pyRevit</span>
+            <span class="tech-badge highlight">Nuvem de Pontos</span>
+            <span class="tech-badge">PPCI e Hidrossanitário</span>
+            <span class="tech-badge">Tours 360°</span>
+            <span class="tech-badge">Compatibilização 3D</span>
+          </div>
+        </div>
+
+        <!-- Experience: City Soluções Urbanas -->
+        <div class="exp-log-item reveal">
+          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
+            <h3 class="exp-log-company">City Soluções Urbanas</h3>
+            <span class="font-mono text-xs text-ink-muted">Obra residencial vertical</span>
+          </div>
+          <span class="exp-log-role">Case · Acompanhamento de obra e compatibilização</span>
+          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
+            <strong>Contexto:</strong> empreendimento residencial vertical de alto padrão, com interferências entre estrutura, alvenaria e instalações. <strong>Entrega:</strong> compatibilização in loco dos projetos executivos, fiscalização de armaduras, fôrmas e concretagem, e levantamento de quantitativos para as medições.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-badge highlight">Acompanhamento de Obra</span>
+            <span class="tech-badge">Compatibilização</span>
+            <span class="tech-badge">Controle de Qualidade</span>
+            <span class="tech-badge">Medições</span>
+          </div>
+        </div>
+
+        <!-- Experience 2: Polícia Civil -->
+        <div class="exp-log-item reveal">
+          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
+            <h3 class="exp-log-company">Polícia Civil do Estado de Goiás</h3>
+            <span class="font-mono text-xs text-ink-muted">Setor de Obras e Engenharia</span>
+          </div>
+          <span class="exp-log-role">Case · Obras públicas e diagnóstico predial</span>
+          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
+            <strong>Contexto:</strong> reformas e manutenção de prédios públicos demandavam base técnica para decisão e contratação. <strong>Entrega:</strong> vistorias in loco, relatórios de patologias e orçamentos quantitativos para licitações.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-badge">Vistorias Técnicas</span>
+            <span class="tech-badge">Orçamentação</span>
+            <span class="tech-badge">AutoCAD</span>
+            <span class="tech-badge">Reformas Prediais</span>
+          </div>
+        </div>
+
+        <!-- Experience 3: Saneago -->
+        <div class="exp-log-item reveal">
+          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
+            <h3 class="exp-log-company">Saneago (Saneamento de Goiás)</h3>
+            <span class="font-mono text-xs text-ink-muted">Compras e suprimentos</span>
+          </div>
+          <span class="exp-log-role">Case · Suprimentos e automação de planilhas</span>
+          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
+            <strong>Contexto:</strong> a triagem de materiais de saneamento dependia de planilhas extensas e especificações precisas. <strong>Entrega:</strong> automações VBA e apoio à classificação técnica para tornar o controle de compras mais ágil.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-badge highlight">Excel Avançado / VBA</span>
+            <span class="tech-badge">Infraestrutura de Saneamento</span>
+            <span class="tech-badge">Otimização de Processos</span>
+          </div>
+        </div>
+
+        <!-- Experience 4: Rio Vento Energia -->
+        <div class="exp-log-item reveal">
+          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
+            <h3 class="exp-log-company">Rio Vento Energia</h3>
+            <span class="font-mono text-xs text-ink-muted">Engenharia e projetos</span>
+          </div>
+          <span class="exp-log-role">Case · Memórias de cálculo para energia</span>
+          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
+            <strong>Contexto:</strong> projetos de energia renovável requeriam documentação técnica rastreável. <strong>Entrega:</strong> memórias de cálculo em planilhas customizadas e relatórios de apoio às equipes de projeto.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-badge">Memórias de Cálculo</span>
+            <span class="tech-badge">Relatórios Técnicos</span>
+            <span class="tech-badge">Energia Renovável</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================================
        03. AUTOMAÇÕES, SCRIPTS & PROGRAMAÇÃO
        ========================================================================= -->
   <section id="automacoes" class="py-24 section-dark">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">02 / Engenharia computacional</span>
+        <span class="section-label">03 / Engenharia computacional</span>
         <h2 class="section-headline">Automações, scripts e algoritmos</h2>
       </div>
 
@@ -479,13 +538,13 @@ def auditar_durabilidade_nbr6118(dados_viga):
   </section>
 
   <!-- =========================================================================
-       04. TRAJETÓRIA ACADÊMICA & CIENTÍFICA
+       04. PESQUISA E FORMAÇÃO
        ========================================================================= -->
-  <section id="trajetoria" class="py-24">
+  <section id="trajetoria" class="py-24 bg-surface border-y border-border-editorial">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="section-header-editorial">
-        <span class="section-label">03 / Pesquisa e formação</span>
+        <span class="section-label">04 / Pesquisa e formação</span>
         <h2 class="section-headline">Trajetória acadêmica e científica</h2>
       </div>
 
@@ -569,113 +628,6 @@ def auditar_durabilidade_nbr6118(dados_viga):
             <span class="tech-badge">Espanhol intermediário</span>
           </div>
 
-        </div>
-
-      </div>
-
-    </div>
-  </section>
-
-  <!-- =========================================================================
-       04. CASES E APLICAÇÕES PRÁTICAS
-       ========================================================================= -->
-  <section id="experiencia" class="py-24 bg-surface border-y border-border-editorial">
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <div class="section-header-editorial">
-        <span class="section-label">04 / Aplicações práticas</span>
-        <h2 class="section-headline">Cases de engenharia</h2>
-      </div>
-
-      <div class="max-w-4xl mx-auto space-y-10">
-        
-        <!-- Experience 1: AION BIM -->
-        <div class="exp-log-item reveal">
-          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
-            <h3 class="exp-log-company">AION BIM <span class="exp-now">Atual</span></h3>
-            <span class="font-mono text-xs text-ink-muted">Goiânia, GO</span>
-          </div>
-          <span class="exp-log-role">Case · Coordenação BIM e as-built</span>
-          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            <strong>Contexto:</strong> projetos multidisciplinares (incêndio/PPCI, hidrossanitário, estrutural, elétrico de baixa tensão e topografia) e edificações existentes exigiam leitura confiável do campo e produção em escala. <strong>Entrega:</strong> modelos BIM compatibilizados, as-built a partir de nuvem de pontos e tours 360°, e ferramentas próprias em Python/pyRevit que automatizam dimensionamento de sprinklers e hidrantes, cotagem e anotação em lote, montagem de pranchas e quantitativos.
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <span class="tech-badge highlight">Revit API / pyRevit</span>
-            <span class="tech-badge highlight">Nuvem de Pontos</span>
-            <span class="tech-badge">PPCI e Hidrossanitário</span>
-            <span class="tech-badge">Tours 360°</span>
-            <span class="tech-badge">Compatibilização 3D</span>
-          </div>
-        </div>
-
-        <!-- Experience: City Soluções Urbanas -->
-        <div class="exp-log-item reveal">
-          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
-            <h3 class="exp-log-company">City Soluções Urbanas</h3>
-            <span class="font-mono text-xs text-ink-muted">Obra residencial vertical</span>
-          </div>
-          <span class="exp-log-role">Case · Acompanhamento de obra e compatibilização</span>
-          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            <strong>Contexto:</strong> empreendimento residencial vertical de alto padrão, com interferências entre estrutura, alvenaria e instalações. <strong>Entrega:</strong> compatibilização in loco dos projetos executivos, fiscalização de armaduras, fôrmas e concretagem, e levantamento de quantitativos para as medições.
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <span class="tech-badge highlight">Acompanhamento de Obra</span>
-            <span class="tech-badge">Compatibilização</span>
-            <span class="tech-badge">Controle de Qualidade</span>
-            <span class="tech-badge">Medições</span>
-          </div>
-        </div>
-
-        <!-- Experience 2: Polícia Civil -->
-        <div class="exp-log-item reveal">
-          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
-            <h3 class="exp-log-company">Polícia Civil do Estado de Goiás</h3>
-            <span class="font-mono text-xs text-ink-muted">Setor de Obras e Engenharia</span>
-          </div>
-          <span class="exp-log-role">Case · Obras públicas e diagnóstico predial</span>
-          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            <strong>Contexto:</strong> reformas e manutenção de prédios públicos demandavam base técnica para decisão e contratação. <strong>Entrega:</strong> vistorias in loco, relatórios de patologias e orçamentos quantitativos para licitações.
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <span class="tech-badge">Vistorias Técnicas</span>
-            <span class="tech-badge">Orçamentação</span>
-            <span class="tech-badge">AutoCAD</span>
-            <span class="tech-badge">Reformas Prediais</span>
-          </div>
-        </div>
-
-        <!-- Experience 3: Saneago -->
-        <div class="exp-log-item reveal">
-          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
-            <h3 class="exp-log-company">Saneago (Saneamento de Goiás)</h3>
-            <span class="font-mono text-xs text-ink-muted">Compras e suprimentos</span>
-          </div>
-          <span class="exp-log-role">Case · Suprimentos e automação de planilhas</span>
-          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            <strong>Contexto:</strong> a triagem de materiais de saneamento dependia de planilhas extensas e especificações precisas. <strong>Entrega:</strong> automações VBA e apoio à classificação técnica para tornar o controle de compras mais ágil.
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <span class="tech-badge highlight">Excel Avançado / VBA</span>
-            <span class="tech-badge">Infraestrutura de Saneamento</span>
-            <span class="tech-badge">Otimização de Processos</span>
-          </div>
-        </div>
-
-        <!-- Experience 4: Rio Vento Energia -->
-        <div class="exp-log-item reveal">
-          <div class="flex flex-wrap justify-between items-baseline gap-2 mb-1">
-            <h3 class="exp-log-company">Rio Vento Energia</h3>
-            <span class="font-mono text-xs text-ink-muted">Engenharia e projetos</span>
-          </div>
-          <span class="exp-log-role">Case · Memórias de cálculo para energia</span>
-          <p class="text-sm sm:text-base text-ink-body leading-relaxed mb-4">
-            <strong>Contexto:</strong> projetos de energia renovável requeriam documentação técnica rastreável. <strong>Entrega:</strong> memórias de cálculo em planilhas customizadas e relatórios de apoio às equipes de projeto.
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <span class="tech-badge">Memórias de Cálculo</span>
-            <span class="tech-badge">Relatórios Técnicos</span>
-            <span class="tech-badge">Energia Renovável</span>
-          </div>
         </div>
 
       </div>
@@ -936,205 +888,6 @@ def auditar_durabilidade_nbr6118(dados_viga):
     </div>
   </div>
 
-  <!-- IFC BIM Viewer -->
-  <div id="ifc-viewer-modal" class="bim-app hidden" role="dialog" aria-modal="true" aria-label="Visualizador BIM">
-    <header class="bim-topbar">
-      <div class="bim-brand">
-        <span class="bim-brand__mark" aria-hidden="true"><i class="ph-bold ph-cube-transparent"></i></span>
-        <div class="bim-brand__text">
-          <label class="bim-visually-hidden" for="bim-project-select">Projeto</label>
-          <select id="bim-project-select" class="bim-project-select">
-            <option value="casa-terrea">Casa Térrea</option>
-            <option value="galpao">Galpão Industrial</option>
-            <option value="casa-popular">Casa Popular</option>
-            <option value="local" hidden>IFCs abertos</option>
-          </select>
-          <span id="bim-project-meta" class="bim-brand__meta">Carregando…</span>
-        </div>
-      </div>
-      <nav class="bim-tabs" role="tablist" aria-label="Áreas do visualizador">
-        <button type="button" role="tab" class="bim-tab" data-tab="model" aria-selected="true"><i class="ph ph-cube"></i><span>Modelo</span></button>
-        <button type="button" role="tab" class="bim-tab" data-tab="takeoff" aria-selected="false"><i class="ph ph-table"></i><span>Quantitativos</span></button>
-        <button type="button" role="tab" class="bim-tab" data-tab="overview" aria-selected="false"><i class="ph ph-chart-bar"></i><span>Visão geral</span></button>
-      </nav>
-      <div class="bim-topbar__actions">
-        <label class="bim-button bim-button--accent" for="ifc-file-input"><i class="ph-bold ph-upload-simple"></i><span>Abrir IFC</span></label>
-        <input id="ifc-file-input" type="file" multiple accept=".ifc,.IFC" hidden>
-        <button id="bim-shortcuts-btn" class="bim-icon-button" type="button" aria-label="Atalhos de teclado" title="Atalhos de teclado (?)"><i class="ph ph-keyboard"></i></button>
-        <button id="bim-toggle-navigator" class="bim-icon-button" type="button" data-panel-toggle="navigator" aria-pressed="true" aria-label="Mostrar navegador do projeto" title="Navegador do projeto"><i class="ph ph-sidebar-simple"></i></button>
-        <button id="bim-toggle-sheet" class="bim-icon-button" type="button" data-panel-toggle="sheet" aria-pressed="true" aria-label="Mostrar propriedades do elemento" title="Propriedades do elemento"><i class="ph ph-sidebar-simple bim-flip"></i></button>
-        <button id="ifc-benchmark-copy-btn" class="bim-icon-button" type="button" aria-label="Copiar medição de desempenho" title="Copiar medição de desempenho"><i class="ph ph-gauge"></i></button>
-        <button id="ifc-fullscreen-btn" class="bim-icon-button" type="button" aria-label="Tela cheia" title="Tela cheia"><i class="ph ph-corners-out"></i></button>
-        <button id="ifc-close-btn" class="bim-icon-button" type="button" aria-label="Fechar visualizador" title="Fechar"><i class="ph ph-x"></i></button>
-      </div>
-    </header>
-
-    <div id="bim-workspace" class="bim-workspace" data-tab="model">
-      <aside id="bim-navigator" class="bim-panel bim-navigator" aria-label="Navegador do projeto"></aside>
-
-      <div class="bim-stage" role="region" aria-label="Modelo 3D">
-        <div id="ifc-canvas-container" class="bim-viewport"></div>
-        <div id="ifc-loading-overlay" class="bim-loading hidden" aria-live="polite">
-          <div class="bim-loading__spinner"></div>
-          <strong id="ifc-loading-text">Preparando visualizador…</strong>
-          <div class="bim-loading__track"><div id="ifc-progress-bar" class="bim-loading__bar"></div></div>
-        </div>
-        <div id="ifc-status" class="bim-status hidden" role="status"></div>
-        <div id="bim-plan-banner" class="bim-plan-banner hidden" role="status">
-          <span><i class="ph-bold ph-map-trifold"></i> Planta: <strong id="bim-plan-label"></strong></span>
-          <button type="button" id="bim-plan-exit" class="bim-link-button">Voltar ao 3D</button>
-        </div>
-        <div id="ifc-walk-crosshair" class="bim-walk-crosshair hidden" aria-hidden="true"></div>
-        <div id="ifc-walk-help" class="bim-walk-help hidden">Clique em um piso para posicionar-se. Use <b>W A S D</b> para andar, <b>Espaço</b> para pular e <b>Shift</b> para correr. <b>Esc</b> libera o mouse; o segundo <b>Esc</b> sai.</div>
-        <div id="bim-measure-help" class="bim-walk-help hidden"></div>
-        <div id="bim-legend" class="bim-legend hidden" aria-label="Legenda de cores"></div>
-
-        <div id="bim-hover-tip" class="bim-hover-tip hidden" role="tooltip"></div>
-        <div id="bim-context-menu" class="bim-context-menu hidden" role="menu" aria-label="Ações do elemento"></div>
-        <section id="bim-shortcuts" class="bim-float bim-shortcuts hidden" aria-label="Atalhos de teclado">
-          <div class="bim-float__head"><span>Atalhos de teclado</span><button type="button" class="bim-link-button" data-shortcuts-close>Fechar</button></div>
-          <dl class="bim-shortcuts__list">
-            <div><dt><kbd>F</kbd></dt><dd>Enquadrar tudo</dd></div>
-            <div><dt><kbd>I</kbd></dt><dd>Isolar a seleção</dd></div>
-            <div><dt><kbd>H</kbd></dt><dd>Ocultar a seleção</dd></div>
-            <div><dt><kbd>U</kbd></dt><dd>Mostrar tudo</dd></div>
-            <div><dt><kbd>Esc</kbd></dt><dd>Limpar seleção</dd></div>
-            <div><dt><kbd>Ctrl</kbd> + clique</dt><dd>Somar à seleção</dd></div>
-            <div><dt><kbd>?</kbd></dt><dd>Mostrar ou ocultar esta lista</dd></div>
-          </dl>
-        </section>
-        <div id="bim-viewcube" class="bim-viewcube" title="Cubo de navegação: clique em uma face, aresta ou canto"></div>
-        <nav class="bim-navbar" aria-label="Navegação do modelo">
-          <button type="button" data-action="orbit" class="bim-tool bim-tool--icon active" title="Órbita"><i class="ph ph-arrows-clockwise"></i><span class="bim-visually-hidden">Órbita</span></button>
-          <button type="button" data-action="walk" class="bim-tool bim-tool--icon bim-walk-only" title="Caminhar em primeira pessoa"><i class="ph ph-person-simple-walk"></i><span class="bim-visually-hidden">Caminhar</span></button>
-          <button type="button" data-action="fit" class="bim-tool bim-tool--icon" title="Enquadrar tudo"><i class="ph ph-frame-corners"></i><span class="bim-visually-hidden">Enquadrar</span></button>
-        </nav>
-
-        <div class="bim-stage__drawers">
-          <button type="button" class="bim-drawer-toggle" data-drawer="navigator"><i class="ph ph-tree-structure"></i><span>Navegador</span></button>
-          <button type="button" class="bim-drawer-toggle" data-drawer="sheet"><i class="ph ph-identification-card"></i><span>Elemento</span></button>
-        </div>
-
-        <div class="bim-toolbar" role="toolbar" aria-label="Ferramentas do modelo">
-          <div class="bim-toolbar__group bim-toolbar__group--mobile-nav">
-            <button type="button" data-action="orbit" class="bim-tool active" title="Órbita"><i class="ph ph-arrows-clockwise"></i><span>Órbita</span></button>
-            <button type="button" data-action="walk" class="bim-tool bim-walk-only" title="Caminhar em primeira pessoa"><i class="ph ph-person-simple-walk"></i><span>Caminhar</span></button>
-            <button type="button" data-action="fit" class="bim-tool" title="Enquadrar tudo"><i class="ph ph-frame-corners"></i><span>Enquadrar</span></button>
-          </div>
-          <div class="bim-toolbar__group">
-            <button type="button" data-action="xray" class="bim-tool" aria-pressed="false" title="Raio-X: deixa translúcido tudo o que não está selecionado"><i class="ph ph-eye"></i><span>Raio-X</span></button>
-            <button type="button" data-action="color" class="bim-tool" title="Colorir por parâmetro"><i class="ph ph-palette"></i><span>Colorir</span></button>
-            <button type="button" data-action="clip" class="bim-tool" title="Caixa de corte"><i class="ph ph-scissors"></i><span>Cortes</span></button>
-            <button type="button" data-action="explode" class="bim-tool" title="Vista explodida"><i class="ph ph-arrows-out"></i><span>Explodir</span></button>
-          </div>
-          <div class="bim-toolbar__group">
-            <button type="button" data-action="measure" class="bim-tool" title="Medir distância ou área"><i class="ph ph-ruler"></i><span>Medir</span></button>
-            <button type="button" data-action="coords" class="bim-tool" title="Ler as coordenadas de um ponto"><i class="ph ph-map-pin"></i><span>Coordenadas</span></button>
-            <button type="button" data-action="views" class="bim-tool" title="Vistas salvas"><i class="ph ph-bookmark-simple"></i><span>Vistas</span></button>
-            <button type="button" data-action="settings" class="bim-tool" title="Fundo e qualidade gráfica"><i class="ph ph-sliders-horizontal"></i><span>Ajustes</span></button>
-          </div>
-        </div>
-
-        <section id="bim-color-panel" class="bim-float hidden" aria-label="Colorir por parâmetro">
-          <label for="bim-color-select">Colorir elementos por</label>
-          <select id="bim-color-select" class="bim-select">
-            <option value="">Cores originais do modelo</option>
-            <option value="discipline">Disciplina</option>
-            <option value="storey">Pavimento</option>
-            <option value="classLabel">Categoria</option>
-            <option value="type">Tipo</option>
-            <option value="material">Material</option>
-            <option value="system">Sistema</option>
-            <option value="diameter">Ø equivalente</option>
-          </select>
-          <p class="bim-note">A legenda aparece no canto do modelo. Clique em um item da legenda para selecionar esses elementos.</p>
-        </section>
-        <section id="ifc-explode-panel" class="bim-float hidden" aria-label="Vista explodida">
-          <label for="ifc-explode-range">Afastamento <output id="ifc-explode-value">0,0 m</output></label>
-          <input id="ifc-explode-range" type="range" min="0" max="10" step="0.1" value="0">
-          <p class="bim-note">Em 0,0 m a seleção e a caminhada voltam a funcionar.</p>
-        </section>
-        <section id="ifc-clip-panel" class="bim-float bim-float--clip hidden" aria-label="Caixa de corte">
-          <div class="bim-float__head"><span>Caixa de corte</span><button id="ifc-reset-clip" type="button" class="bim-link-button">Redefinir</button></div>
-          <div id="ifc-clip-ranges"></div>
-        </section>
-        <section id="bim-measure-panel" class="bim-float hidden" aria-label="Medição">
-          <div class="bim-segmented" role="radiogroup" aria-label="Tipo de medição">
-            <button type="button" data-measure="length" role="radio" aria-checked="false"><i class="ph ph-ruler"></i> Distância</button>
-            <button type="button" data-measure="angle" role="radio" aria-checked="false"><i class="ph ph-angle"></i> Ângulo</button>
-            <button type="button" data-measure="area" role="radio" aria-checked="false"><i class="ph ph-polygon"></i> Área</button>
-          </div>
-          <p class="bim-note"><b>Distância:</b> um clique no ponto A e outro no ponto B, com encaixe em ponto final, ponto médio, perpendicular, aresta e face. <b>Esc</b> cancela o ponto, <b>Delete</b> apaga a última medição. <b>Ângulo:</b> três cliques (ponto, vértice, ponto). <b>Área:</b> um clique por vértice, <b>Enter</b> ou clique no primeiro ponto fecha o polígono.</p>
-          <div class="bim-float__actions">
-            <button type="button" id="bim-measure-clear" class="bim-link-button">Apagar medições</button>
-            <button type="button" id="bim-measure-stop" class="bim-link-button">Encerrar</button>
-          </div>
-        </section>
-        <section id="bim-coords-panel" class="bim-float hidden" aria-label="Coordenadas">
-          <span class="bim-float__label">Coordenadas do ponto</span>
-          <p class="bim-note">Clique em qualquer ponto do modelo para ver <b>X</b>, <b>Y</b> e a cota <b>Z</b>. Os valores são copiados para a área de transferência. Encaixa em ponto final, ponto médio, aresta e face. <b>Delete</b> apaga o último ponto. Em primeira pessoa, solte o mouse com <b>Esc</b>, clique nos pontos e use o <b>botão direito</b> para voltar a caminhar.</p>
-          <div class="bim-float__actions">
-            <button type="button" id="bim-coords-clear" class="bim-link-button">Apagar pontos</button>
-            <button type="button" id="bim-coords-stop" class="bim-link-button">Encerrar</button>
-          </div>
-        </section>
-        <section id="bim-views-panel" class="bim-float hidden" aria-label="Vistas">
-          <span class="bim-float__label">Vistas prontas</span>
-          <div class="bim-standard-views">
-            <button type="button" data-std-view="iso">Isométrica</button>
-            <button type="button" data-std-view="plan">Planta</button>
-            <button type="button" data-std-view="front">Frente</button>
-            <button type="button" data-std-view="back">Fundos</button>
-            <button type="button" data-std-view="left">Esquerda</button>
-            <button type="button" data-std-view="right">Direita</button>
-          </div>
-          <span class="bim-float__label">Minhas vistas</span>
-          <form id="bim-view-form" class="bim-view-form">
-            <label class="bim-visually-hidden" for="bim-view-name">Nome da vista</label>
-            <input id="bim-view-name" type="text" maxlength="60" placeholder="Nome da vista" autocomplete="off">
-            <button type="submit" class="bim-button">Salvar vista</button>
-          </form>
-          <ul id="bim-view-list" class="bim-view-list"></ul>
-        </section>
-        <section id="bim-settings-panel" class="bim-float hidden" aria-label="Ajustes">
-          <span class="bim-float__label">Fundo</span>
-          <div class="bim-swatches">
-            <button type="button" data-color="#f2f1ec" style="--swatch:#f2f1ec" aria-label="Papel"></button>
-            <button type="button" data-color="#dfe7ec" style="--swatch:#dfe7ec" aria-label="Azul claro"></button>
-            <button type="button" data-color="#1b2633" style="--swatch:#1b2633" aria-label="Grafite"></button>
-            <input id="ifc-background-input" type="color" value="#f2f1ec" aria-label="Escolher cor de fundo">
-          </div>
-          <label class="bim-float__label" for="ifc-quality-select">Qualidade gráfica</label>
-          <select id="ifc-quality-select" class="bim-select"><option value="high">Alta</option><option value="balanced" selected>Equilibrada</option><option value="performance">Desempenho</option></select>
-          <label class="bim-check"><input type="checkbox" id="bim-spaces-toggle"> Mostrar ambientes (IfcSpace)</label>
-          <p class="bim-note">A qualidade cai temporariamente durante movimentos pesados para manter a navegação fluida.</p>
-        </section>
-      </div>
-
-      <aside id="bim-sheet" class="bim-panel bim-sheet" aria-label="Dados do elemento"></aside>
-      <section id="bim-takeoff" class="bim-panel bim-takeoff" aria-label="Quantitativos"></section>
-      <section id="bim-overview" class="bim-panel bim-overview" aria-label="Visão geral do projeto"></section>
-    </div>
-
-    <dialog id="ifc-import-scope-dialog" class="bim-dialog" aria-labelledby="ifc-import-scope-title" aria-describedby="ifc-import-scope-copy">
-      <form method="dialog" class="bim-dialog__surface">
-        <h3 id="ifc-import-scope-title">Onde abrir este IFC?</h3>
-        <p id="ifc-import-scope-copy">O arquivo é processado neste navegador e não é enviado a nenhum servidor.</p>
-        <p id="ifc-import-file-names" class="bim-dialog__files"></p>
-        <div class="bim-dialog__choices">
-          <button id="ifc-import-new-project" class="bim-choice bim-choice--primary" type="button">
-            <strong>Abrir como novo projeto</strong>
-            <span>Fecha os modelos atuais e mostra só este IFC.</span>
-          </button>
-          <button id="ifc-import-same-project" class="bim-choice" type="button">
-            <strong>Adicionar ao projeto aberto</strong>
-            <span>Federa o IFC com as disciplinas já carregadas.</span>
-          </button>
-        </div>
-        <button id="ifc-import-cancel" class="bim-link-button bim-dialog__cancel" type="submit">Cancelar</button>
-      </form>
-    </dialog>
-  </div>
   <!-- Floating WhatsApp Action Button -->
   <a href="https://wa.me/5562981143331?text=Ol%C3%A1%20Gabriel,%20vi%20seu%20portf%C3%B3lio%20e%20gostaria%20de%20conversar!" target="_blank" rel="noopener noreferrer" class="floating-whatsapp" title="WhatsApp Gabriel" aria-label="WhatsApp">
     <i class="ph-fill ph-whatsapp-logo"></i>
@@ -1159,8 +912,6 @@ def auditar_durabilidade_nbr6118(dados_viga):
   </footer>
 
   <!-- Scripts -->
-  <!-- IFC Viewer Engine -->
-  <script type="module" src="src/ifc-viewer.js"></script>
 
   <!-- Main Website Scripts -->
   <script type="module" src="script.js"></script>

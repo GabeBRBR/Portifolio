@@ -8,21 +8,12 @@ importers:
 
   .:
     dependencies:
-      '@thatopen/components':
-        specifier: 3.4.8
-        version: 3.4.8(@thatopen/fragments@3.4.7(three@0.185.1)(web-ifc@0.0.77))(camera-controls@3.1.2(three@0.185.1))(three@0.185.1)(web-ifc@0.0.77)
-      '@thatopen/components-front':
-        specifier: 3.4.4
-        version: 3.4.4(@thatopen/fragments@3.4.7(three@0.185.1)(web-ifc@0.0.77))(camera-controls@3.1.2(three@0.185.1))(three@0.185.1)(web-ifc@0.0.77)
       '@thatopen/fragments':
         specifier: 3.4.7
         version: 3.4.7(three@0.185.1)(web-ifc@0.0.77)
       three:
         specifier: 0.185.1
         version: 0.185.1
-      three-mesh-bvh:
-        specifier: 0.9.13
-        version: 0.9.13(three@0.185.1)
       web-ifc:
         specifier: 0.0.77
         version: 0.0.77
@@ -367,9 +358,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@nodable/entities@2.2.0':
-    resolution: {integrity: sha512-9uGyhaQavEUMC8AIddIjau4NsnsXhou+j5sBAGojCM1oxmQpVKTWR/9JxABD6UAv12vpIms55fPZKFQEhG6uBg==}
-
   '@rollup/rollup-android-arm-eabi@4.63.1':
     resolution: {integrity: sha512-UZ8sUxPTiHWYX9QNdJedb1kDZSpS1t/VPWBWGSgqHNi9w3Cu6IXvu2mzbhiTiPvtrqgTQJ+zqiAq2iPIPilpaQ==}
     cpu: [arm]
@@ -508,21 +496,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@thatopen/components-front@3.4.4':
-    resolution: {integrity: sha512-uwJmT76CNaIU5fQuKK37OtV7qPyJdWs46oxRqGEPemhI84NudchPKZOCFdKLTlgLBvzXilPg6fszO5oB3wT5+A==}
-    peerDependencies:
-      '@thatopen/fragments': ~3.4.0
-      three: '>=0.182.0'
-      web-ifc: '>=0.0.77'
-
-  '@thatopen/components@3.4.8':
-    resolution: {integrity: sha512-eil8zla7W45WI1Pf/xAcY4oQpmb7pDJnyN9jWP2rkuboGIol+RyGCo9XHR2GnL9Ckgb+Jd595oXhyiotQ8lVAA==}
-    peerDependencies:
-      '@thatopen/fragments': ~3.4.7
-      camera-controls: '>=3.1.2'
-      three: '>=0.182.0'
-      web-ifc: '>=0.0.77'
-
   '@thatopen/fragments@3.4.7':
     resolution: {integrity: sha512-tGuS7LVf0BkN5qQISG3VAGeMyqiZYwkvcHGYZ+eA5emr+v8aIjEKZvM/eYrGhJKUv/eZ+N5qeevEftfcmoBc+g==}
     engines: {node: '>=20.11.0'}
@@ -532,18 +505,6 @@ packages:
 
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
-
-  anynum@1.0.1:
-    resolution: {integrity: sha512-N6//FLET/tXYNM/F6ABca1oH6fWB+KlTt909Le28WMDBk8oaT4vY17DCrwg2MvmuqUKt3Ni4N5dGJ/EoBgcO6A==}
-
-  camera-controls@3.1.2:
-    resolution: {integrity: sha512-xkxfpG2ECZ6Ww5/9+kf4mfg1VEYAoe9aDSY+IwF0UEs7qEzwy0aVRfs2grImIECs/PoBtWFrh7RXsQkwG922JA==}
-    engines: {node: '>=22.0.0', npm: '>=10.5.1'}
-    peerDependencies:
-      three: '>=0.126.1'
-
-  core-util-is@1.0.3:
-    resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
 
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
@@ -555,13 +516,6 @@ packages:
   esbuild@0.25.12:
     resolution: {integrity: sha512-bbPBYYrtZbkt6Os6FiTLCTFxvq4tt3JKall1vRwshA3fdVztsLAatFaZobhkBC8/BrPetoa0oksYoKXoG4ryJg==}
     engines: {node: '>=18'}
-    hasBin: true
-
-  fast-xml-builder@1.3.1:
-    resolution: {integrity: sha512-pIM/1n3ntFXKYrUZwW7QCK0gAW7XY+wzj1YMIV3tLDvPj/V+zTGJK5e3/4WJfwj0qWw2ElNXiTixda/R+3YSug==}
-
-  fast-xml-parser@5.7.2:
-    resolution: {integrity: sha512-P7oW7tLbYnhOLQk/Gv7cZgzgMPP/XN03K02/Jy6Y/NHzyIAIpxuZIM/YqAkfiXFPxA2CTm7NtCijK9EDu09u2w==}
     hasBin: true
 
   fdir@6.5.0:
@@ -581,21 +535,6 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  immediate@3.0.6:
-    resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
-
-  inherits@2.0.4:
-    resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
-
-  isarray@1.0.0:
-    resolution: {integrity: sha512-VLghIWNM6ELQzo7zwmcg0NmTVyWKYjvIeM83yjp0wRDTmUnrM678fQbcKBo6n2CJEF0szoG//ytg+TKla89ALQ==}
-
-  jszip@3.10.1:
-    resolution: {integrity: sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g==}
-
-  lie@3.3.0:
-    resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
-
   lru-cache@11.1.0:
     resolution: {integrity: sha512-QIXZUBJUx+2zHUdQujWejBkcD9+cs94tLn0+YL8UrCh+D5sCXZ4c7LaEH48pNwRY3MLDgqUFyhlCyjJPf1WP0A==}
     engines: {node: 20 || >=22}
@@ -608,15 +547,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  pako@1.0.11:
-    resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
-
   pako@2.1.0:
     resolution: {integrity: sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==}
-
-  path-expression-matcher@1.6.2:
-    resolution: {integrity: sha512-enSlaiat05iasnzmgNxRj8reFdj3puY2QpNgP1aPIaVfT6nn9ICuPoFlKHk8EN22HcwewshO+mN2DGbkCEOtqQ==}
-    engines: {node: '>=14.0.0'}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -629,27 +561,15 @@ packages:
     resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
     engines: {node: ^10 || ^12 || >=14}
 
-  process-nextick-args@2.0.1:
-    resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
-
-  readable-stream@2.3.8:
-    resolution: {integrity: sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==}
-
   rollup@4.63.1:
     resolution: {integrity: sha512-3Df9jsstwhccuEfmAMi9l8XUh/GOkVObmFTU7CCVBysEbcOZLl84jCtaAZMcPiMz2EGKsATzQcU+Xr3n/wU6cg==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  safe-buffer@5.1.2:
-    resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
-
   semver@7.8.5:
     resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
     hasBin: true
-
-  setimmediate@1.0.5:
-    resolution: {integrity: sha512-MATJdZp8sLqDl/68LfQmbP8zKPLQNV6BIZoIgrscFDQ+RsvK/BxeDQOgyxKKoh0y/8h3BqVFnCqQ/gd+reiIXA==}
 
   sharp@0.35.5:
     resolution: {integrity: sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==}
@@ -664,22 +584,6 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
-  string_decoder@1.1.1:
-    resolution: {integrity: sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg==}
-
-  strnum@2.4.2:
-    resolution: {integrity: sha512-rDG3Ah4TV0k1hWvLSzkZtMmLN9+eS+h3knq4MP6A42Y3Yh5qGNnOUs1jJkoSr8FG5dsL28c7KgkIBzSEykqtuw==}
-
-  three-mesh-bvh@0.9.13:
-    resolution: {integrity: sha512-2zRh4iTFDmiTISanSVFofIw6J92DxFSqWn2qsQTtKp2ko5Ebk/JaI/wpMqNaBJ3F0qx7/NuP9GPK4jGDX99J2Q==}
-    peerDependencies:
-      three: '>= 0.159.0'
-
-  three-mesh-bvh@0.9.9:
-    resolution: {integrity: sha512-FJKitcjvbALmeQRK+Sc+nLGorCpkrZBrbgJZFzhdyWboak37DZikn46hvQkNqSbJPm227ahYmS6k3N/GXaAyXw==}
-    peerDependencies:
-      three: '>= 0.159.0'
-
   three@0.185.1:
     resolution: {integrity: sha512-5aojFCXKwnjBRZvUnt3WFfEcvUJgkN5LlijRFN95hMy8WVkG4I0QNcJE+OuWvuJ0bOdStrbfXn0pkd6/QyiAlg==}
 
@@ -689,9 +593,6 @@ packages:
 
   tslib@2.9.1:
     resolution: {integrity: sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==}
-
-  util-deprecate@1.0.2:
-    resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
   vite@7.1.7:
     resolution: {integrity: sha512-VbA8ScMvAISJNJVbRDTJdCwqQoAareR/wutevKanhR2/1EkoXVZVkkORaYm/tNVCjP/UDTKtcw3bAkwOUdedmA==}
@@ -735,10 +636,6 @@ packages:
 
   web-ifc@0.0.77:
     resolution: {integrity: sha512-VzQ0W/Iiqbidxn1ECUvz6qJ6p2sXBVNcOsUOBCETzy77psAH6yFLKQm74aXabkx3JH4OvFVHe8k1qS6+Z2zl1w==}
-
-  xml-naming@0.3.0:
-    resolution: {integrity: sha512-ghig2TBE/H11aOVgmahA3MhimvkBr6JIYknH/Dhdk10nXwdbIqBJsbfMxpvFPG8bAw77gN29aQWvKpmVoPlvPQ==}
-    engines: {node: '>=16.0.0'}
 
 snapshots:
 
@@ -934,8 +831,6 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@nodable/entities@2.2.0': {}
-
   '@rollup/rollup-android-arm-eabi@4.63.1':
     optional: true
 
@@ -1011,26 +906,6 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.63.1':
     optional: true
 
-  '@thatopen/components-front@3.4.4(@thatopen/fragments@3.4.7(three@0.185.1)(web-ifc@0.0.77))(camera-controls@3.1.2(three@0.185.1))(three@0.185.1)(web-ifc@0.0.77)':
-    dependencies:
-      '@thatopen/components': 3.4.8(@thatopen/fragments@3.4.7(three@0.185.1)(web-ifc@0.0.77))(camera-controls@3.1.2(three@0.185.1))(three@0.185.1)(web-ifc@0.0.77)
-      '@thatopen/fragments': 3.4.7(three@0.185.1)(web-ifc@0.0.77)
-      earcut: 3.2.3
-      three: 0.185.1
-      web-ifc: 0.0.77
-    transitivePeerDependencies:
-      - camera-controls
-
-  '@thatopen/components@3.4.8(@thatopen/fragments@3.4.7(three@0.185.1)(web-ifc@0.0.77))(camera-controls@3.1.2(three@0.185.1))(three@0.185.1)(web-ifc@0.0.77)':
-    dependencies:
-      '@thatopen/fragments': 3.4.7(three@0.185.1)(web-ifc@0.0.77)
-      camera-controls: 3.1.2(three@0.185.1)
-      fast-xml-parser: 5.7.2
-      jszip: 3.10.1
-      three: 0.185.1
-      three-mesh-bvh: 0.9.9(three@0.185.1)
-      web-ifc: 0.0.77
-
   '@thatopen/fragments@3.4.7(three@0.185.1)(web-ifc@0.0.77)':
     dependencies:
       earcut: 3.2.3
@@ -1041,14 +916,6 @@ snapshots:
       web-ifc: 0.0.77
 
   '@types/estree@1.0.9': {}
-
-  anynum@1.0.1: {}
-
-  camera-controls@3.1.2(three@0.185.1):
-    dependencies:
-      three: 0.185.1
-
-  core-util-is@1.0.3: {}
 
   detect-libc@2.1.2: {}
 
@@ -1083,18 +950,6 @@ snapshots:
       '@esbuild/win32-ia32': 0.25.12
       '@esbuild/win32-x64': 0.25.12
 
-  fast-xml-builder@1.3.1:
-    dependencies:
-      path-expression-matcher: 1.6.2
-      xml-naming: 0.3.0
-
-  fast-xml-parser@5.7.2:
-    dependencies:
-      '@nodable/entities': 2.2.0
-      fast-xml-builder: 1.3.1
-      path-expression-matcher: 1.6.2
-      strnum: 2.4.2
-
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
       picomatch: 4.0.7
@@ -1104,34 +959,13 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  immediate@3.0.6: {}
-
-  inherits@2.0.4: {}
-
-  isarray@1.0.0: {}
-
-  jszip@3.10.1:
-    dependencies:
-      lie: 3.3.0
-      pako: 1.0.11
-      readable-stream: 2.3.8
-      setimmediate: 1.0.5
-
-  lie@3.3.0:
-    dependencies:
-      immediate: 3.0.6
-
   lru-cache@11.1.0: {}
 
   mupdf@1.28.1: {}
 
   nanoid@3.3.18: {}
 
-  pako@1.0.11: {}
-
   pako@2.1.0: {}
-
-  path-expression-matcher@1.6.2: {}
 
   picocolors@1.1.1: {}
 
@@ -1142,18 +976,6 @@ snapshots:
       nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
-
-  process-nextick-args@2.0.1: {}
-
-  readable-stream@2.3.8:
-    dependencies:
-      core-util-is: 1.0.3
-      inherits: 2.0.4
-      isarray: 1.0.0
-      process-nextick-args: 2.0.1
-      safe-buffer: 5.1.2
-      string_decoder: 1.1.1
-      util-deprecate: 1.0.2
 
   rollup@4.63.1:
     dependencies:
@@ -1187,11 +1009,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.63.1
       fsevents: 2.3.3
 
-  safe-buffer@5.1.2: {}
-
   semver@7.8.5: {}
-
-  setimmediate@1.0.5: {}
 
   sharp@0.35.5:
     dependencies:
@@ -1227,22 +1045,6 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  string_decoder@1.1.1:
-    dependencies:
-      safe-buffer: 5.1.2
-
-  strnum@2.4.2:
-    dependencies:
-      anynum: 1.0.1
-
-  three-mesh-bvh@0.9.13(three@0.185.1):
-    dependencies:
-      three: 0.185.1
-
-  three-mesh-bvh@0.9.9(three@0.185.1):
-    dependencies:
-      three: 0.185.1
-
   three@0.185.1: {}
 
   tinyglobby@0.2.17:
@@ -1252,8 +1054,6 @@ snapshots:
 
   tslib@2.9.1:
     optional: true
-
-  util-deprecate@1.0.2: {}
 
   vite@7.1.7:
     dependencies:
@@ -1267,5 +1067,3 @@ snapshots:
       fsevents: 2.3.3
 
   web-ifc@0.0.77: {}
-
-  xml-naming@0.3.0: {}

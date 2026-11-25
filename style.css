@@ -888,7 +888,7 @@ body {
 }
 
 /* ==========================================================================
-   Utilitário global de ocultação (o visualizador BIM tem estilos próprios em src/styles/bim-app.css)
+   Utilitário global de ocultação
    ========================================================================== */
 .hidden { display: none !important; }
 
