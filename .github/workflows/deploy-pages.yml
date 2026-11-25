@@ -35,5 +35,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
+      # O GitHub às vezes demora a listar o artefato recém-enviado; sem esta pausa o
+      # deploy-pages pode falhar com "No artifacts named github-pages were found".
+      - run: sleep 20
       - id: deployment
         uses: actions/deploy-pages@v4
